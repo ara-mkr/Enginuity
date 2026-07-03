@@ -36,6 +36,16 @@
   /* Code/netlist editor surface */
   --editor-bg:    #0a0a0a;
 
+  /* Chart trace palette (muted Polaris families: steel-blue, danger-muted,
+     mauve, sage, warning-muted, rose). Charts resolve these at runtime via
+     useChartPalette because SVG presentation attributes can't resolve var(). */
+  --chart-trace-1: #7ab4c4;
+  --chart-trace-2: #b08080;
+  --chart-trace-3: #9485b8;
+  --chart-trace-4: #7aaa8a;
+  --chart-trace-5: #b09470;
+  --chart-trace-6: #b07888;
+
   /* Layout */
   --sidebar-width: 220px;
 

@@ -11,6 +11,7 @@ import type { NotebookEntry, EntryType, ProblemEntry } from './types'
 import { ENTRY_META, STORAGE_KEY } from './types'
 import { logEvent } from '../../engine/eventLog'
 import { useFocusMode } from '../../context/FocusModeContext'
+import { useProbeContext } from '../../hooks/useProbeContext'
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 
@@ -326,6 +327,14 @@ export function EngineeringNotebook() {
   const [gistMsg, setGistMsg] = useState('')
   const searchRef = useRef<HTMLInputElement>(null)
   const entryRefs = useRef<Record<string, HTMLDivElement>>({})
+
+  useProbeContext('notebook', {
+    entryCount: entries.length,
+    openProblems: entries.filter((e) => e.type === 'PROBLEM' && (e as ProblemEntry).status !== 'solved').length,
+    search: search || null,
+    expandedEntryTitle: entries.find((e) => e.id === expandedId)?.title ?? null,
+    editing: showEditor,
+  })
 
   // Cmd/Ctrl+F focuses search
   useEffect(() => {

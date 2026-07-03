@@ -14,6 +14,8 @@ import {
 } from 'lucide-react'
 import { useProject } from '../../context/ProjectContext'
 import { useAIProvider } from '../../hooks/useAIProvider'
+import { useProbeContext } from '../../hooks/useProbeContext'
+import { logEvent } from '../../engine/eventLog'
 import { extractText } from './fileParser'
 import type { ProjectFile } from '../../context/ProjectContext'
 
@@ -462,6 +464,15 @@ export function Dashboard() {
 
   const contextEmpty = !description && !tags.length && !files.length
 
+  useProbeContext('dashboard', {
+    descriptionLength: description?.length ?? 0,
+    tags,
+    fileCount: files.length,
+    fileNames: files.map((f) => f.name),
+    hasSummary: !!summaryResult,
+    building: summaryResult?.building ?? null,
+  })
+
   const generate = useCallback(async () => {
     if (!isConnected) {
       setGenError('No AI provider connected. Click "Connect Key" in the banner above.')
@@ -498,6 +509,11 @@ export function Dashboard() {
       )
       setSummaryRaw(text)
       setSummaryResult(parseSummary(text))
+      logEvent('PROJECT_SUMMARY_GENERATED', {
+        tagCount: tags.length,
+        fileCount: files.length,
+        module: 'dashboard',
+      })
     } catch (e) {
       setGenError(e instanceof Error ? e.message : 'Generation failed')
     } finally {

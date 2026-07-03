@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useAIProvider } from '../../hooks/useAIProvider'
 import { useProjectContext } from '../../hooks/useProjectContext'
+import { useProbeContext } from '../../hooks/useProbeContext'
+import { logEvent } from '../../engine/eventLog'
 // @ts-ignore
 import { useEnginguityStore } from '../../engine/persistenceEngine'
 // @ts-ignore
@@ -305,6 +307,16 @@ export function TestHarness() {
   const [showCodeOutput, setShowCodeOutput] = useState(false)
   const [generatedCode, setGeneratedCode] = useState('')
 
+  useProbeContext('test-harness', {
+    language,
+    functionName: sig?.functionName ?? null,
+    testCaseCount: testCases.length,
+    selectedCount: selected.size,
+    running,
+    passed: summary?.passed ?? null,
+    failed: summary?.failed ?? null,
+  })
+
   // Write-through: mirror function/tests/results into the global store so a
   // navigation away doesn't lose the pasted function or generated test run.
   useEffect(() => {
@@ -513,6 +525,14 @@ Return a JSON array where each item is:
         ? { total: prev.total, passed: prev.passed + passed, failed: prev.failed + failed, errors: prev.errors + errors, totalRuntime: prev.totalRuntime + totalRuntime }
         : { total, passed, failed, errors, totalRuntime }
       )
+      logEvent('TESTS_RUN', {
+        functionName: sig?.functionName ?? 'unknown',
+        language,
+        total,
+        passed,
+        failed: failed + errors,
+        module: 'test-harness',
+      })
     } catch (e: unknown) {
       alert('Run failed: ' + (e instanceof Error ? e.message : String(e)))
     } finally {

@@ -17,6 +17,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { Loader2, Library, RefreshCw } from 'lucide-react'
 import { useAIProvider } from '../../hooks/useAIProvider'
+import { useProbeContext } from '../../hooks/useProbeContext'
+import { logEvent } from '../../engine/eventLog'
 import { ComponentCard } from './ComponentCard'
 import { ComponentLibrary, saveToLibrary, loadLibrary } from './ComponentLibrary'
 // @ts-ignore
@@ -103,6 +105,16 @@ export function DatasheetIntelligence() {
   const [currentFileName, setCurrentFileName] = useState('')
   const { makeRequest } = useAIProvider()
   const msgTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useProbeContext('datasheet', {
+    phase,
+    fileName: currentFileName || null,
+    partNumber: component?.component.partNumber ?? null,
+    manufacturer: component?.component.manufacturer ?? null,
+    category: component?.component.category ?? null,
+    pinCount: component?.pinout.length ?? 0,
+    pageCount: pdfPages.length,
+  })
 
   useEffect(() => {
     const prefillStr = localStorage.getItem('enginguity_datasheet_prefill')
@@ -196,6 +208,12 @@ export function DatasheetIntelligence() {
       setComponent(data)
       setChatMessages([])
       setPhase('done')
+      logEvent('DATASHEET_ANALYZED', {
+        fileName: result.name,
+        partNumber: data.component?.partNumber || 'Unknown',
+        pinCount: data.pinout?.length ?? 0,
+        module: 'datasheet',
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Extraction failed')
       setPhase('error')

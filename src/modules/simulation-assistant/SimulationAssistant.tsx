@@ -10,6 +10,9 @@ import {
   CartesianGrid, Tooltip, Legend, ReferenceLine
 } from 'recharts'
 import { useAIProvider } from '../../hooks/useAIProvider'
+import { useChartPalette } from '../../hooks/useChartPalette'
+import { useProbeContext } from '../../hooks/useProbeContext'
+import { logEvent } from '../../engine/eventLog'
 // @ts-ignore
 import { parseCircuitNetlist } from '../circuit-sim/engine/netlistParser'
 import { runNetlistAnalysis } from '../circuit-sim/engine/runSimulation'
@@ -61,8 +64,6 @@ const PRESETS = [
   }
 ]
 
-const COLORS = ['#7ab4c4', '#b08080', '#9485b8', '#7aaa8a', '#b09470', '#b07888']
-
 // Helper component to render KaTeX formulas safely
 function Latex({ math, block = false }: { math: string; block?: boolean }) {
   const containerRef = useRef<HTMLSpanElement>(null)
@@ -108,6 +109,7 @@ function Latex({ math, block = false }: { math: string; block?: boolean }) {
 export function SimulationAssistant() {
   const navigate = useNavigate()
   const { makeRequest, isConnected, activeModel } = useAIProvider()
+  const COLORS = useChartPalette()
 
   // Layout & State
   const [prompt, setPrompt] = useState('')
@@ -135,6 +137,15 @@ export function SimulationAssistant() {
   const [simResult, setSimResult] = useState<any>(null)
   const [simError, setSimError] = useState<string | null>(null)
   const [simulating, setSimulating] = useState(false)
+
+  useProbeContext('simulation-assistant', {
+    promptLength: prompt.length,
+    hasCircuit: !!aiResponse,
+    componentCount: aiResponse?.components.length ?? 0,
+    analysisType,
+    hasResult: !!simResult,
+    simError,
+  })
 
   // Inject KaTeX runtime resources if not present
   useEffect(() => {
@@ -261,8 +272,20 @@ Return ONLY a valid, raw JSON object matching this schema. Do not enclose it in 
       }
 
       setSimResult(runNetlistAnalysis(parsed))
+      logEvent('SIMULATION_RUN', {
+        analysisType,
+        componentCount: parsed.components.length,
+        status: 'success',
+        module: 'simulation-assistant',
+      })
     } catch (e) {
       setSimError(e instanceof Error ? e.message : 'Error executing local simulation. Check netlist component tags.')
+      logEvent('SIMULATION_RUN', {
+        analysisType,
+        status: 'error',
+        error: e instanceof Error ? e.message : 'unknown',
+        module: 'simulation-assistant',
+      })
     } finally {
       setSimulating(false)
     }
@@ -790,7 +813,7 @@ Return ONLY a valid, raw JSON object matching this schema. Do not enclose it in 
                                   <XAxis dataKey="f" scale="log" type="number" domain={['auto', 'auto']} tickFormatter={(v) => `${v >= 1e3 ? (v/1e3).toFixed(0)+'k' : v}`} tick={{ fill: 'var(--text-muted)', fontSize: 10 }} />
                                   <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} />
                                   <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6 }} labelFormatter={(v) => `${v} Hz`} />
-                                  <Line type="monotone" dataKey="phase" stroke="#9485b8" dot={false} strokeWidth={1.5} name="Phase (°)" />
+                                  <Line type="monotone" dataKey="phase" stroke={COLORS[2]} dot={false} strokeWidth={1.5} name="Phase (°)" />
                                 </LineChart>
                               </ResponsiveContainer>
                             </div>

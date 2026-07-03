@@ -18,6 +18,8 @@ import {
 import JSZip from 'jszip'
 
 import { useAIProvider } from '../../hooks/useAIProvider'
+import { useProbeContext } from '../../hooks/useProbeContext'
+import { logEvent } from '../../engine/eventLog'
 import { UniversalDropZone } from '../../components/UniversalDropZone/index.jsx'
 import { FileTree } from './components/FileTree'
 import { AIAnalysisPanel } from './components/AIAnalysisPanel'
@@ -441,6 +443,18 @@ export function FirmwareDiffViewer() {
     }
   }, [fileA, fileB, selectedFilePath])
 
+  useProbeContext('firmware-diff', {
+    fileA: fileA ? { name: fileA.name, type: fileA.type } : null,
+    fileB: fileB ? { name: fileB.name, type: fileB.type } : null,
+    selectedFilePath,
+    viewMode,
+    linesAdded: stats.linesAdded,
+    linesRemoved: stats.linesRemoved,
+    linesModified: stats.linesModified,
+    percentChanged: stats.percentChanged,
+    hasAIAnalysis: !!analysisResult,
+  })
+
   // Run syntax highlighting on code text changes
   useEffect(() => {
     if (!hljsLoaded) return
@@ -646,6 +660,13 @@ Generate the report in this exact JSON structure:
       
       const parsed: AIAnalysisResult = JSON.parse(cleanRes)
       setAnalysisResult(parsed)
+      logEvent('FIRMWARE_DIFF_ANALYZED', {
+        fileA: fileA?.name ?? '',
+        fileB: fileB?.name ?? '',
+        riskCount: parsed.risks?.length ?? 0,
+        breakingChanges: parsed.breaking_changes?.length ?? 0,
+        module: 'firmware-diff',
+      })
       setToast({
         show: true,
         title: 'AI Analysis Complete',

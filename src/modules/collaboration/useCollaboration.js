@@ -34,16 +34,43 @@ function getRoomFromUrl() {
   return params.get('room')
 }
 
-function getTokenFromUrl() {
+// The room token is a shared secret. It travels in the URL #fragment —
+// fragments are never sent in HTTP requests, so the token can't land in
+// server or proxy access logs, and browsers strip fragments from Referer
+// headers. It must never go back into the query string.
+export function getTokenFromUrl() {
+  const m = window.location.hash.match(/(?:^#|&)ctk=([^&]+)/)
+  if (m) {
+    try { return decodeURIComponent(m[1]) } catch { return m[1] }
+  }
+  // Legacy links carried ?token= in the query string; accept it once —
+  // setRoomInUrl rewrites the URL with the token moved into the fragment.
   const params = new URLSearchParams(window.location.search)
   return params.get('token')
 }
 
-function setRoomInUrl(roomId, token) {
+export function setRoomInUrl(roomId, token) {
   const url = new URL(window.location.href)
   url.searchParams.set('room', roomId)
-  if (token) url.searchParams.set('token', token)
+  url.searchParams.delete('token')
+  url.hash = token ? `ctk=${encodeURIComponent(token)}` : ''
   window.history.replaceState({}, '', url.toString())
+}
+
+// Same-tab reload fallback: sessionStorage is scoped to the tab and cleared
+// when it closes, so the token survives a refresh without any URL exposure.
+const TOKEN_STORE_PREFIX = 'enginguity_collab_token_'
+
+export function loadStoredToken(roomId) {
+  try { return sessionStorage.getItem(TOKEN_STORE_PREFIX + roomId) } catch { return null }
+}
+
+export function storeToken(roomId, token) {
+  try { sessionStorage.setItem(TOKEN_STORE_PREFIX + roomId, token) } catch { /* quota/priv-mode — fragment still covers reloads */ }
+}
+
+export function clearStoredToken(roomId) {
+  try { sessionStorage.removeItem(TOKEN_STORE_PREFIX + roomId) } catch { /* already gone */ }
 }
 
 export function useCollaboration(initialRoomId, userName) {
@@ -59,7 +86,7 @@ export function useCollaboration(initialRoomId, userName) {
   const reconnectAttempts = useRef(0)
   const stateUpdateCallbacks = useRef([])
   const lastCursorSend = useRef(0)
-  const roomTokenRef = useRef(roomId ? getTokenFromUrl() || generateToken() : null)
+  const roomTokenRef = useRef(roomId ? getTokenFromUrl() || loadStoredToken(roomId) || generateToken() : null)
 
   const localUser = useRef({
     id: generateId(),
@@ -176,6 +203,7 @@ export function useCollaboration(initialRoomId, userName) {
     if (!activeRoomId) return
 
     setAuthError(null)
+    if (roomTokenRef.current) storeToken(activeRoomId, roomTokenRef.current)
     setRoomInUrl(activeRoomId, roomTokenRef.current)
     connect(activeRoomId)
 
@@ -271,7 +299,7 @@ export function useCollaboration(initialRoomId, userName) {
 
   const joinRoom = useCallback((rid, name, token) => {
     if (name) localUser.current.name = name
-    roomTokenRef.current = token || getTokenFromUrl() || generateToken()
+    roomTokenRef.current = token || getTokenFromUrl() || loadStoredToken(rid) || generateToken()
     setActiveRoomId(rid)
   }, [])
 
@@ -289,11 +317,13 @@ export function useCollaboration(initialRoomId, userName) {
     closeSocket(wsRef.current)
     setConnected(false)
     setUsers([])
+    if (activeRoomId) clearStoredToken(activeRoomId)
     setActiveRoomId(null)
     roomTokenRef.current = null
     const url = new URL(window.location.href)
     url.searchParams.delete('room')
     url.searchParams.delete('token')
+    url.hash = ''
     window.history.replaceState({}, '', url.toString())
   }, [activeRoomId, send, closeSocket])
 

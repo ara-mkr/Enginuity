@@ -7,7 +7,9 @@ import {
 } from 'lucide-react'
 import { useProjectContext } from '../../hooks/useProjectContext'
 import { useAIProvider } from '../../hooks/useAIProvider'
+import { useProbeContext } from '../../hooks/useProbeContext'
 import { useOpenRouter } from '../../context/OpenRouterContext'
+import { logEvent } from '../../engine/eventLog'
 
 // ── Static Suggestion List (80 common maker components) ─────────────────────
 const COMMON_COMPONENTS = [
@@ -160,6 +162,17 @@ export function ProjectIdeas() {
   const [error, setError] = useState<string | null>(null)
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null)
 
+  useProbeContext('project-ideas', {
+    activeTab,
+    components,
+    complexity,
+    goal: goal || null,
+    generatedCount: generatedIdeas.length,
+    savedCount: savedIdeas.length,
+    expandedIdea: generatedIdeas.find((i) => i.id === expandedCardId)?.title
+      ?? savedIdeas.find((i) => i.id === expandedCardId)?.title ?? null,
+  })
+
   // Synchronize tags prefill from useProjectContext on load
   useEffect(() => {
     if (brainTags && brainTags.length > 0 && components.length === 0) {
@@ -304,6 +317,12 @@ Return a JSON array of ${ideasCount} objects, each with:
 
       setGeneratedIdeas(parsedIdeas)
       setActiveTab('generate')
+      logEvent('IDEAS_GENERATED', {
+        count: parsedIdeas.length,
+        components: compsList,
+        complexity: complexPref,
+        module: 'project-ideas',
+      })
 
       // Record in History (maintain max 10)
       const newHistoryItem: HistoryItem = {

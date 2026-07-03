@@ -18,7 +18,9 @@ import {
 } from 'lucide-react'
 import { useOpenRouter } from '../../context/OpenRouterContext'
 import { useAIProvider } from '../../hooks/useAIProvider'
+import { useProbeContext } from '../../hooks/useProbeContext'
 import { useProjectContext } from '../../hooks/useProjectContext'
+import { logEvent } from '../../engine/eventLog'
 // @ts-ignore
 import { useEnginguityStore } from '../../engine/persistenceEngine'
 // @ts-ignore
@@ -373,6 +375,15 @@ export function AssetGenerator() {
   const [copied, setCopied] = useState(false)
   const seedRef = useRef(randomSeed())
 
+  useProbeContext('asset-generator', {
+    mode,
+    projectName,
+    generating,
+    hasResult: !!currentSvg,
+    historyCount: history.length,
+    lastError: genError,
+  })
+
   // Load persistent history (full SVGs) from IndexedDB on mount.
   useEffect(() => {
     let cancelled = false
@@ -599,6 +610,7 @@ Response style:
       setActiveHistoryId(id)
       setHistory((prev) => [entry, ...prev].slice(0, 50))
       seedRef.current = randomSeed()
+      logEvent('ASSET_GENERATED', { assetType: mode, label, module: 'asset-generator' })
 
       // Persist the full SVG to IndexedDB.
       try {

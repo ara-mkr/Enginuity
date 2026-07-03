@@ -9,6 +9,8 @@ import { generateKicadMod } from './engine/generateKicad'
 // @ts-ignore
 import { buildPreviewSVG, LAYER_COLORS } from './engine/previewSVG'
 import { useAIProvider } from '../../hooks/useAIProvider'
+import { useProbeContext } from '../../hooks/useProbeContext'
+import { logEvent } from '../../engine/eventLog'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -195,6 +197,15 @@ export function FootprintGen() {
   const [editedCfg, setEditedCfg] = useState<any | null>(persisted.editedCfg)
   const effectiveCfg = editedCfg ?? activeCfg
 
+  useProbeContext('footprint-gen', {
+    packageName: packageName || null,
+    category,
+    customMode: !!customTab,
+    density,
+    packageType: effectiveCfg?.type ?? null,
+    edited: !!editedCfg,
+  })
+
   // Write-through: mirror package selection/config into the global store so
   // in-progress custom footprints survive navigating away.
   useEffect(() => {
@@ -266,6 +277,7 @@ export function FootprintGen() {
     const a = document.createElement('a')
     a.href = url; a.download = fname; a.click()
     URL.revokeObjectURL(url)
+    logEvent('FOOTPRINT_EXPORTED', { packageName, target: 'download', fileName: fname, module: 'footprint-gen' })
   }
 
   const handleCopy = async () => {
@@ -273,6 +285,7 @@ export function FootprintGen() {
     await navigator.clipboard.writeText(kicadContent)
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
+    logEvent('FOOTPRINT_EXPORTED', { packageName, target: 'clipboard', module: 'footprint-gen' })
   }
 
   const handleAIAssist = async () => {

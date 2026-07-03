@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Radio, LogIn, Clock, Copy, Check, Trash2, Users } from 'lucide-react'
+import { useProbeContext } from '../../hooks/useProbeContext'
 
 const STORAGE_KEY = 'enginguity_recent_rooms'
 const MAX_RECENT = 5
@@ -93,6 +94,12 @@ export default function CollabLanding({ onJoin }) {
   const [recentRooms, setRecentRooms] = useState([])
   const [generated, setGenerated] = useState(null)
   const [copied, setCopied] = useState(false)
+
+  useProbeContext('collaboration', {
+    recentRoomCount: recentRooms.length,
+    joinCodeEntered: !!joinCode.trim(),
+    generatedRoom: generated?.roomId ?? null,
+  })
 
   useEffect(() => {
     setRecentRooms(loadRecentRooms())

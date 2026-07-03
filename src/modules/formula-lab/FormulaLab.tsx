@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Search, ArrowRight, Loader2, Sparkles, AlertTriangle, BookOpen, Hash } from 'lucide-react'
 import { useAIProvider } from '../../hooks/useAIProvider'
+import { useProbeContext } from '../../hooks/useProbeContext'
+import { logEvent } from '../../engine/eventLog'
 // @ts-ignore
 import { useEnginguityStore } from '../../engine/persistenceEngine'
 // @ts-ignore
@@ -43,6 +45,14 @@ export function FormulaLab() {
   const [converterValue, setConverterValue] = useState<number | undefined>(undefined)
 
   const { makeRequest } = useAIProvider()
+
+  useProbeContext('formula-lab', {
+    activeTab,
+    query,
+    interpretedAs: calculation?.interpreted_as ?? null,
+    formula: calculation?.formula ?? null,
+    result: calculation ? `${calculation.result.formatted}` : null,
+  })
 
   // Write-through: mirror calculator/library state into the global store so it
   // survives navigating away and coming back.
@@ -116,6 +126,11 @@ Guidelines:
       const cleaned = response.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
       const parsed = JSON.parse(cleaned) as FormulaCalculation
       setCalculation(parsed)
+      logEvent('FORMULA_CALCULATED', {
+        interpretedAs: parsed.interpreted_as,
+        result: parsed.result?.formatted ?? '',
+        module: 'formula-lab',
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to perform calculation. Please check your query.')
     } finally {

@@ -6,6 +6,8 @@ import {
   Download, Keyboard, X, Pin,
 } from 'lucide-react'
 import { useProjectContext } from '../../hooks/useProjectContext'
+import { useProbeContext } from '../../hooks/useProbeContext'
+import { logEvent } from '../../engine/eventLog'
 import OPENROUTER_MODELS from '../../config/openrouterModels'
 import { OR_KEY_STORAGE } from '../../config/openrouterModels'
 import { readStoredKey } from '../../utils/keyStorage'
@@ -401,6 +403,15 @@ export default function ModelComparison() {
   const abortRefs = useRef<AbortController[]>([])
   const [isDesktop, setIsDesktop] = useState(false)
 
+  useProbeContext('model-comparison', {
+    promptLength: prompt.length,
+    selectedModels: selected.map((s) => s.modelId),
+    running,
+    completedResults: results.filter((r) => r.status === 'done').length,
+    erroredResults: results.filter((r) => r.status === 'error').length,
+    hasSummary: !!summary,
+  })
+
   useEffect(() => {
     const media = window.matchMedia('(min-width: 768px)')
     setIsDesktop(media.matches)
@@ -529,6 +540,14 @@ export default function ModelComparison() {
     )
 
     setRunning(false)
+
+    logEvent('MODELS_COMPARED', {
+      models: finalResults.map((r) => r.modelId),
+      succeeded: finalResults.filter((r) => r.status === 'done').length,
+      failed: finalResults.filter((r) => r.status === 'error').length,
+      promptLength: prompt.trim().length,
+      module: 'model-comparison',
+    })
 
     // Save to history
     const comparison: StoredComparison = {

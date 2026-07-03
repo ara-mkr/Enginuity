@@ -5,9 +5,10 @@ import {
 } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
 import { useAIProvider } from '../../hooks/useAIProvider'
+import { useProbeContext } from '../../hooks/useProbeContext'
 import {
   getMonitoredBOMs, saveBOM, deleteBOM, shouldCheck,
-  checkBOM, unreadAlertCount, getBOMById,
+  checkBOM, unreadAlertCount, totalUnreadAlerts, getBOMById,
 } from './checkEngine.js'
 
 // ── Disclaimer Banner ─────────────────────────────────────────────────────────
@@ -775,6 +776,13 @@ export function SupplyChainMonitor() {
   const [checkProgress, setCheckProgress] = useState('')
   const [showImport, setShowImport] = useState(false)
   const { makeRequest, isConnected } = useAIProvider()
+
+  useProbeContext('supply-chain', {
+    monitoredBOMs: boms.length,
+    unreadAlerts: totalUnreadAlerts(boms),
+    checking: !!checkingId,
+    selectedBOM: boms.find((b) => b.id === selectedId)?.name ?? null,
+  })
 
   const load = useCallback(() => {
     setBOMs(getMonitoredBOMs())

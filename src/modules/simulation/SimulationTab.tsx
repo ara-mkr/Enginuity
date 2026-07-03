@@ -4,6 +4,7 @@
 // into this shell in Phase 2).
 
 import { useEffect, useMemo, useState } from 'react'
+import { useProbeContext } from '../../hooks/useProbeContext'
 import { buildNetlist } from './core/netlist'
 import type { Selection, Tool } from './editorState'
 import { SELECT_TOOL } from './editorState'
@@ -42,6 +43,14 @@ export function SimulationTab() {
     () => (circuit ? buildNetlist(circuit) : null),
     [circuit],
   )
+
+  useProbeContext('simulation', {
+    domain,
+    tool: tool.kind,
+    componentCount: circuit ? Object.keys(circuit.components).length : 0,
+    netlistIssues: netlistBuild?.issues.map((i) => i.message) ?? [],
+    solvable: !!netlistBuild?.engineNetlist,
+  })
 
   if (!circuit || !netlistBuild) {
     return (

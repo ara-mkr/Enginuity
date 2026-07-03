@@ -5,6 +5,8 @@ import {
   Check, Eye, EyeOff, X, Clock
 } from 'lucide-react'
 import { useAIProvider } from '../../hooks/useAIProvider'
+import { useProbeContext } from '../../hooks/useProbeContext'
+import { logEvent } from '../../engine/eventLog'
 import {
   getDraft, updateSection, updateDraftTitle, onDraftUpdate,
   setDocumentOpen, getDocSettings, saveDocSettings, clearDraft
@@ -37,6 +39,14 @@ export function LiveDocs() {
   const titleInputRef = useRef<HTMLInputElement>(null)
 
   const displayTitle = title || draft.title || 'Untitled Engineering Document'
+
+  useProbeContext('live-docs', {
+    title: displayTitle,
+    sectionCount: Object.keys(draft.sections || {}).length,
+    filledSections: Object.values(draft.sections || {}).filter((s: any) => s?.content).length,
+    generatingAll,
+    activeSection,
+  })
 
   useEffect(() => { setTitle(draft.title || '') }, [])
 
@@ -86,6 +96,7 @@ export function LiveDocs() {
     setGeneratingAll(false)
     setProgress(null)
     showToast('Document generated successfully')
+    logEvent('DOC_GENERATED', { title: displayTitle, sections: total, module: 'live-docs' })
   }, [makeRequest, isConnected, draft, displayTitle])
 
   const handleRegenerateSection = useCallback(async (key: string) => {

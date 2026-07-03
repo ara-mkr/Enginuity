@@ -5,6 +5,8 @@ import {
 } from 'lucide-react'
 import { useAIProvider } from '../../hooks/useAIProvider'
 import { useProjectContext } from '../../hooks/useProjectContext'
+import { useProbeContext } from '../../hooks/useProbeContext'
+import { logEvent } from '../../engine/eventLog'
 import { parseFile, buildSchematicContext } from './parser'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -294,6 +296,15 @@ export function PCBReviewer() {
   const [checklistMode, setChecklistMode] = useState(false)
   const [preChecked, setPreChecked] = useState<Set<string>>(new Set())
 
+  useProbeContext('pcb-reviewer', {
+    fileName: file?.name ?? null,
+    reviewing,
+    overallRating: result?.overall_rating ?? null,
+    criticalIssueCount: result?.critical_issues.length ?? 0,
+    warningCount: result?.warnings.length ?? 0,
+    lastError: error,
+  })
+
   const handleFile = useCallback(async (f: File) => {
     setFile(f)
     setResult(null)
@@ -392,6 +403,13 @@ Return this exact JSON:
 
       setPreChecked(autoChecked)
       setResult(parsed)
+      logEvent('PCB_REVIEWED', {
+        fileName: file.name,
+        rating: parsed.overall_rating,
+        criticalIssues: parsed.critical_issues.length,
+        warnings: parsed.warnings.length,
+        module: 'pcb-reviewer',
+      })
     } catch (e: any) {
       setError(e.message || 'Review failed')
     } finally {

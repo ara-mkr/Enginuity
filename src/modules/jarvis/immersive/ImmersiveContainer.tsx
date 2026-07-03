@@ -48,7 +48,14 @@ export function ImmersiveContainer({
   const [canvasMode, setCanvasMode] = useState(false)
   const [opacity, setOpacity] = useState(0)
   const [scanIn, setScanIn] = useState(false)
+  const [viewport, setViewport] = useState({ w: window.innerWidth, h: window.innerHeight })
   const sessionStartRef = useRef(Date.now())
+
+  useEffect(() => {
+    const onResize = () => setViewport({ w: window.innerWidth, h: window.innerHeight })
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   // Mount-in animation
   useEffect(() => {
@@ -122,7 +129,14 @@ export function ImmersiveContainer({
       .toUpperCase()
       .replace(/\s/g, ' ')
 
-  const orbSize = canvasMode ? 360 : 600
+  // Orb is centered in the content box (viewport minus 48px top bar and 72px
+  // bottom bar); the transcripts occupy the bottom ~190px of that box
+  // (SubtitleSystem: interim at bottom 140, response at bottom 80). Clamp the
+  // orb diameter so its ring stays clear of the subtitle band and inside the
+  // orb column at short or narrow viewports.
+  const contentH = viewport.h - 120
+  const orbColumnW = canvasMode ? viewport.w * 0.55 : viewport.w
+  const orbSize = Math.max(220, Math.min(canvasMode ? 360 : 600, contentH - 380, orbColumnW - 48))
 
   return (
     <>

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { BUILTIN_TOOLS, iconForCustomTool, type Tool, type ToolCategory } from '../../config/toolRegistry'
 import { useInstalledTools } from '../../hooks/useInstalledTools'
+import { useProbeContext } from '../../hooks/useProbeContext'
 
 const ALL_CATEGORIES: (ToolCategory | 'All')[] = [
   'All', 'Core', 'AI', 'Mechanical', 'Electrical', 'Firmware',
@@ -35,6 +36,14 @@ export function ToolMarketplace() {
   const allTools: Tool[] = useMemo(() => {
     return [...BUILTIN_TOOLS, ...customTools]
   }, [customTools])
+
+  useProbeContext('marketplace', {
+    query: query || null,
+    category,
+    installedCount: installedIds.size,
+    customToolCount: customTools.length,
+    totalTools: allTools.length,
+  })
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim()

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Clock, Search, Download, X, RotateCcw, Filter } from 'lucide-react'
 import { getAllSnapshots, clearAutoSnapshots } from '../../engine/db.js'
 import { versionEngine } from '../../engine/versionEngine.js'
+import { useProbeContext } from '../../hooks/useProbeContext'
 
 const MODULE_LABELS = {
   playground: 'Parameter Playground',
@@ -33,6 +34,13 @@ export function HistoryPage() {
   const [loading, setLoading] = useState(true)
   const [totalSize, setTotalSize] = useState(0)
   const [clearConfirm, setClearConfirm] = useState(false)
+
+  useProbeContext('history', {
+    snapshotCount: snapshots.length,
+    totalSizeBytes: totalSize,
+    search: search || null,
+    moduleFilters: moduleFilter,
+  })
 
   const load = useCallback(async () => {
     setLoading(true)

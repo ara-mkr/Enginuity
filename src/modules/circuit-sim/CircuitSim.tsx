@@ -8,6 +8,9 @@ import {
   ResponsiveContainer, ReferenceLine,
 } from 'recharts'
 import { useAIProvider } from '../../hooks/useAIProvider'
+import { useChartPalette } from '../../hooks/useChartPalette'
+import { useProbeContext } from '../../hooks/useProbeContext'
+import { logEvent } from '../../engine/eventLog'
 import { parseCircuitNetlist, parseValue, type ParsedNetlist } from './engine/netlistParser'
 import { runNetlistAnalysis } from './engine/runSimulation'
 import SchematicView from './SchematicView.jsx'
@@ -33,11 +36,6 @@ C1 out 0 100n
 .TRAN 1u 5m
 .AC DEC 100 10 100k
 .END`
-
-// Chart trace palette. SVG presentation attributes can't resolve CSS var(),
-// so these literals mirror the muted Polaris families (steel-blue, danger/
-// warning-muted, sage, mauve) defined in index.css.
-const COLORS = ['#7ab4c4', '#b08080', '#9485b8', '#7aaa8a', '#b09470', '#b07888']
 
 const AI_PARSE_PROMPT = `You are a SPICE circuit simulator assistant. Given a circuit description, return ONLY a JSON object with this exact structure:
 {
@@ -85,6 +83,7 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
 
 export default function CircuitSim() {
   const { makeRequest: aiMakeRequest, isConnected } = useAIProvider()
+  const COLORS = useChartPalette()
 
   const [inputMode, setInputMode] = useState<'nl' | 'netlist' | 'file'>('nl')
   const [nlPrompt, setNlPrompt] = useState('')
@@ -102,6 +101,17 @@ export default function CircuitSim() {
   const [warnings, setWarnings] = useState<string[]>([])
   const [expectedBehavior, setExpectedBehavior] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  useProbeContext('circuit-sim', {
+    inputMode,
+    componentCount: components.length,
+    componentIds: components.map((c) => c.id),
+    analysisType: analysis.type,
+    hasResult: !!simResult,
+    resultType: simResult?.type ?? null,
+    warnings,
+    parseError,
+  })
 
   useEffect(() => {
     const saved = localStorage.getItem('enginguity_sim_netlist')
@@ -165,12 +175,26 @@ export default function CircuitSim() {
       setSimResult({ type: result.type, data: result.data })
       setWarnings([...parsed.warnings, ...result.warnings])
       setTab('waveforms')
+      logEvent('SIMULATION_RUN', {
+        analysisType: result.type,
+        componentCount: parsed.components.length,
+        warningCount: parsed.warnings.length + result.warnings.length,
+        status: 'success',
+        module: 'circuit-sim',
+      })
     } catch (e) {
       setSimResult(null)
       setWarnings(parsed.warnings)
       setParseError(
         `Solver failed: ${(e as Error).message} Check the netlist for disconnected nodes, a missing ground (node 0), or non-positive component values.`
       )
+      logEvent('SIMULATION_RUN', {
+        analysisType: parsed.analysis.type,
+        componentCount: parsed.components.length,
+        status: 'error',
+        error: (e as Error).message,
+        module: 'circuit-sim',
+      })
     } finally {
       setSimulating(false)
     }
@@ -540,7 +564,7 @@ export default function CircuitSim() {
                           <XAxis dataKey="f" scale="log" type="number" domain={['auto', 'auto']} tickFormatter={fmtFreq} tick={{ fill: 'var(--text-muted)', fontSize: 10 }} />
                           <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} />
                           <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6 }} labelFormatter={(v) => `${fmtFreq(v as number)}Hz`} />
-                          {f3db && <ReferenceLine x={f3db} stroke="#b09470" strokeDasharray="4 2" label={{ value: '-3dB', fill: '#b09470', fontSize: 10 }} />}
+                          {f3db && <ReferenceLine x={f3db} stroke={COLORS[4]} strokeDasharray="4 2" label={{ value: '-3dB', fill: COLORS[4], fontSize: 10 }} />}
                           <Line type="monotone" dataKey="db" stroke="var(--accent)" dot={false} strokeWidth={1.5} name="Magnitude (dB)" />
                         </LineChart>
                       </ResponsiveContainer>
@@ -632,7 +656,7 @@ export default function CircuitSim() {
                       <XAxis dataKey="f" scale="log" type="number" domain={['auto', 'auto']} tickFormatter={fmtFreq} tick={{ fill: 'var(--text-muted)', fontSize: 10 }} />
                       <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} />
                       <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6 }} labelFormatter={(v) => `${fmtFreq(v as number)}Hz`} />
-                      {f3db && <ReferenceLine x={f3db} stroke="#b09470" strokeDasharray="4 2" />}
+                      {f3db && <ReferenceLine x={f3db} stroke={COLORS[4]} strokeDasharray="4 2" />}
                       <Line type="monotone" dataKey="db" stroke="var(--accent)" dot={false} strokeWidth={1.5} />
                     </LineChart>
                   </ResponsiveContainer>
@@ -643,7 +667,7 @@ export default function CircuitSim() {
                       <XAxis dataKey="f" scale="log" type="number" domain={['auto', 'auto']} tickFormatter={fmtFreq} tick={{ fill: 'var(--text-muted)', fontSize: 10 }} />
                       <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} />
                       <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6 }} labelFormatter={(v) => `${fmtFreq(v as number)}Hz`} />
-                      <Line type="monotone" dataKey="deg" stroke="#9485b8" dot={false} strokeWidth={1.5} />
+                      <Line type="monotone" dataKey="deg" stroke={COLORS[2]} dot={false} strokeWidth={1.5} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>

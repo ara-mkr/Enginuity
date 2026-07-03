@@ -22,6 +22,7 @@ import { useFocusMode } from '../../context/FocusModeContext'
 import { InfiniteCanvas } from './canvas/InfiniteCanvas'
 import { ImmersiveContainer } from './immersive/ImmersiveContainer'
 import { moduleStateStore } from '../../store/moduleState'
+import { logEvent } from '../../engine/eventLog'
 import {
   classifyIntent,
   fetchAnswer,
@@ -2519,8 +2520,13 @@ Use this context to make responses feel personal. Reference the project when rel
         }
       }
 
-      // Track session command
+      // Track session command. Only a short prefix goes to the persistent
+      // event log — full voice transcripts stay out of localStorage.
       setSessionCommands(prev => [...prev, transcript])
+      logEvent('JARVIS_COMMAND', {
+        transcriptPreview: transcript.slice(0, 80),
+        module: 'jarvis',
+      })
 
       const lower = transcript.toLowerCase()
 

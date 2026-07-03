@@ -6,6 +6,7 @@ import {
   Box, BookOpen, ClipboardList, Radio, History, Terminal, Info, Library
 } from 'lucide-react'
 import { useAIProvider } from '../../hooks/useAIProvider'
+import { useProbeContext } from '../../hooks/useProbeContext'
 
 // Helper for human-readable description of event
 function getEventDescription(e: any): string {
@@ -65,6 +66,46 @@ function getEventDescription(e: any): string {
       return `Session completed on route "${d.pathname}" (Duration: ${d.durationMinutes} minutes)`
     case 'FOCUS_MODE_TOGGLED':
       return `Focus Mode ${d.enabled ? 'activated' : 'deactivated'} in module "${d.module}"`
+    case 'SIMULATION_RUN':
+      return d.status === 'success'
+        ? `Ran ${d.analysisType} simulation (${d.componentCount} components${d.warningCount ? `, ${d.warningCount} warnings` : ''})`
+        : `Simulation failed (${d.analysisType}): ${d.error || 'solver error'}`
+    case 'DATASHEET_ANALYZED':
+      return `Extracted datasheet intelligence for "${d.partNumber}" from "${d.fileName}"`
+    case 'FORMULA_CALCULATED':
+      return `Calculated "${d.interpretedAs}" → ${d.result}`
+    case 'MODELS_COMPARED':
+      return `Compared ${(d.models || []).length} AI models (${d.succeeded} succeeded${d.failed ? `, ${d.failed} failed` : ''})`
+    case 'IDEAS_GENERATED':
+      return `Generated ${d.count} project ideas (complexity: ${d.complexity})`
+    case 'ASSET_GENERATED':
+      return `Generated ${d.assetType} asset "${d.label}"`
+    case 'CHALLENGE_SUBMITTED':
+      return `Submitted solution for challenge "${d.title}" (score: ${d.score})`
+    case 'FIRMWARE_DIFF_ANALYZED':
+      return `AI-analyzed firmware diff "${d.fileA}" vs "${d.fileB}" (${d.riskCount} risks)`
+    case 'PCB_REVIEWED':
+      return `Reviewed PCB "${d.fileName}" — ${d.rating} (${d.criticalIssues} critical, ${d.warnings} warnings)`
+    case 'FOOTPRINT_EXPORTED':
+      return `Exported KiCad footprint "${d.packageName}" to ${d.target}`
+    case 'COMPLIANCE_CHECKED':
+      return `Generated compliance roadmap for "${d.productType}" (${d.certifications} certifications, ${d.complexity} complexity)`
+    case 'TESTS_RUN':
+      return `Ran ${d.total} tests on ${d.functionName}: ${d.passed} passed, ${d.failed} failed`
+    case 'DOC_GENERATED':
+      return `Generated live document "${d.title}" (${d.sections} sections)`
+    case 'TOOL_INSTALLED':
+      return `Installed tool "${d.toolLabel}" from the marketplace`
+    case 'TOOL_UNINSTALLED':
+      return `Removed tool "${d.toolLabel}" from the sidebar`
+    case 'PROJECT_SUMMARY_GENERATED':
+      return `Generated AI project summary (${d.tagCount} tags, ${d.fileCount} files in context)`
+    case 'PROJECT_BLUEPRINT_EXTRACTED':
+      return `Extracted project blueprint "${d.title}" (${d.componentCount} components)`
+    case 'BOARD_CREATED':
+      return `Created new drawing board "${d.name}"`
+    case 'JARVIS_COMMAND':
+      return `Voice command: "${d.transcriptPreview}"`
     default:
       return `Triggered timeline event "${e.type}"`
   }
@@ -92,6 +133,25 @@ const EVENT_ICONS: Record<string, any> = {
   SESSION_STARTED: Clock,
   SESSION_ENDED: Clock,
   FOCUS_MODE_TOGGLED: Sliders,
+  SIMULATION_RUN: Play,
+  DATASHEET_ANALYZED: Database,
+  FORMULA_CALCULATED: BookOpen,
+  MODELS_COMPARED: Cpu,
+  IDEAS_GENERATED: Sparkles,
+  ASSET_GENERATED: Box,
+  CHALLENGE_SUBMITTED: CheckCircle,
+  FIRMWARE_DIFF_ANALYZED: Terminal,
+  PCB_REVIEWED: ClipboardList,
+  FOOTPRINT_EXPORTED: Download,
+  COMPLIANCE_CHECKED: CheckCircle,
+  TESTS_RUN: Play,
+  DOC_GENERATED: BookOpen,
+  TOOL_INSTALLED: Box,
+  TOOL_UNINSTALLED: X,
+  PROJECT_SUMMARY_GENERATED: LayoutDashboard,
+  PROJECT_BLUEPRINT_EXTRACTED: Box,
+  BOARD_CREATED: LayoutDashboard,
+  JARVIS_COMMAND: Radio,
 }
 
 const EVENT_COLORS: Record<string, string> = {
@@ -115,6 +175,25 @@ const EVENT_COLORS: Record<string, string> = {
   SESSION_STARTED: 'rgba(100,150,110,0.15)', // Pastel Green
   SESSION_ENDED: '#cbd5e1', // Pastel Gray
   FOCUS_MODE_TOGGLED: 'rgba(160,100,100,0.15)', // Pastel Rose
+  SIMULATION_RUN: 'rgba(122,180,196,0.15)', // Steel Blue
+  DATASHEET_ANALYZED: 'rgba(100,130,170,0.15)', // Pastel Light Blue
+  FORMULA_CALCULATED: 'rgba(130,110,170,0.15)', // Pastel Purple
+  MODELS_COMPARED: '#c7d2fe', // Pastel Indigo
+  IDEAS_GENERATED: 'rgba(160,100,130,0.15)', // Pastel Pink
+  ASSET_GENERATED: 'rgba(150,130,80,0.15)', // Pastel Yellow
+  CHALLENGE_SUBMITTED: 'rgba(100,150,110,0.15)', // Pastel Green
+  FIRMWARE_DIFF_ANALYZED: '#e2f0d9', // Pastel Lime/Sage
+  PCB_REVIEWED: 'rgba(150,130,80,0.15)', // Pastel Yellow
+  FOOTPRINT_EXPORTED: 'rgba(160,100,100,0.15)', // Pastel Rose
+  COMPLIANCE_CHECKED: 'rgba(100,150,110,0.15)', // Pastel Green
+  TESTS_RUN: 'rgba(122,170,138,0.15)', // Sage
+  DOC_GENERATED: '#99f6e4', // Pastel Teal
+  TOOL_INSTALLED: '#a5f3fc', // Pastel Cyan
+  TOOL_UNINSTALLED: '#cbd5e1', // Pastel Gray
+  PROJECT_SUMMARY_GENERATED: 'rgba(100,130,170,0.15)', // Pastel Light Blue
+  PROJECT_BLUEPRINT_EXTRACTED: 'rgba(122,180,196,0.15)', // Steel Blue
+  BOARD_CREATED: '#ddd6fe', // Pastel Lavender
+  JARVIS_COMMAND: 'rgba(148,133,184,0.15)', // Mauve
 }
 
 interface AIInsights {
@@ -141,6 +220,14 @@ export function TimelineModule() {
   const [tokenEstimate, setTokenEstimate] = useState<number>(0)
 
   const { makeRequest, apiKey } = useAIProvider()
+
+  useProbeContext('timeline', {
+    eventCount: events.length,
+    search: search || null,
+    dateRange,
+    moduleFilters: selectedModules,
+    hasInsights: !!insights,
+  })
 
   // Load events & seed if empty
   const loadLogEvents = useCallback(() => {

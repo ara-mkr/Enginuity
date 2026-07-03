@@ -8,6 +8,7 @@ import type { BOMItem } from '../bom/types'
 import type { NotebookEntry } from '../notebook/types'
 import { TemplateDetailModal } from './TemplateDetailModal'
 import { logEvent } from '../../engine/eventLog'
+import { useProbeContext } from '../../hooks/useProbeContext'
 
 // Offline/Fallback Community Templates
 const mockCommunityTemplates: ProjectTemplate[] = [
@@ -164,6 +165,15 @@ export function TemplatesGallery() {
 
   // History log
   const [loadLogs, setLoadLogs] = useState<TemplateLoadLog[]>([])
+
+  useProbeContext('templates', {
+    searchQuery: searchQuery || null,
+    category: selectedCategory,
+    difficulty: difficultyFilter,
+    communityTemplateCount: communityTemplates.length,
+    openTemplate: selectedTemplate?.name ?? null,
+    loadedCount: loadLogs.length,
+  })
 
   // Load active logs from localStorage on mount
   useEffect(() => {

@@ -5,6 +5,8 @@ import { ChallengeWorkspace } from './components/ChallengeWorkspace'
 import { ChallengeLeaderboard } from './components/ChallengeLeaderboard'
 import { ChallengeCalendar } from './components/ChallengeCalendar'
 import type { Challenge, ChallengeHistoryEntry } from './types'
+import { useProbeContext } from '../../hooks/useProbeContext'
+import { logEvent } from '../../engine/eventLog'
 
 export default function ChallengeMode() {
   const [activeChallenge, setActiveChallenge] = useState<Challenge | null>(null)
@@ -32,6 +34,15 @@ export default function ChallengeMode() {
 
   const totalPoints = completedChallenges.reduce((sum, item) => sum + item.score, 0)
 
+  useProbeContext('challenges', {
+    activeTab,
+    activeChallenge: activeChallenge
+      ? { title: activeChallenge.title, category: activeChallenge.category, difficulty: activeChallenge.difficulty }
+      : null,
+    completedCount: completedChallenges.length,
+    totalPoints,
+  })
+
   const handleAcceptChallenge = (challenge: Challenge) => {
     setActiveChallenge(challenge)
   }
@@ -41,6 +52,11 @@ export default function ChallengeMode() {
   }
 
   const handleSubmitSolution = (entry: ChallengeHistoryEntry) => {
+    logEvent('CHALLENGE_SUBMITTED', {
+      title: activeChallenge?.title ?? 'Challenge',
+      score: entry.score,
+      module: 'challenges',
+    })
     // Reload history from localStorage
     try {
       const history = JSON.parse(localStorage.getItem('enginguity_challenge_history') || '[]')

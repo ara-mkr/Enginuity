@@ -3,6 +3,8 @@ import owlMark from '../../assets/owl-mark.png'
 import { useNavigate } from 'react-router-dom'
 import { useAIProvider } from '../../hooks/useAIProvider'
 import { useProjectContext } from '../../hooks/useProjectContext'
+import { useProbeContext } from '../../hooks/useProbeContext'
+import { logEvent } from '../../engine/eventLog'
 import { useHomeChat, type HomeMessage as Message } from '../../context/HomeChatContext'
 import { ChatHistoryPopover } from '../../components/ChatHistoryPopover'
 import {
@@ -65,6 +67,13 @@ export function HomeLanding() {
 
   // Extracted blueprint state
   const [activeBlueprint, setActiveBlueprint] = useState<ExtractedProject | null>(null)
+
+  useProbeContext('home', {
+    messageCount: messages.length,
+    sessionCount: sessions.length,
+    blueprintTitle: activeBlueprint?.title ?? null,
+    loading,
+  })
 
   const feedEndRef = useRef<HTMLDivElement>(null)
 
@@ -180,6 +189,11 @@ Example format to append at the end:
           const parsed = JSON.parse(projectMatch[1].trim()) as ExtractedProject
           if (parsed && parsed.title && parsed.description) {
             setActiveBlueprint(parsed)
+            logEvent('PROJECT_BLUEPRINT_EXTRACTED', {
+              title: parsed.title,
+              componentCount: parsed.components?.length ?? 0,
+              module: 'home',
+            })
           }
         } catch (e) {
           console.error('Failed to parse project JSON:', e)

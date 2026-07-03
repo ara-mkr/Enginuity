@@ -228,9 +228,12 @@ function connect() {
     document.getElementById('app').style.display = 'flex'
     document.getElementById('room-display').textContent = roomId
 
+    // Token goes in the #fragment, never the query string — fragments are
+    // not sent in HTTP requests, so they can't reach proxy/server logs.
     const url = new URL(window.location.href)
     url.searchParams.set('room', roomId)
-    url.searchParams.set('token', roomToken)
+    url.searchParams.delete('token')
+    url.hash = 'ctk=' + encodeURIComponent(roomToken)
     window.history.replaceState({}, '', url.toString())
 
     ws.send(JSON.stringify({
@@ -489,7 +492,8 @@ function toggleComments() {
 function copyInvite() {
   const url = new URL(window.location.href)
   url.searchParams.set('room', roomId)
-  url.searchParams.set('token', roomToken)
+  url.searchParams.delete('token')
+  url.hash = 'ctk=' + encodeURIComponent(roomToken)
   navigator.clipboard.writeText(url.toString()).then(() => alert('Invite link copied!'))
 }
 
@@ -500,11 +504,13 @@ function timeAgo(ts) {
   return Math.floor(diff / 3600) + 'h ago'
 }
 
-// Auto-join from URL
+// Auto-join from URL. The token is read from the #ctk= fragment; ?token= is
+// still accepted for old invite links and moved to the fragment on connect.
 window.addEventListener('load', () => {
   const params = new URLSearchParams(window.location.search)
   const urlRoom = params.get('room')
-  const urlToken = params.get('token')
+  const fragMatch = window.location.hash.match(/(?:^#|&)ctk=([^&]+)/)
+  const urlToken = fragMatch ? decodeURIComponent(fragMatch[1]) : params.get('token')
   if (urlRoom) {
     document.getElementById('join-code').value = urlRoom
   }

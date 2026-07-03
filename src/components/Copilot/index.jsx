@@ -39,6 +39,44 @@ const ROUTE_NAMES = {
   '/pcb-reviewer': 'PCB Reviewer',
 }
 
+// ── Route → moduleStateStore key map ──────────────────────────────────────────
+// Lets the system prompt pull the probe context published by the module the
+// user is actually viewing, instead of whichever module published last.
+
+const ROUTE_MODULE_KEYS = {
+  '/': 'home',
+  '/dashboard': 'dashboard',
+  '/cad-viewer': 'cad',
+  '/parameter-playground': 'playground',
+  '/asset-generator': 'asset-generator',
+  '/simulation-assistant': 'simulation-assistant',
+  '/ideas': 'project-ideas',
+  '/project-ideas': 'project-ideas',
+  '/debug-console': 'debug',
+  '/model-comparison': 'model-comparison',
+  '/circuit-sim': 'circuit-sim',
+  '/simulation': 'simulation',
+  '/collaborate': 'collaboration',
+  '/datasheet': 'datasheet',
+  '/notebook': 'notebook',
+  '/bom': 'bom',
+  '/formula-lab': 'formula-lab',
+  '/templates': 'templates',
+  '/challenges': 'challenges',
+  '/firmware-diff': 'firmware-diff',
+  '/pcb-reviewer': 'pcb-reviewer',
+  '/footprint-gen': 'footprint-gen',
+  '/history': 'history',
+  '/supply-chain': 'supply-chain',
+  '/test-harness': 'test-harness',
+  '/compliance': 'compliance',
+  '/jarvis': 'jarvis',
+  '/timeline': 'timeline',
+  '/live-docs': 'live-docs',
+  '/drawing-board': 'drawing-board',
+  '/marketplace': 'marketplace',
+}
+
 // ── LocalStorage keys ─────────────────────────────────────────────────────────
 
 const LS_OPEN = 'enginguity_copilot_open'
@@ -438,11 +476,17 @@ export function Copilot() {
     }
 
     const moduleState = moduleStateStore.getState()
+    // Prefer the state published by the module on the current route; fall back
+    // to the most recent publisher (covers workspace windows / custom tools).
+    const routeModuleKey = ROUTE_MODULE_KEYS[location.pathname]
+    const activeModuleData =
+      (routeModuleKey && moduleState.moduleData[routeModuleKey]) ||
+      moduleState.moduleData[moduleState.activeModule] || {}
 
     const systemPrompt = `You are Probe Bot, an engineering assistant embedded in ENGINGUITY, an engineering workspace. You have context about what the user is currently working on.
 
 Current module: ${activeModuleName}
-Current module state: ${JSON.stringify(moduleState.moduleData[moduleState.activeModule] || {}, null, 2)}
+Current module state: ${JSON.stringify(activeModuleData, null, 2)}
 Project context: ${projectDescription || 'Not set'}
 Active model: ${activeModel}
 
@@ -487,7 +531,7 @@ Be direct and specific. Answer engineering questions with numbers and references
       ))
       setIsStreaming(false)
     }
-  }, [inputText, isStreaming, isConnected, activeModuleName, activeModel, projectDescription, messages, settings.memory, makeRequest, addMessage])
+  }, [inputText, isStreaming, isConnected, activeModuleName, activeModel, projectDescription, messages, settings.memory, makeRequest, addMessage, location.pathname])
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {

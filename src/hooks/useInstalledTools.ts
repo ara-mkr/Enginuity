@@ -19,6 +19,7 @@ import {
   type CustomToolManifest,
   type Tool,
 } from '../config/toolRegistry'
+import { logEvent } from '../engine/eventLog'
 
 const INSTALLED_KEY = 'enginguity_installed_tools'
 const CUSTOM_KEY = 'enginguity_custom_tools'
@@ -87,6 +88,7 @@ export function useInstalledTools() {
     const next = new Set(loadInstalledIds())
     next.add(id)
     persistInstalled(next)
+    logEvent('TOOL_INSTALLED', { toolId: id, toolLabel: tool.label, module: 'marketplace' })
   }, [])
 
   const uninstall = useCallback((id: string) => {
@@ -95,11 +97,13 @@ export function useInstalledTools() {
     const custom = loadCustomTools().find((t) => t.id === id)
     if (custom) {
       persistCustom(loadCustomTools().filter((t) => t.id !== id))
+      logEvent('TOOL_UNINSTALLED', { toolId: id, toolLabel: custom.label, module: 'marketplace' })
       return
     }
     const next = new Set(loadInstalledIds())
     next.delete(id)
     persistInstalled(next)
+    logEvent('TOOL_UNINSTALLED', { toolId: id, toolLabel: tool?.label ?? id, module: 'marketplace' })
   }, [])
 
   const addCustomTool = useCallback((manifest: CustomToolManifest): { ok: true } | { ok: false; error: string } => {

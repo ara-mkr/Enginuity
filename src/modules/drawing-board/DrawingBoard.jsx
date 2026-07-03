@@ -6,6 +6,8 @@ import { getSelectionBounds, render, roundedRect, darken, hexToRgba } from './ca
 import { useCollaboration } from '../collaboration/useCollaboration'
 import { useOpenRouter } from '../../context/OpenRouterContext'
 import { useAIProvider } from '../../hooks/useAIProvider'
+import { useProbeContext } from '../../hooks/useProbeContext'
+import { logEvent } from '../../engine/eventLog'
 import { useWorkspace } from '../../context/WorkspaceContext'
 import { useEnginguityStore } from '../../engine/persistenceEngine'
 import { blobStore } from '../../engine/blobStore'
@@ -136,6 +138,14 @@ export function DrawingBoard() {
   
   // Clipboard copied buffer
   const [copiedElements, setCopiedElements] = useState(null)
+
+  useProbeContext('drawing-board', {
+    boardName: boardList.find((b) => b.id === activeBoardId)?.name ?? null,
+    boardCount: boardList.length,
+    elementCount: elements.length,
+    selectedCount: selection.length,
+    activeTool,
+  })
 
   // AI Dialog state
   const [aiDialog, setAiDialog] = useState(null) // { type: 'jarvis' | 'vision' | 'mood', input: '', loading: false }
@@ -524,6 +534,7 @@ export function DrawingBoard() {
       createdAt: Date.now(),
     })
     setActiveBoardId(newId)
+    logEvent('BOARD_CREATED', { name, module: 'drawing-board' })
   }
 
   const renameBoard = (id, newName) => {

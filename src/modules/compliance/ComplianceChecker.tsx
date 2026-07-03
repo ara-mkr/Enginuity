@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useAIProvider } from '../../hooks/useAIProvider'
+import { useProbeContext } from '../../hooks/useProbeContext'
+import { logEvent } from '../../engine/eventLog'
 // @ts-ignore
 import ResizablePanel from '../../components/ResizablePanel'
 import {
@@ -356,6 +358,15 @@ export function ComplianceChecker() {
   const [generating, setGenerating] = useState(false)
   const [copied, setCopied] = useState(false)
 
+  useProbeContext('compliance', {
+    productType: descriptor.customType || descriptor.productType || null,
+    regions: descriptor.regions,
+    stage: descriptor.stage,
+    generating,
+    overallComplexity: report?.overall_complexity ?? null,
+    certificationCount: report?.certifications.length ?? 0,
+  })
+
   const set = <K extends keyof ProductDescriptor>(key: K, val: ProductDescriptor[K]) =>
     setDescriptor(prev => ({ ...prev, [key]: val }))
 
@@ -430,6 +441,13 @@ Return ONLY a JSON object with this exact shape:
       const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
       const result = JSON.parse(cleaned) as ComplianceReport
       setReport(result)
+      logEvent('COMPLIANCE_CHECKED', {
+        productType: descriptor.customType || descriptor.productType,
+        regions: descriptor.regions,
+        complexity: result.overall_complexity,
+        certifications: result.certifications.length,
+        module: 'compliance',
+      })
     } catch (e: unknown) {
       alert('Generation failed: ' + (e instanceof Error ? e.message : String(e)))
     } finally {
