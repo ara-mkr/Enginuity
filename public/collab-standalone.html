@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ENGINGUITY — Live Collaboration Demo</title>
+<style>
+  :root {
+    --bg: #080810; --bg-2: #0e0e1a; --surface: #13131f; --surface-2: #1a1a2e;
+    --border: #1f1f35; --border-bright: #2a2a45;
+    --accent: #00c8ff; --accent-2: #7b5ea7; --accent-glow: rgba(0,200,255,0.12);
+    --text: #e2e4f0; --text-muted: #6b6d85; --text-dim: #3a3c55;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; font-size: 14px; line-height: 1.5; }
+  .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
+
+  /* Layout */
+  #app { display: flex; flex-direction: column; height: 100vh; }
+  #collab-bar { display: flex; align-items: center; gap: 12px; padding: 0 16px; background: var(--surface); border-bottom: 1px solid var(--border); height: 44px; flex-shrink: 0; }
+  #main { display: flex; flex: 1; overflow: hidden; }
+  #sidebar { width: 200px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 16px 12px; gap: 8px; flex-shrink: 0; }
+  #content { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+
+  /* Buttons */
+  .btn { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 12px; cursor: pointer; transition: all 0.15s; }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 700; }
+  .btn-primary:hover { background: #00b8ef; }
+  .btn-danger { border-color: #ff6b6b; color: #ff6b6b; }
+
+  /* Input */
+  input, textarea { background: var(--bg-2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: inherit; font-size: 13px; padding: 8px 10px; outline: none; transition: border-color 0.15s; }
+  input:focus, textarea:focus { border-color: var(--accent); }
+
+  /* Slider */
+  .slider-row { display: flex; flex-direction: column; gap: 8px; padding: 14px; background: var(--surface); border-radius: 10px; border: 1px solid var(--border); }
+  .slider-label { display: flex; justify-content: space-between; align-items: center; }
+  input[type=range] { -webkit-appearance: none; width: 100%; height: 4px; border-radius: 2px; background: var(--border); outline: none; cursor: pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--accent); cursor: pointer; }
+
+  /* Avatar */
+  .avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; color: #000; border: 2px solid var(--bg); flex-shrink: 0; }
+
+  /* Cursor */
+  .remote-cursor { position: fixed; pointer-events: none; z-index: 9999; transition: transform 80ms linear; }
+  .cursor-name { padding: 1px 6px; border-radius: 4px; font-size: 11px; font-family: 'IBM Plex Mono', monospace; font-weight: 700; color: #000; margin-top: 2px; margin-left: 4px; white-space: nowrap; }
+
+  /* Comments */
+  .comment-item { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .comment-author { font-size: 11px; font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+  .comment-text { font-size: 12px; margin-top: 4px; color: var(--text); }
+  .comment-time { font-size: 10px; color: var(--text-muted); font-family: 'IBM Plex Mono', monospace; }
+
+  /* Presence */
+  #user-list { display: flex; gap: -4px; }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #00e676; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.3)} }
+
+  /* Landing */
+  #landing { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; gap: 24px; padding: 32px; }
+  .landing-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 14px; }
+  .section-title { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+
+  /* Panel */
+  #comments-panel { position: fixed; right: 0; top: 0; bottom: 0; width: 300px; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; z-index: 8000; box-shadow: -4px 0 24px rgba(0,0,0,.4); transform: translateX(100%); transition: transform 0.25s; }
+  #comments-panel.open { transform: translateX(0); }
+</style>
+</head>
+<body>
+
+<!-- Landing screen -->
+<div id="landing">
+  <div style="text-align:center">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:700;color:var(--text);letter-spacing:.04em;margin-bottom:6px">
+      ⚡ ENGINGUITY Collaboration
+    </div>
+    <div style="color:var(--text-muted);font-size:13px">Standalone demo — no build step required</div>
+  </div>
+
+  <div class="landing-card" style="border-color:var(--accent)">
+    <div class="section-title" style="color:var(--accent)">Start New Session</div>
+    <input id="start-name" placeholder="Your display name" />
+    <button class="btn btn-primary" onclick="startSession()">Generate Room &amp; Connect</button>
+  </div>
+
+  <div class="landing-card">
+    <div class="section-title">Join Existing Session</div>
+    <input id="join-code" placeholder="Room code (e.g. ABCD-EFGH)" />
+    <input id="join-token" placeholder="Room token (from invite link)" />
+    <input id="join-name" placeholder="Your display name" />
+    <button class="btn" onclick="joinSession()">Join Room</button>
+  </div>
+
+  <div style="font-size:11px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;text-align:center;max-width:400px">
+    Requires <span style="color:var(--accent)">npm run collab</span> server running on localhost:3001
+  </div>
+</div>
+
+<!-- Main collaboration UI (hidden until connected) -->
+<div id="app" style="display:none">
+  <!-- Top bar -->
+  <div id="collab-bar">
+    <div class="live-dot" id="status-dot"></div>
+    <span class="mono" id="status-label" style="font-size:11px;font-weight:600;color:#00e676;letter-spacing:.08em">LIVE</span>
+    <span style="color:var(--border-bright)">|</span>
+    <span class="mono" style="font-size:11px;color:var(--text-muted)">Room:</span>
+    <span class="mono" id="room-display" style="font-size:12px;color:var(--accent);letter-spacing:.1em;font-weight:600"></span>
+    <button class="btn" style="padding:2px 8px;font-size:11px" onclick="copyInvite()">📋 Invite</button>
+    <div style="flex:1;display:flex;justify-content:center" id="avatars"></div>
+    <button class="btn" onclick="toggleComments()">💬 Comments <span id="comment-count"></span></button>
+    <button class="btn btn-danger" onclick="leaveRoom()">Leave</button>
+  </div>
+
+  <!-- Main area -->
+  <div id="main">
+    <!-- Sidebar -->
+    <div id="sidebar">
+      <div class="section-title">Connected Users</div>
+      <div id="user-list-sidebar" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+
+    <!-- Content: shared parameter playground -->
+    <div id="content">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:var(--text)">
+        Shared Parameter Playground
+      </div>
+      <div style="color:var(--text-muted);font-size:12px">
+        Move any slider — all collaborators see the change in real time.
+      </div>
+
+      <div id="sliders" style="display:flex;flex-direction:column;gap:12px;max-width:560px">
+        <!-- Sliders rendered by JS -->
+      </div>
+
+      <div style="margin-top:8px">
+        <div class="section-title" style="margin-bottom:10px">Computed Outputs</div>
+        <div id="outputs" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;max-width:560px"></div>
+      </div>
+
+      <div style="margin-top:8px">
+        <div class="section-title" style="margin-bottom:8px">Add General Comment</div>
+        <div style="display:flex;gap:8px;max-width:560px">
+          <input id="comment-input" placeholder="Comment on the session..." style="flex:1" onkeydown="if(event.key==='Enter')addComment()" />
+          <button class="btn" onclick="addComment()">Post</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Comments panel -->
+<div id="comments-panel">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)">
+    <span class="mono" style="font-size:12px;font-weight:600">💬 Comments</span>
+    <button onclick="toggleComments()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:18px">×</button>
+  </div>
+  <div id="comments-list" style="flex:1;overflow-y:auto"></div>
+</div>
+
+<!-- Remote cursors container -->
+<div id="cursors-root"></div>
+
+<script>
+const COLORS = ['#00c8ff','#ff6b6b','#b388ff','#00e676','#ffab40','#ff4081']
+const isSecurePage = window.location.protocol === 'https:'
+const WS_URL = isSecurePage ? `wss://${window.location.hostname}:3001` : 'ws://localhost:3001'
+
+function generateToken() {
+  if (window.crypto?.randomUUID) return window.crypto.randomUUID() + window.crypto.randomUUID()
+  return Array.from({ length: 4 }, () => Math.random().toString(36).slice(2)).join('')
+}
+
+const SLIDERS = [
+  { name: 'voltage', label: 'Supply Voltage', min: 0, max: 24, default: 12, unit: 'V' },
+  { name: 'resistance', label: 'Load Resistance', min: 1, max: 1000, default: 100, unit: 'Ω' },
+  { name: 'frequency', label: 'Signal Frequency', min: 1, max: 10000, default: 1000, unit: 'Hz' },
+  { name: 'capacitance', label: 'Filter Capacitance', min: 1, max: 1000, default: 100, unit: 'nF' },
+]
+
+let ws = null
+let state = { voltage: 12, resistance: 100, frequency: 1000, capacitance: 100 }
+let comments = []
+let users = []
+let cursors = {}
+let localUser = null
+let roomId = null
+let roomToken = null
+let reconnectAttempts = 0
+let commentsOpen = false
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+function generateId() {
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36)
+}
+
+function generateRoomId() {
+  const seg = () => Math.random().toString(36).slice(2, 6).toUpperCase()
+  return `${seg()}-${seg()}`
+}
+
+function startSession() {
+  const name = document.getElementById('start-name').value.trim() || 'Engineer'
+  roomId = generateRoomId()
+  roomToken = generateToken()
+  localUser = { id: generateId(), name, color: COLORS[Math.floor(Math.random() * COLORS.length)] }
+  connect()
+}
+
+function joinSession() {
+  const code = document.getElementById('join-code').value.trim().toUpperCase()
+  const token = document.getElementById('join-token').value.trim()
+  const name = document.getElementById('join-name').value.trim() || 'Engineer'
+  if (!code || !token) { alert('Room code and token are both required.'); return }
+  roomId = code
+  roomToken = token
+  localUser = { id: generateId(), name, color: COLORS[Math.floor(Math.random() * COLORS.length)] }
+  connect()
+}
+
+function connect() {
+  ws = new WebSocket(WS_URL)
+
+  ws.onopen = () => {
+    reconnectAttempts = 0
+    document.getElementById('landing').style.display = 'none'
+    document.getElementById('app').style.display = 'flex'
+    document.getElementById('room-display').textContent = roomId
+
+    const url = new URL(window.location.href)
+    url.searchParams.set('room', roomId)
+    url.searchParams.set('token', roomToken)
+    window.history.replaceState({}, '', url.toString())
+
+    ws.send(JSON.stringify({
+      type: 'join', roomId, userId: localUser.id,
+      payload: { name: localUser.name, color: localUser.color, token: roomToken }
+    }))
+
+    setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'presence', roomId, userId: localUser.id, payload: {} }))
+      }
+    }, 15000)
+
+    renderSliders()
+  }
+
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data)
+    switch (msg.type) {
+      case 'state_sync':
+        users = msg.payload.users || []
+        Object.assign(state, msg.payload.state || {})
+        if (msg.payload.state?.comments) comments = msg.payload.state.comments
+        renderAll()
+        break
+      case 'presence':
+        users = msg.payload.users || []
+        renderUsers()
+        break
+      case 'state_update':
+        if (msg.payload?.delta) {
+          Object.assign(state, msg.payload.delta)
+          renderSliders()
+          renderOutputs()
+        }
+        break
+      case 'cursor_move':
+        if (msg.userId !== localUser.id) {
+          cursors[msg.userId] = { ...msg.payload, ts: Date.now() }
+          renderCursor(msg.userId)
+        }
+        break
+      case 'comment_add':
+        comments.push(msg.payload.comment)
+        renderComments()
+        break
+      case 'comment_resolve':
+        const c = comments.find(c => c.id === msg.payload.commentId)
+        if (c) c.resolved = true
+        renderComments()
+        break
+      case 'error':
+        if (msg.payload?.code === 'auth_required' || msg.payload?.code === 'auth_failed') {
+          alert(msg.payload.message || 'Unable to join room.')
+        }
+        break
+    }
+  }
+
+  ws.onclose = (e) => {
+    if (e.code === 4001 || e.code === 4003 || e.code === 4004) {
+      window.location.href = window.location.pathname
+      return
+    }
+    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000)
+    reconnectAttempts++
+    document.getElementById('status-dot').style.background = '#ff4444'
+    document.getElementById('status-dot').style.animation = 'none'
+    document.getElementById('status-label').style.color = 'var(--text-muted)'
+    document.getElementById('status-label').textContent = 'RECONNECTING'
+    setTimeout(connect, delay)
+  }
+}
+
+function leaveRoom() {
+  if (ws?.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'leave', roomId, userId: localUser.id, payload: {} }))
+  }
+  ws?.close()
+  window.location.href = window.location.pathname
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+
+function renderAll() {
+  renderUsers()
+  renderSliders()
+  renderOutputs()
+  renderComments()
+}
+
+function renderUsers() {
+  const avContainer = document.getElementById('avatars')
+  avContainer.innerHTML = users.map(u => {
+    const initials = u.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()
+    return `<div class="avatar" style="background:${u.color};margin-left:-6px" title="${u.name}">${initials}</div>`
+  }).join('')
+
+  const sidebar = document.getElementById('user-list-sidebar')
+  sidebar.innerHTML = users.map(u => {
+    const initials = u.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()
+    return `<div style="display:flex;align-items:center;gap:8px">
+      <div class="avatar" style="background:${u.color};width:24px;height:24px;font-size:10px">${initials}</div>
+      <span class="mono" style="font-size:11px;color:${u.id === localUser.id ? 'var(--accent)' : 'var(--text)'}">${u.name}${u.id === localUser.id ? ' (you)' : ''}</span>
+    </div>`
+  }).join('')
+}
+
+function renderSliders() {
+  const container = document.getElementById('sliders')
+  container.innerHTML = SLIDERS.map(s => {
+    const val = state[s.name] ?? s.default
+    const pct = ((val - s.min) / (s.max - s.min)) * 100
+    // Check if another user is actively on this param
+    const activeUser = users.find(u => u.id !== localUser.id && cursors[u.id]?.param === s.name)
+    const ring = activeUser ? `box-shadow:0 0 0 2px ${activeUser.color}` : ''
+    return `<div class="slider-row" style="${ring}">
+      <div class="slider-label">
+        <span class="mono" style="font-size:12px">${s.label}</span>
+        <span class="mono" style="font-size:13px;color:var(--accent)">${Number(val).toFixed(1)} <span style="color:var(--text-muted);font-size:11px">${s.unit}</span></span>
+      </div>
+      <input type="range" min="${s.min}" max="${s.max}" step="${(s.max-s.min)/500}" value="${val}"
+        style="background:linear-gradient(to right,var(--accent) ${pct}%,var(--border) ${pct}%)"
+        oninput="onSlider('${s.name}', this.value)" />
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace">
+        <span>${s.min} ${s.unit}</span><span>${s.max} ${s.unit}</span>
+      </div>
+    </div>`
+  }).join('')
+}
+
+function renderOutputs() {
+  const v = state.voltage ?? 12
+  const r = state.resistance ?? 100
+  const f = state.frequency ?? 1000
+  const c = state.capacitance ?? 100
+
+  const current = v / r
+  const power = v * current
+  const rc = r * (c * 1e-9)
+  const fc = 1 / (2 * Math.PI * rc)
+  const xc = 1 / (2 * Math.PI * f * c * 1e-9)
+
+  const items = [
+    { label: 'Current', value: current.toExponential(3), unit: 'A', color: '#00c8ff' },
+    { label: 'Power', value: power.toFixed(3), unit: 'W', color: '#ffab40' },
+    { label: 'Cutoff Freq', value: fc.toFixed(1), unit: 'Hz', color: '#b388ff' },
+    { label: 'Capacitive Z', value: xc.toFixed(1), unit: 'Ω', color: '#00e676' },
+  ]
+
+  document.getElementById('outputs').innerHTML = items.map(it =>
+    `<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid ${it.color};border-radius:8px;padding:12px">
+      <div style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">${it.label}</div>
+      <div style="font-size:20px;font-family:'IBM Plex Mono',monospace;font-weight:700;color:${it.color}">${it.value}</div>
+      <div style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted)">${it.unit}</div>
+    </div>`
+  ).join('')
+}
+
+function renderComments() {
+  const list = document.getElementById('comments-list')
+  const unresolved = comments.filter(c => !c.resolved)
+  const cc = document.getElementById('comment-count')
+  cc.textContent = unresolved.length ? `(${unresolved.length})` : ''
+
+  list.innerHTML = comments.map(c =>
+    `<div class="comment-item" style="opacity:${c.resolved?'0.5':'1'}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <div style="width:8px;height:8px;border-radius:50%;background:${c.userColor}"></div>
+        <span class="comment-author" style="color:${c.userColor}">${c.userName}</span>
+        <span class="comment-time">${timeAgo(c.createdAt)}</span>
+        ${!c.resolved ? `<button onclick="resolveComment('${c.id}')" class="btn" style="padding:1px 6px;font-size:10px;margin-left:auto">✓ Resolve</button>` : '<span style="font-size:10px;color:var(--text-muted);font-family:\'IBM Plex Mono\',monospace;margin-left:auto">Resolved</span>'}
+      </div>
+      <div class="comment-text" style="text-decoration:${c.resolved?'line-through':'none'}">${c.text}</div>
+    </div>`
+  ).join('')
+}
+
+function renderCursor(userId) {
+  const c = cursors[userId]
+  if (!c) return
+  const id = `cursor-${userId}`
+  let el = document.getElementById(id)
+  if (!el) {
+    el = document.createElement('div')
+    el.id = id
+    el.className = 'remote-cursor'
+    el.innerHTML = `
+      <svg width="16" height="20" viewBox="0 0 16 20">
+        <path d="M0 0 L0 16 L4.5 12 L8 18 L10 17 L6.5 11 L12 11 Z" fill="${c.color}" stroke="#000" stroke-width="0.8"/>
+      </svg>
+      <div class="cursor-name" style="background:${c.color}">${c.name}</div>`
+    document.getElementById('cursors-root').appendChild(el)
+  }
+  const px = c.position.x * window.innerWidth
+  const py = c.position.y * window.innerHeight
+  el.style.left = px + 'px'
+  el.style.top = py + 'px'
+
+  clearTimeout(el._fadeTimer)
+  el.style.opacity = '1'
+  el._fadeTimer = setTimeout(() => { el.style.opacity = '0' }, 3000)
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+
+let lastCursorSend = 0
+document.addEventListener('mousemove', (e) => {
+  const now = Date.now()
+  if (now - lastCursorSend < 33) return
+  lastCursorSend = now
+  if (ws?.readyState === WebSocket.OPEN && localUser && roomId) {
+    ws.send(JSON.stringify({
+      type: 'cursor_move', roomId, userId: localUser.id,
+      payload: { position: { x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight }, name: localUser.name, color: localUser.color }
+    }))
+  }
+})
+
+function onSlider(name, value) {
+  state[name] = parseFloat(value)
+  renderSliders()
+  renderOutputs()
+  if (ws?.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: 'state_update', roomId, userId: localUser.id,
+      payload: { delta: { [name]: parseFloat(value) } }
+    }))
+  }
+}
+
+function addComment() {
+  const input = document.getElementById('comment-input')
+  const text = input.value.trim()
+  if (!text) return
+  input.value = ''
+  if (ws?.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: 'comment_add', roomId, userId: localUser.id,
+      payload: { text, position: { type: 'general' } }
+    }))
+  }
+}
+
+function resolveComment(commentId) {
+  if (ws?.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'comment_resolve', roomId, userId: localUser.id, payload: { commentId } }))
+  }
+}
+
+function toggleComments() {
+  commentsOpen = !commentsOpen
+  document.getElementById('comments-panel').classList.toggle('open', commentsOpen)
+}
+
+function copyInvite() {
+  const url = new URL(window.location.href)
+  url.searchParams.set('room', roomId)
+  url.searchParams.set('token', roomToken)
+  navigator.clipboard.writeText(url.toString()).then(() => alert('Invite link copied!'))
+}
+
+function timeAgo(ts) {
+  const diff = Math.floor((Date.now() - ts) / 1000)
+  if (diff < 60) return diff + 's ago'
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago'
+  return Math.floor(diff / 3600) + 'h ago'
+}
+
+// Auto-join from URL
+window.addEventListener('load', () => {
+  const params = new URLSearchParams(window.location.search)
+  const urlRoom = params.get('room')
+  const urlToken = params.get('token')
+  if (urlRoom) {
+    document.getElementById('join-code').value = urlRoom
+  }
+  if (urlToken) {
+    document.getElementById('join-token').value = urlToken
+  }
+})
+</script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline — ENGINGUITY</title>
+  <style>
+    :root {
+      --bg: #111111;
+      --bg-2: #1a1a1a;
+      --surface: #171717;
+      --border: #272727;
+      --border-bright: #333333;
+      --accent: #94a3b8;
+      --text: #e2e2e2;
+      --text-muted: #6b6b6b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+    }
+    .container {
+      max-width: 480px;
+      width: 100%;
+      padding: 36px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    .wordmark {
+      font-family: monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text);
+      margin: 0 0 8px;
+    }
+    .sub {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-muted);
+      margin: 0 0 28px;
+    }
+    .section-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: left;
+      margin-bottom: 10px;
+      letter-spacing: 0.04em;
+    }
+    .badge-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      text-align: left;
+    }
+    .badge {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+    }
+    .badge-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+      display: block;
+      margin-bottom: 4px;
+    }
+    .badge-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="wordmark">ENGINGUITY</div>
+    <h1>You're offline</h1>
+    <p class="sub">AI features are paused. The tools below work fully without a connection and will sync automatically when you reconnect.</p>
+
+    <div class="section-label">Available offline</div>
+    <div class="badge-grid">
+      <div class="badge">
+        <span class="badge-title">Parameter Playground</span>
+        <span class="badge-desc">Sliders, custom formulas, and charts run entirely in-browser.</span>
+      </div>
+      <div class="badge">
+        <span class="badge-title">Notebook</span>
+        <span class="badge-desc">Read and write notes locally. Gist sync queues until reconnected.</span>
+      </div>
+      <div class="badge">
+        <span class="badge-title">BOM Intelligence</span>
+        <span class="badge-desc">Edit components, calculate costs, and export orders locally.</span>
+      </div>
+      <div class="badge">
+        <span class="badge-title">CAD &amp; Circuit Sim</span>
+        <span class="badge-desc">Three.js viewer, component libraries, and calculations stay on.</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

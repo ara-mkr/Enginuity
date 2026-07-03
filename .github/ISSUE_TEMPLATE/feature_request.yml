@@ -1,0 +1,63 @@
+name: Feature Request
+description: Suggest an idea or enhancement for ENGINGUITY
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an idea! Please help us understand the problem before jumping to the solution — it makes evaluation much faster.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem are you trying to solve? Is your feature request related to a frustration?
+      placeholder: "I'm always frustrated when..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: What would you like to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative solutions or workarounds you've considered.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of ENGINGUITY does this affect?
+      multiple: true
+      options:
+        - Jarvis (voice canvas)
+        - CAD viewer
+        - Circuit simulation
+        - PCB review
+        - BOM sourcing
+        - Firmware diffing
+        - Documentation
+        - AI providers (OpenRouter / Ollama)
+        - Electron desktop app
+        - Design system / UI
+        - Other / not sure
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Mockups, references, or examples from other tools.
+    validations:
+      required: false

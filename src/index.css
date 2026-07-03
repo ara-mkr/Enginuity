@@ -1,0 +1,552 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   ENGINGUITY — Global Design System
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Backgrounds — legacy vars (bridged by UISettings) */
+  --bg:           #080808;
+  --bg-2:         #0e0e0e;
+  --surface:      #0d0d0d;
+  --surface-2:    #131313;
+
+  /* Borders */
+  --border:       #1e1e1e;
+  --border-bright:#282828;
+
+  /* Accent */
+  --accent:       #94a3b8;
+  --accent-2:     #7b5ea7;
+  --accent-glow:  rgba(148, 163, 184, 0.12);
+
+  /* Text */
+  --text:         #e2e2e2;
+  --text-muted:   #5a5a5a;
+  --text-dim:     #454545;
+
+  /* Status (muted — Polaris tone, no saturated alerts) */
+  --danger-muted:  #b08080;
+  --danger-tint:   rgba(176, 128, 128, 0.10);
+  --warning-muted: #b09470;
+  --warning-tint:  rgba(176, 148, 112, 0.10);
+
+  /* Code/netlist editor surface */
+  --editor-bg:    #0a0a0a;
+
+  /* Layout */
+  --sidebar-width: 220px;
+
+  /* ── Polaris UI Settings CSS vars (written by useUISettings) ── */
+  --color-bg:            #111314;
+  --color-surface:       #1a1d1f;
+  --color-surface-raised:#222527;
+  --color-border:        #2a2d30;
+  --color-accent:        #94a5ba;
+  --color-accent-hover:  #b0c4d8;
+  --color-text-primary:  #e4e8ec;
+  --color-text-secondary:#9ba8b5;
+  --color-text-muted:    #5a6370;
+  --color-danger:        #e05a5a;
+  --color-warning:       #d4933d;
+  --color-success:       #4caf7d;
+
+  --font-size-base:      14px;
+  --font-family-ui:      'DM Sans', system-ui, sans-serif;
+  --font-family-mono:    'JetBrains Mono', monospace;
+  --line-height-ui:      1.5;
+  --letter-spacing-ui:   0em;
+
+  --transition-speed:    200ms;
+  --panel-density:       normal;
+  --topbar-height:       48px;
+  --focus-ring-width:    1px;
+  --cursor-scale:        1;
+}
+
+/* ── Reset ──────────────────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Typography ─────────────────────────────────────────────────────────────── */
+
+code,
+pre,
+kbd,
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Section / panel labels — sentence case, muted, no tracking */
+.label {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-dim);
+}
+
+/* ── Selection ──────────────────────────────────────────────────────────────── */
+
+::selection {
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--text);
+}
+
+/* ── Scrollbars ─────────────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-bright);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-dim);
+}
+
+/* ── Global button defaults ─────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--border-bright);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+  outline: none;
+  white-space: nowrap;
+}
+.btn:hover {
+  background: var(--surface-2);
+  border-color: var(--border-bright);
+}
+.btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Primary CTA — one per screen max */
+.btn-primary {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.btn-primary:hover {
+  background: var(--accent-glow);
+}
+
+/* Legacy alias — maps to btn-primary behavior */
+.btn-solid {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.btn-solid:hover {
+  background: var(--accent-glow);
+}
+
+/* ── Global input defaults ──────────────────────────────────────────────────── */
+
+.input {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 120ms ease;
+}
+.input::placeholder {
+  color: var(--text-dim);
+}
+.input:focus {
+  border-color: var(--border-bright);
+}
+
+/* ── Card hover states ──────────────────────────────────────────────────────── */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.card:hover {
+  background: var(--surface-2);
+  border-color: var(--border-bright);
+}
+
+/* Module card — same as .card, no left border accent */
+.module-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.module-card:hover {
+  background: var(--surface-2);
+  border-color: var(--border-bright);
+}
+
+/* ── Parameter Playground sliders ───────────────────────────────────────────── */
+
+.param-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--border-bright);
+  outline: none;
+  cursor: pointer;
+}
+.param-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border-bright);
+  cursor: grab;
+  transition: border-color 120ms ease;
+}
+.param-slider::-webkit-slider-thumb:hover {
+  border-color: var(--accent);
+}
+.param-slider::-webkit-slider-thumb:active {
+  cursor: grabbing;
+}
+.param-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border-bright);
+  cursor: grab;
+}
+
+/* ── Loading bar (replaces shimmer/pulse for loading states) ─────────────────── */
+
+@keyframes loading-bar {
+  from { transform: scaleX(0); transform-origin: left; }
+  to   { transform: scaleX(1); transform-origin: left; }
+}
+
+.loading {
+  position: relative;
+  overflow: hidden;
+}
+.loading::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: var(--accent);
+  animation: loading-bar 1.5s ease infinite;
+  opacity: 0.6;
+}
+
+/* ── Skeleton shimmer (opacity only, no motion) ─────────────────────────────── */
+
+@keyframes skeleton-fade {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.7; }
+}
+
+/* ── Resizable panel system ──────────────────────────────────────────────────── */
+
+/* Block text selection on the whole page while a panel is being dragged */
+body[style*="col-resize"] *,
+body[style*="row-resize"] * {
+  user-select: none !important;
+}
+
+/* Exception: the divider itself must still receive pointer events */
+body[style*="col-resize"] .panel-divider,
+body[style*="row-resize"] .panel-divider {
+  pointer-events: auto !important;
+}
+
+/* ── Focus Mode CSS Rules ───────────────────────────────────────────────────── */
+
+body.focus-mode .sidebar-left {
+  transform: translateX(-220px);
+  margin-right: -220px;
+  transition: transform 200ms ease, margin-right 200ms ease;
+}
+body.focus-mode .sidebar-left.revealed {
+  transform: translateX(0);
+  margin-right: -220px; /* overlay instead of push */
+  z-index: 100;
+}
+body.focus-mode .sidebar-left::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 100%;
+  width: 120px;
+  height: 100%;
+  pointer-events: none;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.5), transparent);
+  z-index: 99;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+body.focus-mode .sidebar-left.revealed::after {
+  opacity: 1;
+}
+
+body.focus-mode .sidebar-right {
+  transform: translateX(280px);
+  margin-left: -280px;
+  transition: transform 200ms ease, margin-left 200ms ease;
+}
+body.focus-mode .sidebar-right.revealed {
+  transform: translateX(0);
+  margin-left: -280px; /* overlay instead of push */
+  z-index: 100;
+}
+body.focus-mode .sidebar-right::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 100%;
+  width: 120px;
+  height: 100%;
+  pointer-events: none;
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.5), transparent);
+  z-index: 99;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+body.focus-mode .sidebar-right.revealed::after {
+  opacity: 1;
+}
+
+body.focus-mode .top-banner {
+  height: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  border-bottom-width: 0 !important;
+  overflow: hidden;
+  transition: height 200ms ease, padding 200ms ease, border-width 200ms ease;
+}
+
+body.focus-mode .module-header {
+  opacity: 0 !important;
+  height: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  border-bottom-width: 0 !important;
+  pointer-events: none;
+  overflow: hidden;
+  transition: opacity 150ms ease, height 150ms ease, padding 150ms ease, margin 150ms ease;
+}
+
+/* Hide Open Probe Bot button/tab when closed in Focus Mode */
+body.focus-mode button[title="Open Probe Bot"] {
+  display: none !important;
+}
+
+/* Title Bar / Header modifications in Focus Mode */
+body.focus-mode .workspace-title-bar {
+  height: 20px !important;
+}
+body.focus-mode .workspace-title-bar button[title="Minimize"],
+body.focus-mode .workspace-title-bar button[title="Maximize"],
+body.focus-mode .workspace-title-bar button[title="Restore"],
+body.focus-mode .window-title-text,
+body.focus-mode .window-title-actions {
+  display: none !important;
+}
+
+
+/* ── Tooltip system ──────────────────────────────────────────────────────────── */
+/* Tooltips are rendered by TooltipManager.tsx via a React portal.              */
+/* Add data-tooltip="Label" to any element — no CSS rules needed here.          */
+
+/* ── Restore Animation transition rules ─────────────────────────────────────── */
+.window-restoring {
+  transition: left 300ms cubic-bezier(0.2, 0, 0, 1),
+              top 300ms cubic-bezier(0.2, 0, 0, 1),
+              width 300ms cubic-bezier(0.2, 0, 0, 1),
+              height 300ms cubic-bezier(0.2, 0, 0, 1) !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   UI Settings Panel — Polaris Design System
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Polaris slider (ps-slider) ─────────────────────────────────────────────── */
+
+.ps-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--color-accent) 0%,
+    var(--color-accent) var(--pct, 50%),
+    var(--color-border) var(--pct, 50%),
+    var(--color-border) 100%
+  );
+  outline: none;
+  cursor: pointer;
+  border: none;
+  display: block;
+}
+
+.ps-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  border: 2px solid var(--color-bg);
+  cursor: pointer;
+  box-shadow: 0 0 0 1px var(--color-accent);
+  transition: transform 100ms ease;
+}
+
+.ps-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+}
+
+.ps-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  border: 2px solid var(--color-bg);
+  cursor: pointer;
+  box-shadow: 0 0 0 1px var(--color-accent);
+}
+
+/* ── Ghost buttons (ps-ghost-btn) ───────────────────────────────────────────── */
+
+.ps-ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+  white-space: nowrap;
+}
+
+.ps-ghost-btn:hover {
+  border-color: var(--color-text-muted);
+  color: var(--color-text-primary);
+  background: var(--color-surface-raised);
+}
+
+.ps-ghost-btn--danger {
+  color: var(--color-danger);
+  border-color: color-mix(in srgb, var(--color-danger) 30%, transparent);
+}
+
+.ps-ghost-btn--danger:hover {
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.ps-ghost-btn--accent {
+  color: var(--color-accent);
+  border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
+
+.ps-ghost-btn--accent:hover {
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  border-color: var(--color-accent);
+}
+
+/* ── Bounce dot (transition speed preview) ──────────────────────────────────── */
+
+@keyframes ps-bounce {
+  0%   { transform: translateX(0); }
+  50%  { transform: translateX(32px); }
+  100% { transform: translateX(0); }
+}
+
+.ps-bounce-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  animation: ps-bounce var(--bounce-dur, 0.5s) ease-in-out infinite;
+}
+
+/* ── Ohma owl wink animation ────────────────────────────────────────────────── */
+
+@keyframes ps-owl-wink {
+  0%, 80%, 100% { transform: scaleY(1); opacity: 1; }
+  88%           { transform: scaleY(0.08); opacity: 0.2; }
+}
+
+.ps-owl-wink {
+  animation: ps-owl-wink 3.5s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* ── Focus ring (global, respects --focus-ring-width) ──────────────────────── */
+
+*:focus-visible {
+  outline: var(--focus-ring-width, 1px) solid var(--color-accent, #94a5ba);
+  outline-offset: 2px;
+}
+

@@ -1,0 +1,26 @@
+{
+  "name": "ENGINGUITY",
+  "short_name": "ENGINGUITY",
+  "description": "The AI-powered engineering workspace",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080810",
+  "theme_color": "#00c8ff",
+  "orientation": "any",
+  "icons": [
+    { "src": "/icons/icon-72.png", "sizes": "72x72", "type": "image/png" },
+    { "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" },
+    { "src": "/icons/icon-128.png", "sizes": "128x128", "type": "image/png" },
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Parameter Playground", "url": "/parameter-playground", "icons": [{"src":"/icons/shortcut-playground.png","sizes":"96x96"}] },
+    { "name": "Engineering Notebook", "url": "/notebook", "icons": [{"src":"/icons/shortcut-notebook.png","sizes":"96x96"}] },
+    { "name": "New BOM", "url": "/bom", "icons": [{"src":"/icons/shortcut-bom.png","sizes":"96x96"}] }
+  ],
+  "screenshots": [
+    { "src": "/screenshots/desktop.png", "sizes": "1280x800", "type": "image/png", "form_factor": "wide" },
+    { "src": "/screenshots/mobile.png", "sizes": "390x844", "type": "image/png", "form_factor": "narrow" }
+  ]
+}

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a Question / Discussion
+    url: https://github.com/<your-org>/enginguity/discussions
+    about: Have a question or want to discuss an idea before filing an issue? Start a discussion.
+  - name: Security Vulnerability
+    url: https://github.com/<your-org>/enginguity/security/policy
+    about: Please report security vulnerabilities privately — see SECURITY.md.
