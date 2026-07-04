@@ -1,12 +1,19 @@
-// Top control strip: circuit switcher, analysis-mode selector, Run (armed in
-// Phase 2 when the MNA solver wires in), undo/redo, and zoom readout.
+// Top control strip: circuit switcher, analysis-mode selector with per-mode
+// solver settings, Run (wired to the MNA engine via useSimulationRun),
+// undo/redo, and zoom readout.
 
-import { Play, Plus, Redo2, Undo2 } from 'lucide-react'
+import { useState } from 'react'
+import { Loader2, Play, Plus, Redo2, Undo2 } from 'lucide-react'
 import type { AnalysisMode, Circuit } from '../types'
 import { useSimulationStore } from '../store/circuitStore'
+import { ENG_NOTATION_HINT, formatEngNotation, parseEngNotation } from '../core/engNotation'
 
 interface Props {
   circuit: Circuit
+  /** False while netlist issues make the circuit unsolvable. */
+  canRun: boolean
+  running: boolean
+  onRun: () => void
 }
 
 const MODES: Array<{ id: AnalysisMode; label: string }> = [
@@ -18,25 +25,29 @@ const MODES: Array<{ id: AnalysisMode; label: string }> = [
 const uiFont = "var(--font-family-ui, 'Geist', sans-serif)"
 const monoFont = "var(--font-family-mono, 'Geist Mono', monospace)"
 
-export function SimulationControlBar({ circuit }: Props) {
+export function SimulationControlBar({ circuit, canRun, running, onRun }: Props) {
   const circuits = useSimulationStore((s) => s.circuits)
   const setActiveCircuit = useSimulationStore((s) => s.setActiveCircuit)
   const createCircuit = useSimulationStore((s) => s.createCircuit)
   const renameCircuit = useSimulationStore((s) => s.renameCircuit)
   const setAnalysisMode = useSimulationStore((s) => s.setAnalysisMode)
+  const updateSimulationSettings = useSimulationStore((s) => s.updateSimulationSettings)
   const setViewport = useSimulationStore((s) => s.setViewport)
   const undo = useSimulationStore((s) => s.undo)
   const redo = useSimulationStore((s) => s.redo)
   const history = useSimulationStore((s) => s.history[circuit.id])
 
   const list = Object.values(circuits).sort((a, b) => a.createdAt - b.createdAt)
+  const { mode, transient, ac } = circuit.simulationSettings
 
   return (
     <div
       style={{
         display: 'flex',
         alignItems: 'center',
+        flexWrap: 'wrap',
         gap: 10,
+        rowGap: 6,
         padding: '6px 12px',
         borderBottom: '1px solid var(--color-border)',
         background: 'var(--color-surface)',
@@ -88,7 +99,7 @@ export function SimulationControlBar({ circuit }: Props) {
         }}
       >
         {MODES.map((m) => {
-          const active = circuit.simulationSettings.mode === m.id
+          const active = mode === m.id
           return (
             <button
               key={m.id}
@@ -109,26 +120,81 @@ export function SimulationControlBar({ circuit }: Props) {
         })}
       </div>
 
+      {/* Per-mode solver settings */}
+      {mode === 'transient' && (
+        <>
+          <EngField
+            label="Stop"
+            unit="s"
+            value={transient.stopTime}
+            validate={(v) => (v > 0 ? null : 'must be positive')}
+            onCommit={(stopTime) => updateSimulationSettings({ transient: { ...transient, stopTime } })}
+          />
+          <EngField
+            label="Step"
+            unit="s"
+            value={transient.timeStep}
+            validate={(v) => (v > 0 ? null : 'must be positive')}
+            onCommit={(timeStep) => updateSimulationSettings({ transient: { ...transient, timeStep } })}
+          />
+        </>
+      )}
+      {mode === 'ac' && (
+        <>
+          <EngField
+            label="From"
+            unit="Hz"
+            value={ac.startFreq}
+            validate={(v) => (v > 0 ? null : 'must be positive')}
+            onCommit={(startFreq) => updateSimulationSettings({ ac: { ...ac, startFreq } })}
+          />
+          <EngField
+            label="To"
+            unit="Hz"
+            value={ac.stopFreq}
+            validate={(v) => (v > 0 ? null : 'must be positive')}
+            onCommit={(stopFreq) => updateSimulationSettings({ ac: { ...ac, stopFreq } })}
+          />
+          <EngField
+            label="Pts/dec"
+            unit=""
+            value={ac.pointsPerDecade}
+            validate={(v) => (v >= 1 ? null : 'needs ≥ 1')}
+            onCommit={(pointsPerDecade) =>
+              updateSimulationSettings({ ac: { ...ac, pointsPerDecade: Math.round(pointsPerDecade) } })
+            }
+          />
+        </>
+      )}
+
       <button
-        disabled
-        title="Solver arrives in Phase 2 — schematic capture only for now"
+        onClick={onRun}
+        disabled={!canRun || running}
+        title={
+          running
+            ? 'Solver is running…'
+            : canRun
+              ? `Run ${mode.toUpperCase()} analysis`
+              : 'Fix the netlist issues in the preview panel first'
+        }
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: 6,
           padding: '4px 14px',
-          background: 'var(--color-surface-raised)',
+          background: canRun && !running ? 'var(--color-accent)' : 'var(--color-surface-raised)',
           border: '1px solid var(--color-border)',
           borderRadius: 6,
-          color: 'var(--color-text-muted)',
+          color: canRun && !running ? 'var(--color-bg)' : 'var(--color-text-muted)',
           fontFamily: uiFont,
           fontSize: 12,
-          cursor: 'not-allowed',
-          opacity: 0.55,
+          fontWeight: 500,
+          cursor: canRun && !running ? 'pointer' : 'not-allowed',
+          opacity: canRun || running ? 1 : 0.55,
         }}
       >
-        <Play size={13} />
-        Run
+        {running ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
+        {running ? 'Solving…' : 'Run'}
       </button>
 
       <div style={{ flex: 1 }} />
@@ -158,6 +224,77 @@ export function SimulationControlBar({ circuit }: Props) {
         {Math.round(circuit.viewport.zoom * 100)}%
       </button>
     </div>
+  )
+}
+
+/** Compact engineering-notation field sized for the control bar (commit on Enter/blur, revert on Esc/invalid). */
+function EngField({
+  label,
+  unit,
+  value,
+  validate,
+  onCommit,
+}: {
+  label: string
+  unit: string
+  value: number
+  validate: (v: number) => string | null
+  onCommit: (v: number) => void
+}) {
+  const [text, setText] = useState(() => formatEngNotation(value))
+  const [invalid, setInvalid] = useState(false)
+
+  // Re-sync when the committed value changes externally (render-time reset).
+  const [lastValue, setLastValue] = useState(value)
+  if (value !== lastValue) {
+    setLastValue(value)
+    setText(formatEngNotation(value))
+    setInvalid(false)
+  }
+
+  const commit = () => {
+    const parsed = parseEngNotation(text)
+    if (parsed === null || validate(parsed) !== null) {
+      setInvalid(true)
+      return
+    }
+    setInvalid(false)
+    if (parsed !== value) onCommit(parsed)
+    else setText(formatEngNotation(value))
+  }
+
+  return (
+    <label style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={ENG_NOTATION_HINT}>
+      <span style={{ fontFamily: uiFont, fontSize: 10.5, color: 'var(--color-text-muted)' }}>{label}</span>
+      <input
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') commit()
+          if (e.key === 'Escape') {
+            e.stopPropagation()
+            setText(formatEngNotation(value))
+            setInvalid(false)
+          }
+        }}
+        style={{
+          width: 58,
+          boxSizing: 'border-box',
+          background: 'var(--color-bg)',
+          border: `1px solid ${invalid ? 'var(--color-danger)' : 'var(--color-border)'}`,
+          borderRadius: 6,
+          color: 'var(--color-text-primary)',
+          fontFamily: monoFont,
+          fontSize: 11,
+          padding: '3px 6px',
+          outline: 'none',
+        }}
+      />
+      {unit && (
+        <span style={{ fontFamily: monoFont, fontSize: 10, color: 'var(--color-text-muted)' }}>{unit}</span>
+      )}
+    </label>
   )
 }
 

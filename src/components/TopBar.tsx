@@ -7,6 +7,7 @@ import {
 import { FileHistory } from './FileHistory/index'
 // @ts-ignore
 import { AISettings } from './AISettings'
+import { ModelPicker } from './ModelPicker'
 import { TutorialModal } from './TutorialModal'
 import { OpenRouterSetup } from './OpenRouterSetup'
 import { useOpenRouter } from '../context/OpenRouterContext'
@@ -202,6 +203,10 @@ export function TopBar() {
         <div style={{ flex: 1 }} />
 
         <TopBarButton icon={Clock} label="File History" onClick={() => setHistoryOpen(true)} />
+
+        {/* Quick model switcher — shows the active provider (cloud model or
+            local Ollama model with FREE badge) and swaps models in place. */}
+        {isConnected && <ModelPicker />}
 
         {isConnected ? (
           <button

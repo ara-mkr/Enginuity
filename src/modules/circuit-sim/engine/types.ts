@@ -35,6 +35,40 @@ export interface MOSFETParams {
   lambda?: number;
 }
 
+/**
+ * Time-varying value descriptor for independent sources during transient
+ * analysis. DC and AC analyses ignore it: DC uses `value` as the operating
+ * point, AC uses the source only as a unit-magnitude stimulus.
+ */
+export type SourceWaveform =
+  | {
+      kind: 'sine';
+      /** Peak amplitude (V or A). */
+      amplitude: number;
+      /** Frequency (Hz). */
+      frequency: number;
+      /** Phase at t=0 (degrees). */
+      phaseDeg: number;
+      /** DC offset added to the sinusoid. */
+      offset: number;
+    }
+  | {
+      /** SPICE-style PULSE: v1 → v2 with linear rise/fall edges, repeating every period. */
+      kind: 'pulse';
+      v1: number;
+      v2: number;
+      /** Time before the first rising edge (s). */
+      delay: number;
+      /** Rise time (s); 0 means an instant edge. */
+      rise: number;
+      /** Fall time (s); 0 means an instant edge. */
+      fall: number;
+      /** Time spent at v2 after the rise completes (s). */
+      width: number;
+      /** Repetition period (s). */
+      period: number;
+    };
+
 export interface Component {
   id: string;
   type: ComponentType;
@@ -56,6 +90,12 @@ export interface Component {
   value: number;
   /** Only used when type === 'diode' | 'bjt' | 'mosfet'. */
   params?: DiodeParams | BJTParams | MOSFETParams;
+  /**
+   * Optional time-varying value for vsource/isource; transient analysis
+   * evaluates it at every timestep via sourceValueAt. Absent → the source
+   * holds `value` for all t.
+   */
+  waveform?: SourceWaveform;
 }
 
 export interface Netlist {

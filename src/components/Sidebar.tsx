@@ -8,7 +8,6 @@ import {
 } from 'lucide-react'
 import { useInstalledTools } from '../hooks/useInstalledTools'
 import { iconForCustomTool } from '../config/toolRegistry'
-import { ModelPicker } from './ModelPicker'
 import { AISettings } from './AISettings'
 import { TutorialModal } from './TutorialModal'
 // @ts-ignore

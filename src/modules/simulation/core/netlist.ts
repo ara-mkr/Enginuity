@@ -42,11 +42,39 @@ function toEngineComponent(
     case 'vsource-dc':
       return { id: comp.refdes, type: 'vsource', nodes: [node('pos'), node('neg')], value: comp.params.voltage }
     case 'vsource-ac':
-      // DC operating point sees the source at its DC offset; AC params ride along in later phases.
-      return { id: comp.refdes, type: 'vsource', nodes: [node('pos'), node('neg')], value: comp.params.offset ?? 0 }
+      // DC operating point sees the source at its DC offset; the waveform
+      // drives transient steps and marks the source as the AC stimulus.
+      return {
+        id: comp.refdes,
+        type: 'vsource',
+        nodes: [node('pos'), node('neg')],
+        value: comp.params.offset ?? 0,
+        waveform: {
+          kind: 'sine',
+          amplitude: comp.params.amplitude ?? 0,
+          frequency: comp.params.frequency ?? 0,
+          phaseDeg: comp.params.phase ?? 0,
+          offset: comp.params.offset ?? 0,
+        },
+      }
     case 'vsource-pulse':
-      // At t=0 the pulse source sits at V1.
-      return { id: comp.refdes, type: 'vsource', nodes: [node('pos'), node('neg')], value: comp.params.v1 ?? 0 }
+      // The DC operating point sees the pulse at its t=0 level (V1).
+      return {
+        id: comp.refdes,
+        type: 'vsource',
+        nodes: [node('pos'), node('neg')],
+        value: comp.params.v1 ?? 0,
+        waveform: {
+          kind: 'pulse',
+          v1: comp.params.v1 ?? 0,
+          v2: comp.params.v2 ?? 0,
+          delay: comp.params.delay ?? 0,
+          rise: comp.params.rise ?? 0,
+          fall: comp.params.fall ?? 0,
+          width: comp.params.width ?? 0,
+          period: comp.params.period ?? 0,
+        },
+      }
     case 'isource-dc':
       return { id: comp.refdes, type: 'isource', nodes: [node('pos'), node('neg')], value: comp.params.current }
     case 'ground':

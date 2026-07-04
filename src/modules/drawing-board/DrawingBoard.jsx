@@ -4,6 +4,9 @@ import { useNavigate } from 'react-router-dom'
 import { BoardCanvas } from './canvas/BoardCanvas'
 import { getSelectionBounds, render, roundedRect, darken, hexToRgba } from './canvas/renderer'
 import { useCollaboration } from '../collaboration/useCollaboration'
+import CollaborationBar from '../collaboration/CollaborationBar'
+import CommentsPanel from '../collaboration/CommentsPanel'
+import CursorOverlay from '../collaboration/CursorOverlay'
 import { useOpenRouter } from '../../context/OpenRouterContext'
 import { useAIProvider } from '../../hooks/useAIProvider'
 import { useProbeContext } from '../../hooks/useProbeContext'
@@ -156,6 +159,11 @@ export function DrawingBoard() {
   const collabName = params.get('collab_name') || 'Teammate'
   const collab = useCollaboration(roomId, collabName)
 
+  // Room comments arrive via the sync listener below: the full list on join
+  // (state_sync) and individual add/resolve/reply events after that.
+  const [comments, setComments] = useState([])
+  const [commentsOpen, setCommentsOpen] = useState(false)
+
   // Load board elements from the store (large boards resolve via blobStore)
   useEffect(() => {
     let cancelled = false
@@ -217,6 +225,29 @@ export function DrawingBoard() {
   useEffect(() => {
     if (collab.connected) {
       const unsub = collab.onStateUpdate((delta, isFullSync) => {
+        // Comment events relayed by the server (broadcast to everyone,
+        // including the author — the server owns ids and timestamps).
+        if (delta?._commentEvent) {
+          const { type, payload } = delta._commentEvent
+          if (type === 'comment_add' && payload?.comment) {
+            setComments((prev) => [...prev, payload.comment])
+          } else if (type === 'comment_resolve' && payload?.commentId) {
+            setComments((prev) =>
+              prev.map((c) => (c.id === payload.commentId ? { ...c, resolved: true } : c))
+            )
+          } else if (type === 'comment_reply' && payload?.commentId) {
+            const { commentId, ...reply } = payload
+            setComments((prev) =>
+              prev.map((c) =>
+                c.id === commentId ? { ...c, replies: [...(c.replies || []), reply] } : c
+              )
+            )
+          }
+          return
+        }
+        if (isFullSync && Array.isArray(delta?.comments)) {
+          setComments(delta.comments)
+        }
         if (delta?.elements) {
           setElements(prev => {
             const next = [...prev]
@@ -920,6 +951,36 @@ Keep layout clean, spread items out in x, y coordinates so they do not overlap. 
       }}
       onContextMenu={handleContextMenu}
     >
+      {/* Collaboration bar — session controls, presence avatars, comments
+          toggle. The board root's zIndex:1 stacking context sits UNDER the
+          app's fixed header (height 44, z 50), so route-mounted boards dock
+          the bar just below it; workspace windows own their chrome. */}
+      <div
+        style={{
+          position: isWorkspace ? 'absolute' : 'fixed',
+          top: isWorkspace ? 0 : 44,
+          left: 0,
+          right: 0,
+          zIndex: 100,
+        }}
+      >
+        <CollaborationBar
+          connected={collab.connected}
+          users={collab.users}
+          roomId={collab.roomId}
+          localUser={collab.localUser}
+          comments={comments}
+          onStartSession={() => collab.startSession(collabName)}
+          onLeave={() => {
+            collab.leaveRoom()
+            setComments([])
+            setCommentsOpen(false)
+          }}
+          onOpenComments={() => setCommentsOpen((o) => !o)}
+          commentsOpen={commentsOpen}
+        />
+      </div>
+
       {/* Dynamic Board Canvas Element */}
       <BoardCanvas
         elements={elements}
@@ -1440,12 +1501,12 @@ Keep layout clean, spread items out in x, y coordinates so they do not overlap. 
         </button>
       )}
 
-      {/* Floating Properties Panels (top center) */}
+      {/* Floating Properties Panels (top center, clearing the app header and collaboration bar) */}
       {selection.length > 0 && singleSelected && (
         <div
           style={{
             position: isWorkspace ? 'absolute' : 'fixed',
-            top: '16px',
+            top: isWorkspace ? '54px' : '98px',
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 99,
@@ -1910,6 +1971,28 @@ Keep layout clean, spread items out in x, y coordinates so they do not overlap. 
           </button>
         </div>
       </div>
+
+      {/* Comments drawer (fixed right, self-positioning below the app header) */}
+      {commentsOpen && (
+        <CommentsPanel
+          comments={comments}
+          localUser={collab.localUser}
+          topOffset={isWorkspace ? 0 : 44}
+          onClose={() => setCommentsOpen(false)}
+          onAddComment={collab.addComment}
+          onResolve={collab.resolveComment}
+          onReply={collab.replyComment}
+        />
+      )}
+
+      {/* Live remote cursors */}
+      {collab.connected && (
+        <CursorOverlay
+          users={collab.users}
+          localUserId={collab.localUser.id}
+          sendCursorMove={collab.sendCursorMove}
+        />
+      )}
     </div>
   )
 }

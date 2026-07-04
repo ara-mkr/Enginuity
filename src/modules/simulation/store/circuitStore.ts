@@ -8,6 +8,8 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware'
 import { hybridStorage } from '../../../utils/electronBridge'
+import { blobStore } from '../../../engine/blobStore'
+import { runBlobId } from '../core/runStorage'
 
 // hybridStorage mixes sync/async signatures; adapt it to zustand's contract.
 const storage: StateStorage = {
@@ -108,6 +110,8 @@ export interface SimulationStoreState {
   setViewport: (viewport: Viewport) => void
   setAnalysisMode: (mode: AnalysisMode) => void
   updateSimulationSettings: (patch: Partial<SimulationSettings>) => void
+  /** Records the id of the latest solver run; its buffers live in blobStore. */
+  setLastRunId: (circuitId: string, runId: string | null) => void
 }
 
 function mutateActive(
@@ -155,6 +159,8 @@ export const useSimulationStore = create<SimulationStoreState>()(
       deleteCircuit: (id) =>
         set((s) => {
           const circuits = { ...s.circuits }
+          const lastRunId = circuits[id]?.lastRunId
+          if (lastRunId) blobStore.delete(runBlobId(lastRunId)).catch(() => {})
           delete circuits[id]
           const history = { ...s.history }
           delete history[id]
@@ -348,6 +354,15 @@ export const useSimulationStore = create<SimulationStoreState>()(
             c.simulationSettings = { ...c.simulationSettings, ...patch }
           }),
         ),
+
+      // Not a schematic edit: no undo snapshot, no updatedAt bump (updatedAt
+      // drives the results-staleness check, which must only trip on edits).
+      setLastRunId: (circuitId, runId) =>
+        set((s) => {
+          const c = s.circuits[circuitId]
+          if (!c) return {}
+          return { circuits: { ...s.circuits, [circuitId]: { ...c, lastRunId: runId } } }
+        }),
     }),
     {
       name: 'enginguity-simulation',

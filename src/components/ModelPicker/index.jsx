@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
-import { ChevronDown, Search, Star } from 'lucide-react'
+import { ChevronDown, Monitor, Search, Star } from 'lucide-react'
 import { useOpenRouter } from '../../context/OpenRouterContext'
 import { TIER_COLORS } from '../../config/openrouterModels'
+import { fetchOllamaModels, formatOllamaModelName } from '../../config/ollama'
 
 function TierBadge({ tier }) {
   const color = TIER_COLORS[tier] ?? '#78909c'
@@ -18,10 +19,16 @@ function TierBadge({ tier }) {
 }
 
 export function ModelPicker({ moduleKey = null }) {
-  const { apiKey, activeModelId, setModelId, models, isConnected, openSetup } = useOpenRouter()
+  const {
+    apiKey, activeModelId, setModelId, models, isConnected, openSetup,
+    activeProvider, setActiveProvider, ollamaModelId, setOllamaModelId,
+  } = useOpenRouter()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [toast, setToast] = useState(null)
+  // null = not checked yet; { available, models } after the on-demand fetch.
+  // Checked when the dropdown opens — the sidebar never polls in the background.
+  const [localOllama, setLocalOllama] = useState(null)
   const containerRef = useRef(null)
   const searchRef = useRef(null)
 
@@ -39,12 +46,34 @@ export function ModelPicker({ moduleKey = null }) {
     else setQuery('')
   }, [open])
 
+  // Refresh the installed local models each time the dropdown opens.
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    fetchOllamaModels().then((result) => {
+      if (!cancelled) setLocalOllama(result)
+    })
+    return () => { cancelled = true }
+  }, [open])
+
   const activeModel = models.find((m) => m.id === activeModelId)
+  const usingLocal = activeProvider === 'ollama' || activeProvider === 'both'
 
   const handleSelect = (model) => {
     setModelId(model.id)
+    // Picking a cloud model routes to OpenRouter unless hybrid keeps both.
+    if (activeProvider === 'ollama') setActiveProvider('openrouter')
     setOpen(false)
     setToast(`Switched to ${model.name}`)
+    setTimeout(() => setToast(null), 2500)
+  }
+
+  const handleSelectLocal = (model) => {
+    setOllamaModelId(model.id)
+    // Picking a local model routes to Ollama; hybrid mode stays hybrid.
+    if (activeProvider !== 'both') setActiveProvider('ollama')
+    setOpen(false)
+    setToast(`Switched to ${model.name} (local · free)`)
     setTimeout(() => setToast(null), 2500)
   }
 
@@ -92,14 +121,32 @@ export function ModelPicker({ moduleKey = null }) {
           transition: 'all 0.15s',
         }}
       >
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: activeModel?.providerColor ?? 'var(--accent)', flexShrink: 0 }} />
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-          {activeModel?.name ?? activeModelId}
-        </span>
-        {activeModel && <TierBadge tier={activeModel.tier} />}
-        <span style={{ fontSize: 10, color: 'var(--text-dim)', flexShrink: 0 }}>
-          {activeModel ? `${activeModel.contextK}K` : ''}
-        </span>
+        {usingLocal && ollamaModelId ? (
+          <>
+            <Monitor size={11} style={{ color: '#7aaa8a', flexShrink: 0 }} />
+            <span
+              title={activeProvider === 'both' ? `Hybrid mode — local first, ${activeModel?.name ?? 'cloud'} fallback` : 'Running locally via Ollama'}
+              style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}
+            >
+              {formatOllamaModelName(ollamaModelId)}
+            </span>
+            <span style={{ fontSize: 9, color: '#7aaa8a', background: 'rgba(34,197,94,0.12)', padding: '1px 5px', borderRadius: 3, flexShrink: 0 }}>
+              FREE
+            </span>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#7aaa8a', flexShrink: 0 }} />
+          </>
+        ) : (
+          <>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: activeModel?.providerColor ?? 'var(--accent)', flexShrink: 0 }} />
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+              {activeModel?.name ?? activeModelId}
+            </span>
+            {activeModel && <TierBadge tier={activeModel.tier} />}
+            <span style={{ fontSize: 10, color: 'var(--text-dim)', flexShrink: 0 }}>
+              {activeModel ? `${activeModel.contextK}K` : ''}
+            </span>
+          </>
+        )}
         <ChevronDown size={11} style={{ color: 'var(--text-dim)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }} />
       </button>
 
@@ -129,6 +176,35 @@ export function ModelPicker({ moduleKey = null }) {
           </div>
 
           <div style={{ overflowY: 'auto', flex: 1 }}>
+            {/* Local (Ollama) models — listed first when the daemon is running */}
+            {localOllama?.available && (
+              <div>
+                <div style={{ padding: '8px 12px 4px', position: 'sticky', top: 0, background: 'var(--bg-2)', display: 'flex', alignItems: 'center', gap: 6, zIndex: 1 }}>
+                  <Monitor size={10} style={{ color: '#7aaa8a' }} />
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: '#7aaa8a' }}>Local · Ollama</span>
+                </div>
+                {localOllama.models
+                  .filter((m) => !lq || m.name.toLowerCase().includes(lq) || m.tier.includes(lq) || 'ollama local free'.includes(lq))
+                  .map((model) => (
+                    <ModelRow
+                      key={model.id}
+                      model={model}
+                      active={usingLocal && model.id === ollamaModelId}
+                      onSelect={handleSelectLocal}
+                    />
+                  ))}
+                <div style={{ margin: '4px 12px', borderBottom: '1px solid var(--border)' }} />
+              </div>
+            )}
+            {!query && localOllama && !localOllama.available && (
+              <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 6, borderBottom: '1px solid var(--border)' }}>
+                <Monitor size={10} style={{ color: 'var(--text-dim)' }} />
+                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: 'var(--text-dim)' }}>
+                  Ollama not detected — start it to run models locally, free
+                </span>
+              </div>
+            )}
+
             {/* Recommended section */}
             {!query && recommendedIds.length > 0 && (
               <div>
@@ -218,7 +294,7 @@ function ModelRow({ model, active, onSelect }) {
           {model.contextK}K
         </span>
         <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: 'var(--accent)', minWidth: 50, textAlign: 'right' }}>
-          ${estCostPer1k}/1K
+          {model.local ? `${model.sizeGB}GB` : `$${estCostPer1k}/1K`}
         </span>
       </div>
     </button>

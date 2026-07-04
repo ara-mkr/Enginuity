@@ -10,6 +10,7 @@ import type { Circuit, Point, Viewport } from '../types'
 import { GRID } from '../types'
 import type { NodeDetectionResult } from '../core/nodeDetection'
 import { getDef } from '../componentDefs'
+import { formatEngNotation } from '../core/engNotation'
 import {
   distToOrthoSegment,
   orthoRoute,
@@ -30,6 +31,8 @@ interface Props {
   onToolChange: (t: Tool) => void
   selection: Selection | null
   onSelectionChange: (s: Selection | null) => void
+  /** Fresh DC operating-point voltages to overlay per node; null hides the overlay. */
+  dcVoltages?: Record<number, number> | null
 }
 
 const MIN_ZOOM = 0.2
@@ -49,6 +52,7 @@ export function SchematicCanvas({
   onToolChange,
   selection,
   onSelectionChange,
+  dcVoltages,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -477,6 +481,35 @@ export function SchematicCanvas({
               pointerEvents="none"
             />
           ))}
+
+          {/* DC operating-point voltage badges, one per electrical node */}
+          {dcVoltages &&
+            detection.nodes.map((node) => {
+              if (node.id === 0 || node.points.length === 0) return null
+              const v = dcVoltages[node.id]
+              if (v === undefined) return null
+              // Anchor at the node's topmost point so the badge floats above the conductor.
+              const anchor = node.points.reduce((best, p) =>
+                p.y < best.y || (p.y === best.y && p.x < best.x) ? p : best,
+              )
+              return (
+                <text
+                  key={`v${node.id}`}
+                  x={anchor.x}
+                  y={anchor.y - 8}
+                  textAnchor="middle"
+                  fontSize={10}
+                  fontFamily="var(--font-family-mono, 'Geist Mono', monospace)"
+                  fill="var(--color-accent)"
+                  stroke="var(--color-bg)"
+                  strokeWidth={3}
+                  paintOrder="stroke"
+                  pointerEvents="none"
+                >
+                  {formatEngNotation(v, 'V')}
+                </text>
+              )
+            })}
 
           {/* Wire-in-progress preview */}
           {wirePreview && wirePreview.length >= 2 && (

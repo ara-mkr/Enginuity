@@ -17,10 +17,12 @@ import {
   type TransientResult,
 } from './types';
 import { validateNetlist } from './validate';
+import { sourceValueAt } from './waveforms';
 
 /**
  * Stamps every component whose contribution is "linear at this timestep":
- * resistors and sources as usual, plus capacitors/inductors via their
+ * resistors and sources as usual (sources evaluated at time t so sine/pulse
+ * waveforms drive the step), plus capacitors/inductors via their
  * trapezoidal companion model built from the PREVIOUS timestep's stored
  * state. Diodes are intentionally skipped here — runNewtonRaphson stamps
  * those itself, once per iteration, since their linearization point moves
@@ -31,6 +33,7 @@ function stampTimestep(
   nodeMap: NodeMap,
   state: ReactiveState,
   h: number,
+  t: number,
   A: Matrix,
   z: number[]
 ): void {
@@ -40,14 +43,14 @@ function stampTimestep(
         stampResistor(A, nodeMap, comp);
         break;
       case 'isource':
-        stampIndependentCurrentSource(z, nodeMap, comp);
+        stampIndependentCurrentSource(z, nodeMap, { ...comp, value: sourceValueAt(comp, t) });
         break;
       case 'vsource': {
         const branchIndex = nodeMap.branchToIndex.get(comp.id);
         if (branchIndex === undefined) {
           throw new Error(`Voltage source "${comp.id}" is missing a branch index.`);
         }
-        stampIndependentVoltageSource(A, z, nodeMap, comp, branchIndex);
+        stampIndependentVoltageSource(A, z, nodeMap, { ...comp, value: sourceValueAt(comp, t) }, branchIndex);
         break;
       }
       case 'capacitor': {
@@ -121,6 +124,10 @@ export function runTransient(netlist: Netlist, options: TransientOptions): Trans
       components: netlist.components.map((c) => {
         if (c.type === 'capacitor') return { ...c, type: 'vsource' as const, value: 0 };
         if (c.type === 'inductor') return { ...c, type: 'isource' as const, value: 0 };
+        // Time-varying sources sit at their t=startTime value for the IC solve.
+        if ((c.type === 'vsource' || c.type === 'isource') && c.waveform) {
+          return { ...c, value: sourceValueAt(c, startTime), waveform: undefined };
+        }
         return c;
       }),
     };
@@ -159,7 +166,7 @@ export function runTransient(netlist: Netlist, options: TransientOptions): Trans
     // a. Build A/z for this timestep and, if nonlinear devices are
     // present, run Newton-Raphson at this timestep too.
     const { x, warnings: stepWarnings } = runNewtonRaphson(netlist, nodeMap, (A, z) =>
-      stampTimestep(netlist, nodeMap, state, h, A, z)
+      stampTimestep(netlist, nodeMap, state, h, t, A, z)
     );
     if (stepWarnings) {
       nonConvergedSteps++;

@@ -213,6 +213,8 @@ export default function CommentsPanel({
   onAddComment,
   onResolve,
   onReply,
+  /** Pixels of fixed app chrome above the drawer (e.g. the top bar height). */
+  topOffset = 0,
 }) {
   const [tab, setTab] = useState('unresolved')
   const [newText, setNewText] = useState('')
@@ -244,7 +246,7 @@ export default function CommentsPanel({
       style={{
         position: 'fixed',
         right: 0,
-        top: 0,
+        top: topOffset,
         bottom: 0,
         width: 320,
         background: 'var(--surface)',
