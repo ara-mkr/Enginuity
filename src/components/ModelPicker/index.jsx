@@ -2,7 +2,12 @@ import { useState, useRef, useEffect } from 'react'
 import { ChevronDown, Monitor, Search, Star } from 'lucide-react'
 import { useOpenRouter } from '../../context/OpenRouterContext'
 import { TIER_COLORS } from '../../config/openrouterModels'
-import { fetchOllamaModels, formatOllamaModelName } from '../../config/ollama'
+import {
+  fetchOllamaModels,
+  formatOllamaModelName,
+  getOllamaTokenRate,
+  OLLAMA_METRICS_EVENT,
+} from '../../config/ollama'
 
 function TierBadge({ tier }) {
   const color = TIER_COLORS[tier] ?? '#78909c'
@@ -55,6 +60,18 @@ export function ModelPicker({ moduleKey = null }) {
     })
     return () => { cancelled = true }
   }, [open])
+
+  // Live generation speed for the active local model — updates the moment a
+  // chat completes anywhere in the app (callOllama broadcasts its metrics).
+  const [tokRate, setTokRate] = useState(() => (ollamaModelId ? getOllamaTokenRate(ollamaModelId) : null))
+  useEffect(() => {
+    setTokRate(ollamaModelId ? getOllamaTokenRate(ollamaModelId) : null)
+    const handler = (e) => {
+      if (e.detail?.model === ollamaModelId) setTokRate(e.detail)
+    }
+    window.addEventListener(OLLAMA_METRICS_EVENT, handler)
+    return () => window.removeEventListener(OLLAMA_METRICS_EVENT, handler)
+  }, [ollamaModelId])
 
   const activeModel = models.find((m) => m.id === activeModelId)
   const usingLocal = activeProvider === 'ollama' || activeProvider === 'both'
@@ -133,6 +150,14 @@ export function ModelPicker({ moduleKey = null }) {
             <span style={{ fontSize: 9, color: '#7aaa8a', background: 'rgba(34,197,94,0.12)', padding: '1px 5px', borderRadius: 3, flexShrink: 0 }}>
               FREE
             </span>
+            {tokRate && (
+              <span
+                title={`Last generation: ${tokRate.evalCount} tokens at ${tokRate.tokensPerSecond.toFixed(1)} tok/s`}
+                style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--text-dim)', flexShrink: 0 }}
+              >
+                {Math.round(tokRate.tokensPerSecond)} t/s
+              </span>
+            )}
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#7aaa8a', flexShrink: 0 }} />
           </>
         ) : (
@@ -270,6 +295,8 @@ export function ModelPicker({ moduleKey = null }) {
 function ModelRow({ model, active, onSelect }) {
   const [hovered, setHovered] = useState(false)
   const estCostPer1k = ((model.inputPricePer1M * 0.3 + model.outputPricePer1M * 0.7) / 1000).toFixed(4)
+  // Local models: show the last measured generation speed beside the size.
+  const localRate = model.local ? getOllamaTokenRate(model.id) : null
 
   return (
     <button
@@ -296,6 +323,14 @@ function ModelRow({ model, active, onSelect }) {
         <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: 'var(--accent)', minWidth: 50, textAlign: 'right' }}>
           {model.local ? `${model.sizeGB}GB` : `$${estCostPer1k}/1K`}
         </span>
+        {localRate && (
+          <span
+            title={`Last generation: ${localRate.evalCount} tokens at ${localRate.tokensPerSecond.toFixed(1)} tok/s`}
+            style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--text-dim)', flexShrink: 0 }}
+          >
+            {Math.round(localRate.tokensPerSecond)} t/s
+          </span>
+        )}
       </div>
     </button>
   )

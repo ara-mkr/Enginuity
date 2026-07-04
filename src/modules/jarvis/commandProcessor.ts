@@ -17,6 +17,51 @@ export function extractJson(raw: string): string {
   return raw.trim()
 }
 
+export type ProviderCommand = 'ollama' | 'openrouter' | 'both'
+
+/**
+ * Deterministic matcher for provider-switching voice commands. Runs BEFORE
+ * the LLM intent classifier on purpose: "switch to local" has to work
+ * precisely when the current provider is unreachable, and a round-trip
+ * through the model that's down would eat the command. Speech-to-text
+ * mangles "Ollama" freely ("o llama", "oh llama", "llama"), so the local
+ * patterns accept those.
+ */
+export function matchProviderCommand(transcript: string): ProviderCommand | null {
+  const t = transcript.toLowerCase().trim()
+
+  // Hybrid first — its phrasing overlaps both other groups' keywords.
+  if (
+    /\b(switch|swap|change|go)\s+(over\s+)?to\s+hybrid(\s+mode)?\b/.test(t) ||
+    /\bhybrid\s+mode\b/.test(t) ||
+    /\buse\s+both\s+(providers|models)\b/.test(t)
+  ) {
+    return 'both'
+  }
+
+  if (
+    /\b(switch|swap|change)\s+(over\s+)?to\s+(the\s+)?(local|offline|o?h?\s?llama)(\s+(model|mode|ai))?\b/.test(t) ||
+    /\buse\s+(the\s+)?(local|offline)\s+(model|mode|ai)\b/.test(t) ||
+    /\buse\s+o?h?\s?llama\b/.test(t) ||
+    /\bgo\s+local\b/.test(t) ||
+    /\brun\s+local(ly)?\b/.test(t) ||
+    /\blocal\s+mode\b/.test(t)
+  ) {
+    return 'ollama'
+  }
+
+  if (
+    /\b(switch|swap|change)\s+(over\s+|back\s+)?to\s+(the\s+)?(cloud|open\s?router)(\s+(model|mode|ai))?\b/.test(t) ||
+    /\buse\s+(the\s+)?(cloud|open\s?router)\b/.test(t) ||
+    /\bgo\s+back\s+to\s+(the\s+)?cloud\b/.test(t) ||
+    /\bcloud\s+mode\b/.test(t)
+  ) {
+    return 'openrouter'
+  }
+
+  return null
+}
+
 export async function classifyIntent(transcript: string, makeRequest: MakeRequest) {
   const raw = await makeRequest(
     [{ role: 'user', content: transcript }],

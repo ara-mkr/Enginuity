@@ -8,6 +8,7 @@ import {
   stampIndependentVoltageSource,
   stampMOSFET,
   stampResistor,
+  stampVCVS,
   type NodeMap,
 } from './stamps';
 import type { BJTParams, Component, DiodeParams, MOSFETParams, Netlist, SolveResult } from './types';
@@ -164,6 +165,14 @@ function stampLinearComponents(netlist: Netlist, nodeMap: NodeMap, A: Matrix, z:
           throw new Error(`Voltage source "${comp.id}" is missing a branch index.`);
         }
         stampIndependentVoltageSource(A, z, nodeMap, comp, branchIndex);
+        break;
+      }
+      case 'vcvs': {
+        const branchIndex = nodeMap.branchToIndex.get(comp.id);
+        if (branchIndex === undefined) {
+          throw new Error(`VCVS "${comp.id}" is missing a branch index.`);
+        }
+        stampVCVS(A, nodeMap, comp, branchIndex);
         break;
       }
       case 'diode':

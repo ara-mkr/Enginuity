@@ -2,18 +2,18 @@
 // style: keep placing until Esc/right-click); the Wire tool lives up top.
 
 import { useMemo, useState } from 'react'
-import { Spline } from 'lucide-react'
+import { CircleGauge, Spline, Zap } from 'lucide-react'
 import type { SchematicComponentType } from '../types'
 import { COMPONENT_DEFS, PALETTE_ORDER } from '../componentDefs'
 import type { Tool } from '../editorState'
-import { WIRE_TOOL } from '../editorState'
+import { CURRENT_PROBE_TOOL, VOLTAGE_PROBE_TOOL, WIRE_TOOL } from '../editorState'
 
 interface Props {
   tool: Tool
   onToolChange: (t: Tool) => void
 }
 
-const CATEGORIES: Array<'Passive' | 'Sources' | 'Reference'> = ['Passive', 'Sources', 'Reference']
+const CATEGORIES: Array<'Passive' | 'Active' | 'Sources' | 'Reference'> = ['Passive', 'Active', 'Sources', 'Reference']
 
 export function ComponentPalette({ tool, onToolChange }: Props) {
   const [query, setQuery] = useState('')
@@ -61,28 +61,29 @@ export function ComponentPalette({ tool, onToolChange }: Props) {
         />
       </div>
 
-      <button
-        onClick={() => onToolChange(WIRE_TOOL)}
+      <ToolButton
+        icon={<Spline size={14} />}
+        label="Wire"
+        hint="W"
         title="Draw wires between pins (W)"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          margin: '0 10px 8px',
-          padding: '6px 8px',
-          background: tool.kind === 'wire' ? 'var(--color-surface-raised)' : 'transparent',
-          border: `1px solid ${tool.kind === 'wire' ? 'var(--color-accent)' : 'var(--color-border)'}`,
-          borderRadius: 6,
-          color: tool.kind === 'wire' ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-          fontFamily: "var(--font-family-ui, 'Geist', sans-serif)",
-          fontSize: 12,
-          cursor: 'pointer',
-        }}
-      >
-        <Spline size={14} />
-        Wire
-        <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--color-text-muted)' }}>W</span>
-      </button>
+        active={tool.kind === 'wire'}
+        onClick={() => onToolChange(WIRE_TOOL)}
+      />
+      <ToolButton
+        icon={<CircleGauge size={14} />}
+        label="Voltage Probe"
+        hint="P"
+        title="Drop a voltage probe on any pin or wire (P)"
+        active={tool.kind === 'probe' && tool.probe === 'voltage'}
+        onClick={() => onToolChange(VOLTAGE_PROBE_TOOL)}
+      />
+      <ToolButton
+        icon={<Zap size={14} />}
+        label="Current Probe"
+        title="Drop a current probe on a component body"
+        active={tool.kind === 'probe' && tool.probe === 'current'}
+        onClick={() => onToolChange(CURRENT_PROBE_TOOL)}
+      />
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 10px 12px' }}>
         {CATEGORIES.map((cat) => {
@@ -115,6 +116,47 @@ export function ComponentPalette({ tool, onToolChange }: Props) {
         })}
       </div>
     </div>
+  )
+}
+
+function ToolButton({
+  icon,
+  label,
+  hint,
+  title,
+  active,
+  onClick,
+}: {
+  icon: React.ReactNode
+  label: string
+  hint?: string
+  title: string
+  active: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        margin: '0 10px 8px',
+        padding: '6px 8px',
+        background: active ? 'var(--color-surface-raised)' : 'transparent',
+        border: `1px solid ${active ? 'var(--color-accent)' : 'var(--color-border)'}`,
+        borderRadius: 6,
+        color: active ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+        fontFamily: "var(--font-family-ui, 'Geist', sans-serif)",
+        fontSize: 12,
+        cursor: 'pointer',
+      }}
+    >
+      {icon}
+      {label}
+      {hint && <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--color-text-muted)' }}>{hint}</span>}
+    </button>
   )
 }
 

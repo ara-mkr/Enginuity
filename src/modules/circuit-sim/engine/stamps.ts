@@ -39,7 +39,7 @@ export function buildNodeMap(netlist: Netlist): NodeMap {
   }
 
   for (const comp of netlist.components) {
-    if (comp.type === 'vsource' || comp.type === 'inductor') {
+    if (comp.type === 'vsource' || comp.type === 'inductor' || comp.type === 'vcvs') {
       branchToIndex.set(comp.id, nextIndex++);
     }
     if (comp.type === 'bjt') {
@@ -105,6 +105,35 @@ export function stampIndependentVoltageSource(
     A.addTo(k, j, -1);
   }
   z[k] += V;
+}
+
+/**
+ * Voltage-controlled voltage source (SPICE E element): the output branch
+ * nodes[0]/nodes[1] gets its own current unknown exactly like an
+ * independent voltage source, but the branch equation constrains the
+ * output voltage to gain * the controlling node-pair's voltage instead of
+ * a constant: V(out+) - V(out-) - gain*(V(ctrl+) - V(ctrl-)) = 0. The
+ * controlling nodes are pure voltage senses — they get matrix
+ * coefficients on the branch row only, never KCL current contributions.
+ */
+export function stampVCVS(A: Matrix, nodeMap: NodeMap, comp: Component, branchIndex: number): void {
+  const gain = comp.value;
+  const outP = indexOf(nodeMap, comp.nodes[0]);
+  const outN = indexOf(nodeMap, comp.nodes[1]);
+  const ctrlP = indexOf(nodeMap, comp.nodes[2]);
+  const ctrlN = indexOf(nodeMap, comp.nodes[3]);
+  const k = branchIndex;
+
+  if (outP !== -1) {
+    A.addTo(outP, k, 1);
+    A.addTo(k, outP, 1);
+  }
+  if (outN !== -1) {
+    A.addTo(outN, k, -1);
+    A.addTo(k, outN, -1);
+  }
+  if (ctrlP !== -1) A.addTo(k, ctrlP, -gain);
+  if (ctrlN !== -1) A.addTo(k, ctrlN, gain);
 }
 
 /**
@@ -433,6 +462,32 @@ export function stampCurrentSourceAC(
 
   if (i !== -1) z[i] = { re: z[i].re - acMagnitude, im: z[i].im };
   if (j !== -1) z[j] = { re: z[j].re + acMagnitude, im: z[j].im };
+}
+
+/**
+ * Complex-valued twin of stampVCVS. The gain is real and
+ * frequency-independent, so the stamp is identical at every sweep point —
+ * only the matrix element type changes.
+ */
+export function stampVCVSAC(A: ComplexMatrix, nodeMap: NodeMap, comp: Component, branchIndex: number): void {
+  const gain = comp.value;
+  const outP = indexOf(nodeMap, comp.nodes[0]);
+  const outN = indexOf(nodeMap, comp.nodes[1]);
+  const ctrlP = indexOf(nodeMap, comp.nodes[2]);
+  const ctrlN = indexOf(nodeMap, comp.nodes[3]);
+  const k = branchIndex;
+  const one: Complex = { re: 1, im: 0 };
+
+  if (outP !== -1) {
+    A.addTo(outP, k, one);
+    A.addTo(k, outP, one);
+  }
+  if (outN !== -1) {
+    A.addTo(outN, k, negate(one));
+    A.addTo(k, outN, negate(one));
+  }
+  if (ctrlP !== -1) A.addTo(k, ctrlP, { re: -gain, im: 0 });
+  if (ctrlN !== -1) A.addTo(k, ctrlN, { re: gain, im: 0 });
 }
 
 /**

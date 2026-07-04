@@ -23,6 +23,8 @@ interface Props {
   circuitName: string
   result: TransientRunResult | ACRunResult
   stale: boolean
+  /** Voltage probes resolved to nodes: focuses the default trace set on them. */
+  probedNodes?: Array<{ label: string; nodeId: number }>
 }
 
 const uiFont = "var(--font-family-ui, 'Geist', sans-serif)"
@@ -37,7 +39,7 @@ const tooltipStyle = {
   fontSize: 11,
 }
 
-export function WaveformViewer({ circuitName, result, stale }: Props) {
+export function WaveformViewer({ circuitName, result, stale, probedNodes }: Props) {
   const [open, setOpen] = useState(true)
   const palette = useChartPalette()
 
@@ -49,7 +51,22 @@ export function WaveformViewer({ circuitName, result, stale }: Props) {
       .sort((a, b) => a - b)
   }, [result])
 
+  const probedIds = useMemo(() => new Set((probedNodes ?? []).map((p) => p.nodeId)), [probedNodes])
+  const chipLabel = (id: number) => {
+    const labels = (probedNodes ?? []).filter((p) => p.nodeId === id).map((p) => p.label)
+    return labels.length > 0 ? `N${id} · ${labels.join(' ')}` : `N${id}`
+  }
+
   const [hidden, setHidden] = useState<Set<number>>(new Set())
+  // Fresh result or changed probe set: probes focus the default trace set
+  // (render-time reset); manual chip toggles stick until the next change.
+  const signature = `${result.kind}:${nodeIds.join(',')}:${[...probedIds].sort((a, b) => a - b).join(',')}`
+  const [lastSignature, setLastSignature] = useState<string | null>(null)
+  if (signature !== lastSignature) {
+    setLastSignature(signature)
+    setHidden(probedIds.size > 0 ? new Set(nodeIds.filter((n) => !probedIds.has(n))) : new Set())
+  }
+
   const toggleNode = (id: number) =>
     setHidden((prev) => {
       const next = new Set(prev)
@@ -144,7 +161,9 @@ export function WaveformViewer({ circuitName, result, stale }: Props) {
               }}
             >
               <span style={{ width: 8, height: 8, borderRadius: 2, background: colorOf(id) }} />
-              <span style={{ fontFamily: monoFont, fontSize: 10.5, color: 'var(--color-text-secondary)' }}>N{id}</span>
+              <span style={{ fontFamily: monoFont, fontSize: 10.5, color: 'var(--color-text-secondary)' }}>
+                {chipLabel(id)}
+              </span>
             </button>
           )
         })}

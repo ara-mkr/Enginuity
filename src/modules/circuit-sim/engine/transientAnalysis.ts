@@ -7,6 +7,7 @@ import {
   stampIndependentVoltageSource,
   stampInductor,
   stampResistor,
+  stampVCVS,
   type NodeMap,
 } from './stamps';
 import {
@@ -67,6 +68,15 @@ function stampTimestep(
         const Il_prev = state.inductorCurrent.get(comp.id) ?? 0;
         const Vl_prev = state.inductorVoltage.get(comp.id) ?? 0;
         stampInductor(A, z, nodeMap, comp, h, branchIndex, Il_prev, Vl_prev);
+        break;
+      }
+      case 'vcvs': {
+        // Instantaneous and time-invariant — the same stamp every step.
+        const branchIndex = nodeMap.branchToIndex.get(comp.id);
+        if (branchIndex === undefined) {
+          throw new Error(`VCVS "${comp.id}" is missing a branch index.`);
+        }
+        stampVCVS(A, nodeMap, comp, branchIndex);
         break;
       }
       case 'diode':

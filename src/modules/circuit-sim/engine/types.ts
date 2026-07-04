@@ -6,7 +6,8 @@ export type ComponentType =
   | 'inductor'
   | 'diode'
   | 'bjt'
-  | 'mosfet';
+  | 'mosfet'
+  | 'vcvs';
 
 export interface DiodeParams {
   /** Saturation current (A). Defaults to 1e-14. */
@@ -84,9 +85,12 @@ export interface Component {
    * nodes[2] is the emitter.
    * For mosfet (NMOS): nodes[0] is the drain, nodes[1] is the gate,
    * nodes[2] is the source.
+   * For vcvs (SPICE E element): nodes[0]/[1] are the output + and -
+   * terminals, nodes[2]/[3] are the controlling + and - sense nodes
+   * (which carry no current); V(out+ - out-) = value * V(ctrl+ - ctrl-).
    */
   nodes: number[];
-  /** Resistance (Ω), source value (V or A), capacitance (F), or inductance (H). Unused for diode/bjt/mosfet. */
+  /** Resistance (Ω), source value (V or A), capacitance (F), inductance (H), or vcvs gain (V/V). Unused for diode/bjt/mosfet. */
   value: number;
   /** Only used when type === 'diode' | 'bjt' | 'mosfet'. */
   params?: DiodeParams | BJTParams | MOSFETParams;

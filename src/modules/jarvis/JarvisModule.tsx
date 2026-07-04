@@ -33,7 +33,10 @@ import {
   fetchTutorialResources,
   analyzeImageWithVision,
   extractJson,
+  matchProviderCommand,
 } from './commandProcessor'
+import { useOpenRouter } from '../../context/OpenRouterContext'
+import { formatOllamaModelName } from '../../config/ollama'
 import {
   buildJarvisSystemPrompt,
   buildContextString,
@@ -997,6 +1000,7 @@ function SettingsPopover({
 // ────────── Main Module ──────────
 function JarvisModuleInner() {
   const { makeRequest, isConnected, apiKey, activeModel } = useAIProvider()
+  const { activeProvider, setActiveProvider, ollamaModelId } = useOpenRouter()
   const navigate = useNavigate()
   const { isFocusMode, toggleFocusMode } = useFocusMode()
 
@@ -2874,6 +2878,41 @@ Use this context to make responses feel personal. Reference the project when rel
         return
       }
 
+      // ── Provider switching — deterministic, no LLM round-trip, and placed
+      // BEFORE the isConnected gate: "switch to local" has to work exactly
+      // when the current provider is down or unconfigured.
+      const providerCmd = matchProviderCommand(transcript)
+      if (providerCmd) {
+        addLog('user', transcript)
+        if (providerCmd === activeProvider) {
+          speak(
+            providerCmd === 'ollama'
+              ? 'Already running locally, sir.'
+              : providerCmd === 'both'
+                ? 'Hybrid mode is already engaged.'
+                : 'Already on the cloud, sir.',
+          )
+        } else if ((providerCmd === 'ollama' || providerCmd === 'both') && !ollamaModelId) {
+          speak('No local model is selected, sir. Pull one in AI Settings and I shall switch over.')
+        } else if (providerCmd === 'openrouter' && !apiKey) {
+          speak('No OpenRouter key is configured, sir. Connect one in AI Settings first.')
+        } else {
+          setActiveProvider(providerCmd)
+          speak(
+            providerCmd === 'ollama'
+              ? `As you wish. ${formatOllamaModelName(ollamaModelId ?? '')} is handling requests locally now — free of charge.`
+              : providerCmd === 'both'
+                ? 'Hybrid mode engaged — local first, cloud as backup.'
+                : 'Back on the cloud, sir.',
+          )
+          // setActiveProvider logs the typed PROVIDER_SWITCHED event itself.
+          addLog('system', `— Provider switched to ${providerCmd}`)
+        }
+        setWakeState('listening')
+        resetSleepTimer()
+        return
+      }
+
       if (!isConnected) {
         speak('No AI provider connected. Please connect OpenRouter first.')
         addLog('system', '— No AI provider connected')
@@ -3091,6 +3130,9 @@ Use this context to make responses feel personal. Reference the project when rel
       makeRequest,
       isConnected,
       apiKey,
+      activeProvider,
+      setActiveProvider,
+      ollamaModelId,
       speak,
       placeItem,
       addLog,

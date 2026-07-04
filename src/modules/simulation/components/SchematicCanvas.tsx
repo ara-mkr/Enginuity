@@ -6,7 +6,7 @@
 // hammer localStorage.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { Circuit, Point, Viewport } from '../types'
+import type { Circuit, Point, Probe, Viewport } from '../types'
 import { GRID } from '../types'
 import type { NodeDetectionResult } from '../core/nodeDetection'
 import { getDef } from '../componentDefs'
@@ -17,9 +17,10 @@ import {
   pinWorldPosition,
   snapPoint,
 } from '../core/geometry'
+import { currentKeyFor, type ResolvedProbe } from '../core/probes'
 import { useSimulationStore } from '../store/circuitStore'
 import type { Selection, Tool } from '../editorState'
-import { SELECT_TOOL, WIRE_TOOL } from '../editorState'
+import { SELECT_TOOL, VOLTAGE_PROBE_TOOL, WIRE_TOOL } from '../editorState'
 import { SchematicComponent } from './SchematicComponent'
 import { WireView } from './WireView'
 import { OhmaDormant } from './OhmaDormant'
@@ -27,12 +28,16 @@ import { OhmaDormant } from './OhmaDormant'
 interface Props {
   circuit: Circuit
   detection: NodeDetectionResult
+  /** Probe → node/component bindings, recomputed with detection every render. */
+  resolvedProbes: ResolvedProbe[]
   tool: Tool
   onToolChange: (t: Tool) => void
   selection: Selection | null
   onSelectionChange: (s: Selection | null) => void
   /** Fresh DC operating-point voltages to overlay per node; null hides the overlay. */
   dcVoltages?: Record<number, number> | null
+  /** Fresh DC component currents (refdes-keyed) for current-probe badges. */
+  dcCurrents?: Record<string, number> | null
 }
 
 const MIN_ZOOM = 0.2
@@ -48,11 +53,13 @@ interface PinTarget {
 export function SchematicCanvas({
   circuit,
   detection,
+  resolvedProbes,
   tool,
   onToolChange,
   selection,
   onSelectionChange,
   dcVoltages,
+  dcCurrents,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -65,6 +72,9 @@ export function SchematicCanvas({
   const removeComponent = useSimulationStore((s) => s.removeComponent)
   const addWire = useSimulationStore((s) => s.addWire)
   const removeWire = useSimulationStore((s) => s.removeWire)
+  const addProbe = useSimulationStore((s) => s.addProbe)
+  const moveProbe = useSimulationStore((s) => s.moveProbe)
+  const removeProbe = useSimulationStore((s) => s.removeProbe)
   const beginGesture = useSimulationStore((s) => s.beginGesture)
   const undo = useSimulationStore((s) => s.undo)
   const redo = useSimulationStore((s) => s.redo)
@@ -109,7 +119,7 @@ export function SchematicCanvas({
 
   // ── Interaction state ───────────────────────────────────────────────────────
   const panRef = useRef<{ startX: number; startY: number; vx: number; vy: number; moved: boolean } | null>(null)
-  const dragRef = useRef<{ id: string; dx: number; dy: number; started: boolean } | null>(null)
+  const dragRef = useRef<{ kind: 'component' | 'probe'; id: string; dx: number; dy: number; started: boolean } | null>(null)
   const [wireDraft, setWireDraft] = useState<Point[]>([])
   const [cursor, setCursor] = useState<Point | null>(null)
 
@@ -201,10 +211,22 @@ export function SchematicCanvas({
       onSelectionChange({ kind: 'component', id })
       const world = toWorld(e.clientX, e.clientY)
       const comp = circuit.components[id]
-      dragRef.current = { id, dx: world.x - comp.position.x, dy: world.y - comp.position.y, started: false }
+      dragRef.current = { kind: 'component', id, dx: world.x - comp.position.x, dy: world.y - comp.position.y, started: false }
       svgRef.current?.setPointerCapture(e.pointerId)
     },
     [tool.kind, circuit.components, toWorld, onSelectionChange],
+  )
+
+  const onProbePointerDown = useCallback(
+    (e: React.PointerEvent, probe: Probe) => {
+      if (tool.kind !== 'select' || e.button !== 0) return
+      e.stopPropagation()
+      onSelectionChange({ kind: 'probe', id: probe.id })
+      const world = toWorld(e.clientX, e.clientY)
+      dragRef.current = { kind: 'probe', id: probe.id, dx: world.x - probe.position.x, dy: world.y - probe.position.y, started: false }
+      svgRef.current?.setPointerCapture(e.pointerId)
+    },
+    [tool.kind, toWorld, onSelectionChange],
   )
 
   const onWirePointerDown = useCallback(
@@ -235,11 +257,18 @@ export function SchematicCanvas({
         addComponent(tool.type, snapPoint(world))
         return
       }
+      if (tool.kind === 'probe') {
+        // Voltage probes snap to pins first (that's what you're aiming at);
+        // current probes land on the grid over a component body.
+        const point = tool.probe === 'voltage' ? snapTarget(world).point : snapPoint(world)
+        addProbe(tool.probe, point)
+        return
+      }
       if (tool.kind === 'wire') {
         handleWireClick(world)
       }
     },
-    [tool, toWorld, viewport, wireDraft.length, addComponent, handleWireClick, onToolChange],
+    [tool, toWorld, viewport, wireDraft.length, addComponent, addProbe, snapTarget, handleWireClick, onToolChange],
   )
 
   const onPointerMove = useCallback(
@@ -260,10 +289,12 @@ export function SchematicCanvas({
           beginGesture()
           d.started = true
         }
-        moveComponent(d.id, snapPoint({ x: world.x - d.dx, y: world.y - d.dy }))
+        const snapped = snapPoint({ x: world.x - d.dx, y: world.y - d.dy })
+        if (d.kind === 'component') moveComponent(d.id, snapped)
+        else moveProbe(d.id, snapped)
       }
     },
-    [toWorld, updateViewport, viewport.zoom, moveComponent, beginGesture],
+    [toWorld, updateViewport, viewport.zoom, moveComponent, moveProbe, beginGesture],
   )
 
   const onPointerUp = useCallback(() => {
@@ -342,6 +373,10 @@ export function SchematicCanvas({
         case 'W':
           onToolChange(WIRE_TOOL)
           break
+        case 'p':
+        case 'P':
+          onToolChange(VOLTAGE_PROBE_TOOL)
+          break
         case 'r':
         case 'R':
           if (selection?.kind === 'component') rotateComponent(selection.id)
@@ -354,6 +389,9 @@ export function SchematicCanvas({
           } else if (selection?.kind === 'wire') {
             removeWire(selection.id)
             onSelectionChange(null)
+          } else if (selection?.kind === 'probe') {
+            removeProbe(selection.id)
+            onSelectionChange(null)
           }
           break
       }
@@ -362,7 +400,7 @@ export function SchematicCanvas({
     return () => window.removeEventListener('keydown', handler)
   }, [
     tool.kind, wireDraft, selection, undo, redo, finishWire,
-    onToolChange, onSelectionChange, rotateComponent, removeComponent, removeWire,
+    onToolChange, onSelectionChange, rotateComponent, removeComponent, removeWire, removeProbe,
   ])
 
   // Leaving the wire tool always drops any in-progress draft (render-time reset).
@@ -482,6 +520,20 @@ export function SchematicCanvas({
             />
           ))}
 
+          {/* Probes — drawn above components so the tip is always visible */}
+          <g pointerEvents={interactive ? 'auto' : 'none'}>
+            {resolvedProbes.map((rp) => (
+              <ProbeView
+                key={rp.probe.id}
+                resolved={rp}
+                selected={selection?.kind === 'probe' && selection.id === rp.probe.id}
+                dcVoltages={dcVoltages}
+                dcCurrents={dcCurrents}
+                onPointerDown={onProbePointerDown}
+              />
+            ))}
+          </g>
+
           {/* DC operating-point voltage badges, one per electrical node */}
           {dcVoltages &&
             detection.nodes.map((node) => {
@@ -547,10 +599,123 @@ export function SchematicCanvas({
               {getDef(tool.type).symbol}
             </g>
           )}
+
+          {/* Probe placement ghost */}
+          {tool.kind === 'probe' && cursor && (
+            <g opacity={0.5} pointerEvents="none">
+              <ProbeGlyph
+                position={tool.probe === 'voltage' && snapped ? snapped.point : snapPoint(cursor)}
+                kind={tool.probe}
+                color={tool.probe === 'voltage' ? 'var(--color-accent)' : 'var(--color-warning)'}
+                dashed={false}
+              />
+            </g>
+          )}
         </g>
       </svg>
 
       {isEmpty && <OhmaDormant />}
     </div>
+  )
+}
+
+// ─── Probe rendering ──────────────────────────────────────────────────────────
+
+/** Scope-probe glyph: tip dot, angled needle, round handle with V/A marking. */
+function ProbeGlyph({
+  position,
+  kind,
+  color,
+  dashed,
+}: {
+  position: Point
+  kind: 'voltage' | 'current'
+  color: string
+  dashed: boolean
+}) {
+  const { x, y } = position
+  return (
+    <g stroke={color} fill="none" strokeWidth={1.4} strokeLinecap="round">
+      <circle cx={x} cy={y} r={2.6} fill={color} stroke="none" />
+      <path d={`M ${x + 2} ${y - 2} L ${x + 12} ${y - 12}`} strokeDasharray={dashed ? '3 2' : undefined} />
+      <circle cx={x + 16} cy={y - 16} r={5.5} fill="var(--color-surface)" />
+      <text
+        x={x + 16}
+        y={y - 13.4}
+        textAnchor="middle"
+        stroke="none"
+        fill={color}
+        fontSize={7.5}
+        fontFamily="var(--font-family-mono, 'Geist Mono', monospace)"
+      >
+        {kind === 'voltage' ? 'V' : 'A'}
+      </text>
+    </g>
+  )
+}
+
+function ProbeView({
+  resolved,
+  selected,
+  dcVoltages,
+  dcCurrents,
+  onPointerDown,
+}: {
+  resolved: ResolvedProbe
+  selected: boolean
+  dcVoltages?: Record<number, number> | null
+  dcCurrents?: Record<string, number> | null
+  onPointerDown: (e: React.PointerEvent, probe: Probe) => void
+}) {
+  const { probe, nodeId, component } = resolved
+  const attached = probe.kind === 'voltage' ? nodeId !== null : component !== null
+  const baseColor = probe.kind === 'voltage' ? 'var(--color-accent)' : 'var(--color-warning)'
+  const color = attached ? baseColor : 'var(--color-text-muted)'
+  const { x, y } = probe.position
+
+  // Fresh DC numbers turn the label into a live readout.
+  let reading: string | null = null
+  if (attached && probe.kind === 'voltage' && dcVoltages && nodeId !== null && dcVoltages[nodeId] !== undefined) {
+    reading = formatEngNotation(dcVoltages[nodeId], 'V')
+  }
+  if (attached && probe.kind === 'current' && dcCurrents && component) {
+    const i = dcCurrents[currentKeyFor(component)]
+    if (i !== undefined) reading = formatEngNotation(i, 'A')
+  }
+
+  return (
+    <g onPointerDown={(e) => onPointerDown(e, probe)} style={{ cursor: 'move' }} data-probe-id={probe.id}>
+      {/* Hit area around the whole glyph */}
+      <rect x={x - 6} y={y - 26} width={32} height={32} fill="transparent" stroke="none" />
+      {selected && (
+        <rect
+          x={x - 8}
+          y={y - 28}
+          width={36}
+          height={36}
+          rx={3}
+          fill="none"
+          stroke="var(--color-accent)"
+          strokeOpacity={0.45}
+          strokeWidth={1}
+          strokeDasharray="3 3"
+        />
+      )}
+      <ProbeGlyph position={probe.position} kind={probe.kind} color={color} dashed={!attached} />
+      <text
+        x={x + 25}
+        y={y - 18}
+        fontSize={10}
+        fontFamily="var(--font-family-mono, 'Geist Mono', monospace)"
+        fill={color}
+        stroke="var(--color-bg)"
+        strokeWidth={3}
+        paintOrder="stroke"
+        style={{ userSelect: 'none' }}
+      >
+        {probe.label}
+        {reading ? ` ${reading}` : attached ? '' : ' ⌀'}
+      </text>
+    </g>
   )
 }

@@ -6,6 +6,7 @@ import { RotateCw, Trash2 } from 'lucide-react'
 import type { Circuit } from '../types'
 import { getDef } from '../componentDefs'
 import type { NodeDetectionResult } from '../core/nodeDetection'
+import type { ResolvedProbe } from '../core/probes'
 import { useSimulationStore } from '../store/circuitStore'
 import type { Selection } from '../editorState'
 import { ParameterField } from './ParameterField'
@@ -13,6 +14,7 @@ import { ParameterField } from './ParameterField'
 interface Props {
   circuit: Circuit
   detection: NodeDetectionResult
+  resolvedProbes: ResolvedProbe[]
   selection: Selection | null
   onSelectionChange: (s: Selection | null) => void
 }
@@ -26,20 +28,22 @@ const headerStyle: React.CSSProperties = {
   padding: '10px 12px 6px',
 }
 
-export function InspectorPanel({ circuit, detection, selection, onSelectionChange }: Props) {
+export function InspectorPanel({ circuit, detection, resolvedProbes, selection, onSelectionChange }: Props) {
   const setComponentParam = useSimulationStore((s) => s.setComponentParam)
   const rotateComponent = useSimulationStore((s) => s.rotateComponent)
   const removeComponent = useSimulationStore((s) => s.removeComponent)
   const removeWire = useSimulationStore((s) => s.removeWire)
+  const removeProbe = useSimulationStore((s) => s.removeProbe)
 
   const component = selection?.kind === 'component' ? circuit.components[selection.id] : null
   const wire = selection?.kind === 'wire' ? circuit.wires.find((w) => w.id === selection.id) : null
+  const probe = selection?.kind === 'probe' ? resolvedProbes.find((p) => p.probe.id === selection.id) ?? null : null
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflowY: 'auto' }}>
       <div style={headerStyle}>Inspector</div>
 
-      {!component && !wire && (
+      {!component && !wire && !probe && (
         <div
           style={{
             padding: '4px 12px 12px',
@@ -130,6 +134,58 @@ export function InspectorPanel({ circuit, detection, selection, onSelectionChang
               }}
             />
           </div>
+        </div>
+      )}
+
+      {probe && (
+        <div style={{ padding: '0 12px 12px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+            <span
+              style={{
+                fontFamily: "var(--font-family-mono, 'Geist Mono', monospace)",
+                fontSize: 15,
+                color: 'var(--color-text-primary)',
+              }}
+            >
+              {probe.probe.label}
+            </span>
+            <span
+              style={{
+                fontFamily: "var(--font-family-ui, 'Geist', sans-serif)",
+                fontSize: 11.5,
+                color: 'var(--color-text-secondary)',
+              }}
+            >
+              {probe.probe.kind === 'voltage' ? 'Voltage probe' : 'Current probe'}
+            </span>
+          </div>
+          <div
+            style={{
+              fontFamily: "var(--font-family-ui, 'Geist', sans-serif)",
+              fontSize: 11.5,
+              color: 'var(--color-text-muted)',
+              marginBottom: 12,
+              lineHeight: 1.5,
+            }}
+          >
+            {probe.probe.kind === 'voltage'
+              ? probe.nodeId !== null
+                ? `Measuring node ${probe.nodeId === 0 ? 'GND' : `N${probe.nodeId}`}. Voltage probes drive the waveform trace selection.`
+                : 'Not touching any conductor — drop it on a pin or wire.'
+              : probe.component
+                ? `Measuring current through ${probe.component.refdes} (DC runs).`
+                : 'Not over any component body — drop it on a part.'}
+          </div>
+          <ActionButton
+            label="Delete probe"
+            hint="Del"
+            icon={<Trash2 size={13} />}
+            danger
+            onClick={() => {
+              removeProbe(probe.probe.id)
+              onSelectionChange(null)
+            }}
+          />
         </div>
       )}
 

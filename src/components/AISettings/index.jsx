@@ -7,7 +7,13 @@ import { useOpenRouter } from '../../context/OpenRouterContext'
 import { useOllamaStatus } from '../../hooks/useOllamaStatus'
 import { useDeviceSpecs, modelFitsInRAM } from '../../hooks/useDeviceSpecs'
 import OPENROUTER_MODELS from '../../config/openrouterModels'
-import { deleteOllamaModel, pullOllamaModel } from '../../config/ollama'
+import {
+  DEFAULT_OLLAMA_HOST,
+  OLLAMA_HOST_STORAGE,
+  deleteOllamaModel,
+  getOllamaHost,
+  pullOllamaModel,
+} from '../../config/ollama'
 
 export function AISettings({ onClose }) {
   const {
@@ -431,6 +437,98 @@ function CloudModelCard({ model, selected, onClick }) {
 
 // ─── OLLAMA PANEL ───────────────────────────────────────────────
 
+// ─── OLLAMA HOST OVERRIDE ───────────────────────────────────────
+// The storage key has existed since the provider landed; this is the input
+// for it. Committing re-checks against the new host immediately, so a wrong
+// address shows up as "not detected" rather than failing silently later.
+
+function OllamaHostRow({ onCommit }) {
+  const [text, setText] = useState(() => getOllamaHost())
+  const [error, setError] = useState(null)
+  const overridden = getOllamaHost() !== DEFAULT_OLLAMA_HOST
+
+  const commit = (raw) => {
+    const value = (raw ?? text).trim().replace(/\/+$/, '')
+    if (!value) return reset()
+    try {
+      const url = new URL(value)
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('bad protocol')
+    } catch {
+      setError('Enter a full URL, e.g. http://192.168.1.20:11434')
+      return
+    }
+    setError(null)
+    if (value === DEFAULT_OLLAMA_HOST) localStorage.removeItem(OLLAMA_HOST_STORAGE)
+    else localStorage.setItem(OLLAMA_HOST_STORAGE, value)
+    setText(value)
+    onCommit?.()
+  }
+
+  const reset = () => {
+    localStorage.removeItem(OLLAMA_HOST_STORAGE)
+    setText(DEFAULT_OLLAMA_HOST)
+    setError(null)
+    onCommit?.()
+  }
+
+  return (
+    <div>
+      <div style={{
+        display: 'flex', gap: 8, alignItems: 'center',
+        borderTop: '1px solid var(--border)', paddingTop: 12,
+      }}>
+        <span style={{
+          fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--text-dim)',
+          flexShrink: 0,
+        }}>
+          host
+        </span>
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={() => commit()}
+          onKeyDown={(e) => { if (e.key === 'Enter') commit() }}
+          placeholder={DEFAULT_OLLAMA_HOST}
+          spellCheck={false}
+          style={{
+            flex: 1, background: 'transparent', border: 'none', outline: 'none',
+            fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
+            color: error ? '#b08080' : 'var(--text)',
+          }}
+        />
+        {overridden ? (
+          <button
+            onClick={reset}
+            title={`Reset to ${DEFAULT_OLLAMA_HOST}`}
+            style={{
+              padding: '3px 10px', borderRadius: 4, cursor: 'pointer',
+              border: '1px solid var(--border-bright)', color: 'var(--text-muted)',
+              fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
+              background: 'transparent',
+            }}
+          >
+            Reset
+          </button>
+        ) : (
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: 'var(--text-dim)' }}>
+            default
+          </span>
+        )}
+      </div>
+      {error && (
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: '#b08080', marginTop: 6 }}>
+          {error}
+        </div>
+      )}
+      {overridden && !error && (
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: 'var(--text-dim)', marginTop: 6 }}>
+          Remote hosts need OLLAMA_ORIGINS set on the server for browser access.
+        </div>
+      )}
+    </div>
+  )
+}
+
 function OllamaPanel({ ollamaModelId, onSelect }) {
   const status = useOllamaStatus(8000)
   const specs = useDeviceSpecs()
@@ -602,6 +700,8 @@ function OllamaPanel({ ollamaModelId, onSelect }) {
           {pullError}
         </div>
       )}
+
+      <OllamaHostRow onCommit={status.recheck} />
     </div>
   )
 }
@@ -791,6 +891,10 @@ function OllamaInstallWizard({ specs, onRecheck, checking }) {
         Detected: ~{specs.estimatedRamGB} GB RAM
         {specs.isAppleSilicon ? ' · Apple Silicon' : specs.isNvidiaGPU ? ' · NVIDIA GPU' : ''}
       </div>
+
+      {/* Ollama may be running somewhere other than localhost — let the user
+          point at it before walking through an install they don't need. */}
+      <OllamaHostRow onCommit={onRecheck} />
 
       {/* Step 1 */}
       <div>

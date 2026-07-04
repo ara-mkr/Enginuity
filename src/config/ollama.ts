@@ -185,6 +185,8 @@ export interface OllamaCallOptions {
   temperature?: number
   maxTokens?: number
   onToken?: (token: string, full: string) => void
+  /** Fires once, from the final chunk's native timing counters. */
+  onMetrics?: (metrics: OllamaMetrics) => void
   signal?: AbortSignal
   // Let reasoning models think before answering. Default false because most
   // users want a direct reply, not a planning trace.
@@ -201,6 +203,63 @@ interface OllamaChatChunk {
   done?: boolean
   eval_count?: number
   eval_duration?: number
+  prompt_eval_count?: number
+  prompt_eval_duration?: number
+}
+
+// ── Token-rate metering ──────────────────────────────────────────────────
+// The native /api/chat endpoint reports actual token counts and generation
+// time in its final chunk (the OpenAI-compat endpoint hides these — the
+// whole reason tok/s used to be blocked). callOllama records the rate per
+// model and broadcasts it so any mounted surface can show live speed.
+
+export const OLLAMA_TOKRATE_STORAGE = 'enginguity_ollama_tokrate'
+export const OLLAMA_METRICS_EVENT = 'enginguity:ollama-metrics'
+
+export interface OllamaMetrics {
+  model: string
+  /** Generated (completion) tokens — actual count, not a chars/4 estimate. */
+  evalCount: number
+  /** Prompt tokens actually processed (absent on some cache hits). */
+  promptEvalCount: number | null
+  /** Generation speed in tokens/second. */
+  tokensPerSecond: number
+  at: number
+}
+
+function extractMetrics(model: string, chunk: OllamaChatChunk): OllamaMetrics | null {
+  if (!chunk.done || !chunk.eval_count || !chunk.eval_duration) return null
+  return {
+    model,
+    evalCount: chunk.eval_count,
+    promptEvalCount: chunk.prompt_eval_count ?? null,
+    // eval_duration is nanoseconds.
+    tokensPerSecond: chunk.eval_count / (chunk.eval_duration / 1e9),
+    at: Date.now(),
+  }
+}
+
+function recordMetrics(metrics: OllamaMetrics): void {
+  if (typeof window === 'undefined') return
+  try {
+    const map = JSON.parse(localStorage.getItem(OLLAMA_TOKRATE_STORAGE) || '{}') as Record<string, OllamaMetrics>
+    map[metrics.model] = metrics
+    localStorage.setItem(OLLAMA_TOKRATE_STORAGE, JSON.stringify(map))
+  } catch {
+    // metering is best-effort; never let it break a chat response
+  }
+  window.dispatchEvent(new CustomEvent(OLLAMA_METRICS_EVENT, { detail: metrics }))
+}
+
+/** Last recorded generation rate for a model, or null before its first run. */
+export function getOllamaTokenRate(model: string): OllamaMetrics | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const map = JSON.parse(localStorage.getItem(OLLAMA_TOKRATE_STORAGE) || '{}') as Record<string, OllamaMetrics>
+    return map[model] ?? null
+  } catch {
+    return null
+  }
 }
 
 export async function callOllama(
@@ -260,6 +319,11 @@ export async function callOllama(
             fullText += token
             options.onToken?.(token, fullText)
           }
+          const metrics = extractMetrics(model, parsed)
+          if (metrics) {
+            recordMetrics(metrics)
+            options.onMetrics?.(metrics)
+          }
         } catch {
           // ignore partial json
         }
@@ -269,6 +333,11 @@ export async function callOllama(
   }
 
   const data = (await response.json()) as OllamaChatChunk
+  const metrics = extractMetrics(model, data)
+  if (metrics) {
+    recordMetrics(metrics)
+    options.onMetrics?.(metrics)
+  }
   return data.message?.content ?? ''
 }
 

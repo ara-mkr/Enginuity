@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useOpenRouter } from '../context/OpenRouterContext'
 import { logEvent, summarizeAIExchange } from '../engine/eventLog'
-import { callOllama, OLLAMA_PROVIDER } from '../config/ollama'
+import { callOllama, OLLAMA_PROVIDER, type OllamaMetrics } from '../config/ollama'
 
 import { type ORModel } from '../context/OpenRouterContext'
 
@@ -57,16 +57,24 @@ export function useAIProvider(): AIProviderHandle {
           throw new Error('No Ollama model selected. Pull a model and pick it in setup.')
         }
         const promptText = messages.map((m) => m.content).join('\n')
+        const captured: { metrics: OllamaMetrics | null } = { metrics: null }
         const text = await callOllama(ollamaModelId, messages, systemPrompt, {
           stream: options.stream !== false,
           temperature: options.temperature,
           maxTokens: options.maxTokens,
           onToken: options.onToken,
+          onMetrics: (m) => { captured.metrics = m },
         })
-        const totalTokens = Math.ceil((promptText.length + text.length) / 4)
+        // Native metrics give REAL token counts; fall back to the chars/4
+        // estimate only when the final chunk didn't carry them.
+        const metrics = captured.metrics
+        const totalTokens = metrics
+          ? (metrics.promptEvalCount ?? 0) + metrics.evalCount
+          : Math.ceil((promptText.length + text.length) / 4)
         logEvent('AI_ANALYSIS_RUN', {
           ...summarizeAIExchange(promptText, text),
           tokens: totalTokens,
+          ...(metrics ? { tokensPerSecond: Math.round(metrics.tokensPerSecond * 10) / 10 } : {}),
           model: `ollama/${ollamaModelId}`,
           module: options.module || 'global',
         })

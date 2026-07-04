@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useProbeContext } from '../../hooks/useProbeContext'
 import type { Circuit } from './types'
 import { buildNetlist } from './core/netlist'
+import { resolveProbes } from './core/probes'
 import type { Selection, Tool } from './editorState'
 import { SELECT_TOOL } from './editorState'
 import { useSimulationStore } from './store/circuitStore'
@@ -67,6 +68,10 @@ function CircuitWorkspace({ circuit }: { circuit: Circuit }) {
   }
 
   const netlistBuild = useMemo(() => buildNetlist(circuit), [circuit])
+  const resolvedProbes = useMemo(
+    () => resolveProbes(circuit, netlistBuild.detection),
+    [circuit, netlistBuild.detection],
+  )
   const { runState, isStale, run } = useSimulationRun(circuit, netlistBuild)
 
   useProbeContext('simulation', {
@@ -104,6 +109,7 @@ function CircuitWorkspace({ circuit }: { circuit: Circuit }) {
           <SchematicCanvas
             circuit={circuit}
             detection={netlistBuild.detection}
+            resolvedProbes={resolvedProbes}
             tool={tool}
             onToolChange={setTool}
             selection={selection}
@@ -113,9 +119,21 @@ function CircuitWorkspace({ circuit }: { circuit: Circuit }) {
                 ? runState.result.nodeVoltages
                 : null
             }
+            dcCurrents={
+              runState.status === 'done' && !isStale && runState.result?.kind === 'dc'
+                ? runState.result.componentCurrents
+                : null
+            }
           />
           {waveformResult && (
-            <WaveformViewer circuitName={circuit.name} result={waveformResult} stale={isStale} />
+            <WaveformViewer
+              circuitName={circuit.name}
+              result={waveformResult}
+              stale={isStale}
+              probedNodes={resolvedProbes
+                .filter((rp) => rp.probe.kind === 'voltage' && rp.nodeId !== null && rp.nodeId !== 0)
+                .map((rp) => ({ label: rp.probe.label, nodeId: rp.nodeId! }))}
+            />
           )}
         </div>
         <div
@@ -133,6 +151,7 @@ function CircuitWorkspace({ circuit }: { circuit: Circuit }) {
             <InspectorPanel
               circuit={circuit}
               detection={netlistBuild.detection}
+              resolvedProbes={resolvedProbes}
               selection={selection}
               onSelectionChange={setSelection}
             />

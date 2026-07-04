@@ -23,6 +23,7 @@ import type {
   ComponentInstance,
   Point,
   Probe,
+  ProbeKind,
   Rotation,
   SchematicComponentType,
   SimulationSettings,
@@ -69,6 +70,17 @@ function newCircuit(name: string): Circuit {
   }
 }
 
+function nextProbeLabel(probes: Probe[], kind: ProbeKind): string {
+  const prefix = kind === 'voltage' ? 'VP' : 'IP'
+  let max = 0
+  for (const p of probes) {
+    if (!p.label.startsWith(prefix)) continue
+    const n = parseInt(p.label.slice(prefix.length), 10)
+    if (Number.isFinite(n) && n > max) max = n
+  }
+  return `${prefix}${max + 1}`
+}
+
 function nextRefdes(components: Record<string, ComponentInstance>, type: SchematicComponentType): string {
   const prefix = getDef(type).refdesPrefix
   if (type === 'ground') return 'GND'
@@ -107,6 +119,10 @@ export interface SimulationStoreState {
   addWire: (points: Point[]) => void
   removeWire: (id: string) => void
 
+  addProbe: (kind: ProbeKind, position: Point) => string
+  moveProbe: (id: string, position: Point) => void
+  removeProbe: (id: string) => void
+
   setViewport: (viewport: Viewport) => void
   setAnalysisMode: (mode: AnalysisMode) => void
   updateSimulationSettings: (patch: Partial<SimulationSettings>) => void
@@ -123,6 +139,21 @@ function mutateActive(
   const circuit = structuredClone(state.circuits[id])
   fn(circuit)
   circuit.updatedAt = Date.now()
+  return { circuits: { ...state.circuits, [id]: circuit } }
+}
+
+// Probes are instrumentation, not electrical edits: they participate in
+// undo history but deliberately do NOT bump updatedAt, because updatedAt
+// drives the results-staleness check and moving a probe can't invalidate a
+// solve.
+function mutateActiveInstrumentation(
+  state: SimulationStoreState,
+  fn: (c: Circuit) => void,
+): Partial<SimulationStoreState> {
+  const id = state.activeCircuitId
+  if (!id || !state.circuits[id]) return {}
+  const circuit = structuredClone(state.circuits[id])
+  fn(circuit)
   return { circuits: { ...state.circuits, [id]: circuit } }
 }
 
@@ -328,6 +359,45 @@ export const useSimulationStore = create<SimulationStoreState>()(
         set((s) =>
           mutateActive(s, (c) => {
             c.wires = c.wires.filter((w) => w.id !== id)
+          }),
+        )
+      },
+
+      addProbe: (kind, position) => {
+        get().beginGesture()
+        const id = crypto.randomUUID()
+        set((s) =>
+          mutateActiveInstrumentation(s, (c) => {
+            c.probes.push({ id, kind, position, label: nextProbeLabel(c.probes, kind) })
+          }),
+        )
+        return id
+      },
+
+      // No history push — the canvas calls beginGesture() once at drag start.
+      // Shallow-copied like moveComponent (fires per mousemove); no updatedAt
+      // bump, per the instrumentation rule above.
+      moveProbe: (id, position) =>
+        set((s) => {
+          const cid = s.activeCircuitId
+          const circuit = cid ? s.circuits[cid] : null
+          if (!circuit || !circuit.probes.some((p) => p.id === id)) return {}
+          return {
+            circuits: {
+              ...s.circuits,
+              [cid!]: {
+                ...circuit,
+                probes: circuit.probes.map((p) => (p.id === id ? { ...p, position } : p)),
+              },
+            },
+          }
+        }),
+
+      removeProbe: (id) => {
+        get().beginGesture()
+        set((s) =>
+          mutateActiveInstrumentation(s, (c) => {
+            c.probes = c.probes.filter((p) => p.id !== id)
           }),
         )
       },

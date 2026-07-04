@@ -24,61 +24,112 @@ export interface NetlistBuild {
   detection: NodeDetectionResult
 }
 
-/** Maps a schematic component to engine netlist entries. Ground maps to none. */
-function toEngineComponent(
+/**
+ * Maps a schematic component to engine netlist entries. Ground maps to none;
+ * most components map 1:1; the op-amp macro-expands into several primitives
+ * (ids `${refdes}#<part>`, internal nodes from allocInternalNode) so the
+ * engine never needs to know what an op-amp is.
+ */
+function toEngineComponents(
   comp: ComponentInstance,
   nodeOfPin: Map<string, number>,
-): EngineComponent | null {
+  allocInternalNode: () => number,
+): EngineComponent[] {
   const node = (pin: string) => nodeOfPin.get(`${comp.id}:${pin}`) ?? -1
   switch (comp.type) {
     case 'resistor':
-      return { id: comp.refdes, type: 'resistor', nodes: [node('a'), node('b')], value: comp.params.resistance }
+      return [{ id: comp.refdes, type: 'resistor', nodes: [node('a'), node('b')], value: comp.params.resistance }]
     case 'capacitor':
-      return { id: comp.refdes, type: 'capacitor', nodes: [node('a'), node('b')], value: comp.params.capacitance }
+      return [{ id: comp.refdes, type: 'capacitor', nodes: [node('a'), node('b')], value: comp.params.capacitance }]
     case 'capacitor-polarized':
-      return { id: comp.refdes, type: 'capacitor', nodes: [node('pos'), node('neg')], value: comp.params.capacitance }
+      return [{ id: comp.refdes, type: 'capacitor', nodes: [node('pos'), node('neg')], value: comp.params.capacitance }]
     case 'inductor':
-      return { id: comp.refdes, type: 'inductor', nodes: [node('a'), node('b')], value: comp.params.inductance }
+      return [{ id: comp.refdes, type: 'inductor', nodes: [node('a'), node('b')], value: comp.params.inductance }]
+    case 'diode':
+      return [
+        {
+          id: comp.refdes,
+          type: 'diode',
+          nodes: [node('a'), node('k')],
+          value: 0,
+          params: { Is: comp.params.saturationCurrent, n: comp.params.ideality },
+        },
+      ]
+    case 'bjt-npn':
+      return [
+        {
+          id: comp.refdes,
+          type: 'bjt',
+          nodes: [node('c'), node('b'), node('e')],
+          value: 0,
+          params: { beta: comp.params.beta },
+        },
+      ]
+    case 'mosfet-nmos':
+      return [
+        {
+          id: comp.refdes,
+          type: 'mosfet',
+          nodes: [node('d'), node('g'), node('s')],
+          value: 0,
+          params: { k: comp.params.k, Vth: comp.params.vth, lambda: comp.params.lambda },
+        },
+      ]
+    case 'opamp': {
+      // Single-pole-free ideal macro-model: differential input resistance,
+      // a ground-referenced VCVS at the open-loop gain, and an output
+      // resistance in series. No supply rails, so the output never saturates.
+      const internal = allocInternalNode()
+      return [
+        { id: `${comp.refdes}#RIN`, type: 'resistor', nodes: [node('inp'), node('inn')], value: comp.params.rin },
+        { id: `${comp.refdes}#E`, type: 'vcvs', nodes: [internal, 0, node('inp'), node('inn')], value: comp.params.gain },
+        { id: `${comp.refdes}#ROUT`, type: 'resistor', nodes: [internal, node('out')], value: comp.params.rout },
+      ]
+    }
     case 'vsource-dc':
-      return { id: comp.refdes, type: 'vsource', nodes: [node('pos'), node('neg')], value: comp.params.voltage }
+      return [{ id: comp.refdes, type: 'vsource', nodes: [node('pos'), node('neg')], value: comp.params.voltage }]
     case 'vsource-ac':
       // DC operating point sees the source at its DC offset; the waveform
       // drives transient steps and marks the source as the AC stimulus.
-      return {
-        id: comp.refdes,
-        type: 'vsource',
-        nodes: [node('pos'), node('neg')],
-        value: comp.params.offset ?? 0,
-        waveform: {
-          kind: 'sine',
-          amplitude: comp.params.amplitude ?? 0,
-          frequency: comp.params.frequency ?? 0,
-          phaseDeg: comp.params.phase ?? 0,
-          offset: comp.params.offset ?? 0,
+      return [
+        {
+          id: comp.refdes,
+          type: 'vsource',
+          nodes: [node('pos'), node('neg')],
+          value: comp.params.offset ?? 0,
+          waveform: {
+            kind: 'sine',
+            amplitude: comp.params.amplitude ?? 0,
+            frequency: comp.params.frequency ?? 0,
+            phaseDeg: comp.params.phase ?? 0,
+            offset: comp.params.offset ?? 0,
+          },
         },
-      }
+      ]
     case 'vsource-pulse':
       // The DC operating point sees the pulse at its t=0 level (V1).
-      return {
-        id: comp.refdes,
-        type: 'vsource',
-        nodes: [node('pos'), node('neg')],
-        value: comp.params.v1 ?? 0,
-        waveform: {
-          kind: 'pulse',
-          v1: comp.params.v1 ?? 0,
-          v2: comp.params.v2 ?? 0,
-          delay: comp.params.delay ?? 0,
-          rise: comp.params.rise ?? 0,
-          fall: comp.params.fall ?? 0,
-          width: comp.params.width ?? 0,
-          period: comp.params.period ?? 0,
+      return [
+        {
+          id: comp.refdes,
+          type: 'vsource',
+          nodes: [node('pos'), node('neg')],
+          value: comp.params.v1 ?? 0,
+          waveform: {
+            kind: 'pulse',
+            v1: comp.params.v1 ?? 0,
+            v2: comp.params.v2 ?? 0,
+            delay: comp.params.delay ?? 0,
+            rise: comp.params.rise ?? 0,
+            fall: comp.params.fall ?? 0,
+            width: comp.params.width ?? 0,
+            period: comp.params.period ?? 0,
+          },
         },
-      }
+      ]
     case 'isource-dc':
-      return { id: comp.refdes, type: 'isource', nodes: [node('pos'), node('neg')], value: comp.params.current }
+      return [{ id: comp.refdes, type: 'isource', nodes: [node('pos'), node('neg')], value: comp.params.current }]
     case 'ground':
-      return null
+      return []
   }
 }
 
@@ -196,12 +247,16 @@ export function buildNetlist(circuit: Pick<Circuit, 'components' | 'wires'>): Ne
     .filter((l): l is string => l !== null)
 
   const blocked = issues.some((i) => i.severity === 'error') || nonGround.length === 0
+
+  // Macro-expanded components (op-amps) need node ids the schematic never
+  // sees; hand them out past the highest detected node so they can't collide.
+  let nextInternalNode = detection.nodes.reduce((max, n) => Math.max(max, n.id), 0) + 1
+  const allocInternalNode = () => nextInternalNode++
+
   const engineNetlist: EngineNetlist | null = blocked
     ? null
     : {
-        components: nonGround
-          .map((c) => toEngineComponent(c, detection.nodeOfPin))
-          .filter((c): c is EngineComponent => c !== null),
+        components: nonGround.flatMap((c) => toEngineComponents(c, detection.nodeOfPin, allocInternalNode)),
       }
 
   return { engineNetlist, lines, issues, detection }

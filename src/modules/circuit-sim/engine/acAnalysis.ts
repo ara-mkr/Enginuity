@@ -10,6 +10,7 @@ import {
   stampCurrentSourceAC,
   stampInductorAC,
   stampResistorAC,
+  stampVCVSAC,
   stampVoltageSourceAC,
 } from './stamps';
 import type { DiodeParams, Netlist } from './types';
@@ -102,6 +103,14 @@ export function runAC(netlist: Netlist, options: ACOptions): ACResult {
         case 'isource':
           stampCurrentSourceAC(z, nodeMap, comp, comp.id === acSourceId ? 1 : 0);
           break;
+        case 'vcvs': {
+          const branchIndex = nodeMap.branchToIndex.get(comp.id);
+          if (branchIndex === undefined) {
+            throw new Error(`VCVS "${comp.id}" is missing a branch index.`);
+          }
+          stampVCVSAC(A, nodeMap, comp, branchIndex);
+          break;
+        }
         case 'diode':
           stampConductanceAC(A, nodeMap, comp.nodes as [number, number], diodeGEq.get(comp.id) ?? 0);
           break;

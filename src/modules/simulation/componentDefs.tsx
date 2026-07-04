@@ -28,7 +28,7 @@ export interface ParamDef {
 export interface ComponentDef {
   type: SchematicComponentType
   label: string
-  category: 'Passive' | 'Sources' | 'Reference'
+  category: 'Passive' | 'Active' | 'Sources' | 'Reference'
   refdesPrefix: string
   pins: PinDef[]
   params: ParamDef[]
@@ -116,6 +116,50 @@ const ISourceDCSymbol = (
   </g>
 )
 
+const DiodeSymbol = (
+  <g fill="none" stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M -30 0 H -8" />
+    <path d="M -8 -8 L 8 0 L -8 8 Z" />
+    <path d="M 8 -8 V 8" />
+    <path d="M 8 0 H 30" />
+  </g>
+)
+
+const BJTNPNSymbol = (
+  <g fill="none" stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M -30 0 H -6" />
+    <path d="M -6 -14 V 14" />
+    <path d="M -6 -5 L 20 -16 V -30" />
+    <path d="M -6 5 L 20 16 V 30" />
+    {/* emitter arrow pointing outward = NPN */}
+    <polygon points="16.7,14.6 9.3,14.2 11.3,9.6" fill="currentColor" stroke="none" />
+  </g>
+)
+
+const MOSFETNMOSSymbol = (
+  <g fill="none" stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M -30 0 H -10" />
+    <path d="M -10 -10 V 10" />
+    <path d="M -4 -14 V 14" />
+    <path d="M -4 -10 H 20 V -30" />
+    <path d="M -4 10 H 20 V 30" />
+    {/* source arrow pointing into the channel = N-channel */}
+    <polygon points="0,10 7,6.6 7,13.4" fill="currentColor" stroke="none" />
+  </g>
+)
+
+const OpAmpSymbol = (
+  <g fill="none" stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M -30 -10 H -16" />
+    <path d="M -30 10 H -16" />
+    <path d="M -16 -20 V 20 L 20 0 Z" />
+    <path d="M 20 0 H 30" />
+    {/* + on the top input, − on the bottom */}
+    <path d="M -11 -13 v 6 M -14 -10 h 6" strokeWidth={1.2} />
+    <path d="M -14 10 h 6" strokeWidth={1.2} />
+  </g>
+)
+
 const GroundSymbol = (
   <g fill="none" stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round">
     <path d="M 0 0 V 10" />
@@ -183,6 +227,80 @@ export const COMPONENT_DEFS: Record<SchematicComponentType, ComponentDef> = {
     bounds: { w: 60, h: 18 },
     symbol: InductorSymbol,
     keywords: ['inductor', 'coil', 'l', 'henry'],
+  },
+  diode: {
+    type: 'diode',
+    label: 'Diode',
+    category: 'Active',
+    refdesPrefix: 'D',
+    pins: [
+      { name: 'a', offset: { x: -30, y: 0 } },
+      { name: 'k', offset: { x: 30, y: 0 } },
+    ],
+    params: [
+      { key: 'saturationCurrent', label: 'Saturation current (Is)', unit: 'A', defaultValue: 1e-14, min: 0, zeroInvalid: true },
+      { key: 'ideality', label: 'Ideality factor (n)', unit: '', defaultValue: 1, min: 0, zeroInvalid: true },
+    ],
+    bounds: { w: 60, h: 20 },
+    symbol: DiodeSymbol,
+    keywords: ['diode', 'd', 'rectifier', '1n4148', 'junction'],
+  },
+  'bjt-npn': {
+    type: 'bjt-npn',
+    label: 'BJT (NPN)',
+    category: 'Active',
+    refdesPrefix: 'Q',
+    // Engine convention: collector, base, emitter.
+    pins: [
+      { name: 'c', offset: { x: 20, y: -30 } },
+      { name: 'b', offset: { x: -30, y: 0 } },
+      { name: 'e', offset: { x: 20, y: 30 } },
+    ],
+    params: [{ key: 'beta', label: 'Current gain (β)', unit: '', defaultValue: 100, min: 0, zeroInvalid: true }],
+    bounds: { w: 56, h: 60 },
+    symbol: BJTNPNSymbol,
+    keywords: ['bjt', 'npn', 'transistor', 'q', '2n2222'],
+  },
+  'mosfet-nmos': {
+    type: 'mosfet-nmos',
+    label: 'MOSFET (NMOS)',
+    category: 'Active',
+    refdesPrefix: 'M',
+    // Engine convention: drain, gate, source.
+    pins: [
+      { name: 'd', offset: { x: 20, y: -30 } },
+      { name: 'g', offset: { x: -30, y: 0 } },
+      { name: 's', offset: { x: 20, y: 30 } },
+    ],
+    params: [
+      { key: 'k', label: 'Transconductance (k)', unit: 'A/V²', defaultValue: 0.001, min: 0, zeroInvalid: true },
+      { key: 'vth', label: 'Threshold (Vth)', unit: 'V', defaultValue: 1 },
+      { key: 'lambda', label: 'Channel modulation (λ)', unit: '1/V', defaultValue: 0.01, min: 0 },
+    ],
+    bounds: { w: 56, h: 60 },
+    symbol: MOSFETNMOSSymbol,
+    keywords: ['mosfet', 'nmos', 'fet', 'transistor', 'm'],
+  },
+  opamp: {
+    type: 'opamp',
+    label: 'Op-Amp (ideal)',
+    category: 'Active',
+    refdesPrefix: 'U',
+    // in+ on top, in− on the bottom, single-ended output. Macro-expanded by
+    // core/netlist.ts into Rin + VCVS + Rout — no supply rails, no saturation.
+    pins: [
+      { name: 'inp', offset: { x: -30, y: -10 } },
+      { name: 'inn', offset: { x: -30, y: 10 } },
+      { name: 'out', offset: { x: 30, y: 0 } },
+    ],
+    params: [
+      { key: 'gain', label: 'Open-loop gain (A₀)', unit: 'V/V', defaultValue: 1e5, min: 0, zeroInvalid: true },
+      { key: 'rin', label: 'Input resistance', unit: 'Ω', defaultValue: 10e6, min: 0, zeroInvalid: true },
+      { key: 'rout', label: 'Output resistance', unit: 'Ω', defaultValue: 75, min: 0, zeroInvalid: true },
+    ],
+    bounds: { w: 60, h: 44 },
+    symbol: OpAmpSymbol,
+    keywords: ['opamp', 'op-amp', 'amplifier', 'u', '741', 'lm358'],
   },
   'vsource-dc': {
     type: 'vsource-dc',
@@ -271,6 +389,10 @@ export const PALETTE_ORDER: SchematicComponentType[] = [
   'capacitor',
   'capacitor-polarized',
   'inductor',
+  'diode',
+  'bjt-npn',
+  'mosfet-nmos',
+  'opamp',
   'vsource-dc',
   'vsource-ac',
   'vsource-pulse',
