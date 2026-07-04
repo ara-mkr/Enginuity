@@ -48,6 +48,12 @@ export function buildNodeMap(netlist: Netlist): NodeMap {
       // matrix column to reference.
       branchToIndex.set(`${comp.id}:ib`, nextIndex++);
     }
+    if (comp.type === 'timer555') {
+      // The output stage stamps as a VCVS (see stampTimestep), which needs
+      // its own branch-current unknown — it doubles as the reported output
+      // current.
+      branchToIndex.set(`${comp.id}:out`, nextIndex++);
+    }
   }
 
   return { nodeToIndex, branchToIndex, size: nextIndex };

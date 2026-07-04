@@ -27,6 +27,14 @@ export interface CompanionModel {
   I_eq: number;
 }
 
+/** Exact (unlinearized) Shockley diode current I = Is * (e^(V/(n*Vt)) - 1) at a solved voltage V. */
+export function diodeCurrent(V: number, params?: DiodeParams): number {
+  const Is = params?.Is ?? DEFAULT_IS;
+  const Vt = params?.Vt ?? DEFAULT_VT;
+  const n = params?.n ?? DEFAULT_N;
+  return Is * (Math.exp(V / (n * Vt)) - 1);
+}
+
 /**
  * Linearizes the Shockley diode equation I = Is * (e^(V/(n*Vt)) - 1)
  * around V_guess into an equivalent conductance + current source, per one

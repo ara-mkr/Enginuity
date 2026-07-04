@@ -131,12 +131,30 @@ export function SimulationControlBar({ circuit, canRun, running, onRun }: Props)
             onCommit={(stopTime) => updateSimulationSettings({ transient: { ...transient, stopTime } })}
           />
           <EngField
-            label="Step"
+            label={(transient.adaptive ?? false) ? 'Max step' : 'Step'}
             unit="s"
             value={transient.timeStep}
             validate={(v) => (v > 0 ? null : 'must be positive')}
             onCommit={(timeStep) => updateSimulationSettings({ transient: { ...transient, timeStep } })}
           />
+          <button
+            onClick={() =>
+              updateSimulationSettings({ transient: { ...transient, adaptive: !(transient.adaptive ?? false) } })
+            }
+            title="Adaptive timestep: the solver refines below the max step around fast edges and stretches out through smooth regions"
+            style={{
+              padding: '4px 9px',
+              background: (transient.adaptive ?? false) ? 'var(--color-surface-raised)' : 'transparent',
+              border: '1px solid var(--color-border)',
+              borderRadius: 6,
+              color: (transient.adaptive ?? false) ? 'var(--color-accent)' : 'var(--color-text-muted)',
+              fontFamily: uiFont,
+              fontSize: 11,
+              cursor: 'pointer',
+            }}
+          >
+            Adaptive
+          </button>
         </>
       )}
       {mode === 'ac' && (
@@ -155,15 +173,58 @@ export function SimulationControlBar({ circuit, canRun, running, onRun }: Props)
             validate={(v) => (v > 0 ? null : 'must be positive')}
             onCommit={(stopFreq) => updateSimulationSettings({ ac: { ...ac, stopFreq } })}
           />
-          <EngField
-            label="Pts/dec"
-            unit=""
-            value={ac.pointsPerDecade}
-            validate={(v) => (v >= 1 ? null : 'needs ≥ 1')}
-            onCommit={(pointsPerDecade) =>
-              updateSimulationSettings({ ac: { ...ac, pointsPerDecade: Math.round(pointsPerDecade) } })
-            }
-          />
+          {/* Sweep spacing: log spaces by points/decade, linear spaces a total count evenly. */}
+          <div
+            style={{
+              display: 'flex',
+              border: '1px solid var(--color-border)',
+              borderRadius: 6,
+              overflow: 'hidden',
+            }}
+          >
+            {(['log', 'linear'] as const).map((sweep) => {
+              const active = (ac.sweepType ?? 'log') === sweep
+              return (
+                <button
+                  key={sweep}
+                  onClick={() => updateSimulationSettings({ ac: { ...ac, sweepType: sweep } })}
+                  title={sweep === 'log' ? 'Logarithmic frequency spacing' : 'Linear frequency spacing'}
+                  style={{
+                    padding: '4px 9px',
+                    background: active ? 'var(--color-surface-raised)' : 'transparent',
+                    border: 'none',
+                    color: active ? 'var(--color-accent)' : 'var(--color-text-muted)',
+                    fontFamily: uiFont,
+                    fontSize: 11,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {sweep === 'log' ? 'Log' : 'Lin'}
+                </button>
+              )
+            })}
+          </div>
+          {(ac.sweepType ?? 'log') === 'log' ? (
+            <EngField
+              label="Pts/dec"
+              unit=""
+              value={ac.pointsPerDecade}
+              validate={(v) => (v >= 1 ? null : 'needs ≥ 1')}
+              onCommit={(pointsPerDecade) =>
+                updateSimulationSettings({ ac: { ...ac, pointsPerDecade: Math.round(pointsPerDecade) } })
+              }
+            />
+          ) : (
+            <EngField
+              label="Points"
+              unit=""
+              value={ac.numPoints ?? 200}
+              validate={(v) => (v >= 2 ? null : 'needs ≥ 2')}
+              onCommit={(numPoints) =>
+                updateSimulationSettings({ ac: { ...ac, numPoints: Math.round(numPoints) } })
+              }
+            />
+          )}
         </>
       )}
 

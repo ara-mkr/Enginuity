@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useProbeContext } from '../../hooks/useProbeContext'
 import type { Circuit } from './types'
 import { buildNetlist } from './core/netlist'
-import { resolveProbes } from './core/probes'
+import { currentKeyFor, resolveProbes } from './core/probes'
 import type { Selection, Tool } from './editorState'
 import { SELECT_TOOL } from './editorState'
 import { useSimulationStore } from './store/circuitStore'
@@ -133,6 +133,9 @@ function CircuitWorkspace({ circuit }: { circuit: Circuit }) {
               probedNodes={resolvedProbes
                 .filter((rp) => rp.probe.kind === 'voltage' && rp.nodeId !== null && rp.nodeId !== 0)
                 .map((rp) => ({ label: rp.probe.label, nodeId: rp.nodeId! }))}
+              probedCurrents={resolvedProbes
+                .filter((rp) => rp.probe.kind === 'current' && rp.component !== null)
+                .map((rp) => ({ label: rp.probe.label, key: currentKeyFor(rp.component!) }))}
             />
           )}
         </div>

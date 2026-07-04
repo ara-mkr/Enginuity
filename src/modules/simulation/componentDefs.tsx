@@ -160,6 +160,31 @@ const OpAmpSymbol = (
   </g>
 )
 
+const Timer555Symbol = (
+  <g fill="none" stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
+    <rect x={-30} y={-40} width={60} height={80} rx={4} />
+    {/* pin stubs — top V+, bottom GND, left TR/DIS/TH, right OUT */}
+    <path d="M 0 -40 V -50" />
+    <path d="M 0 40 V 50" />
+    <path d="M -30 -20 H -40" />
+    <path d="M -30 0 H -40" />
+    <path d="M -30 20 H -40" />
+    <path d="M 30 0 H 40" />
+    <text x={0} y={5} textAnchor="middle" fontSize={13} fill="currentColor" stroke="none">
+      555
+    </text>
+    {/* pin labels */}
+    <g fontSize={7} fill="currentColor" stroke="none">
+      <text x={-27} y={-16} textAnchor="start">TR</text>
+      <text x={-27} y={3} textAnchor="start">DIS</text>
+      <text x={-27} y={23} textAnchor="start">TH</text>
+      <text x={27} y={3} textAnchor="end">OUT</text>
+      <text x={0} y={-31} textAnchor="middle">V+</text>
+      <text x={0} y={35} textAnchor="middle">GND</text>
+    </g>
+  </g>
+)
+
 const GroundSymbol = (
   <g fill="none" stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round">
     <path d="M 0 0 V 10" />
@@ -302,6 +327,26 @@ export const COMPONENT_DEFS: Record<SchematicComponentType, ComponentDef> = {
     symbol: OpAmpSymbol,
     keywords: ['opamp', 'op-amp', 'amplifier', 'u', '741', 'lm358'],
   },
+  timer555: {
+    type: 'timer555',
+    label: '555 Timer',
+    category: 'Active',
+    refdesPrefix: 'U',
+    // Engine node order: [vcc, gnd, trig, thr, dis, out]. Behavioral macro —
+    // transient-only (no DC operating point, no small-signal AC model).
+    pins: [
+      { name: 'vcc', offset: { x: 0, y: -50 } },
+      { name: 'gnd', offset: { x: 0, y: 50 } },
+      { name: 'trig', offset: { x: -40, y: -20 } },
+      { name: 'dis', offset: { x: -40, y: 0 } },
+      { name: 'thr', offset: { x: -40, y: 20 } },
+      { name: 'out', offset: { x: 40, y: 0 } },
+    ],
+    params: [],
+    bounds: { w: 80, h: 100 },
+    symbol: Timer555Symbol,
+    keywords: ['555', 'timer', 'ne555', 'astable', 'monostable', 'oscillator', 'u'],
+  },
   'vsource-dc': {
     type: 'vsource-dc',
     label: 'DC Voltage Source',
@@ -393,6 +438,7 @@ export const PALETTE_ORDER: SchematicComponentType[] = [
   'bjt-npn',
   'mosfet-nmos',
   'opamp',
+  'timer555',
   'vsource-dc',
   'vsource-ac',
   'vsource-pulse',

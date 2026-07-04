@@ -86,6 +86,17 @@ function toEngineComponents(
         { id: `${comp.refdes}#ROUT`, type: 'resistor', nodes: [internal, node('out')], value: comp.params.rout },
       ]
     }
+    case 'timer555':
+      // Behavioral macro handled entirely inside the engine (transient-only);
+      // node order is the engine's [vcc, gnd, trig, thr, dis, out].
+      return [
+        {
+          id: comp.refdes,
+          type: 'timer555',
+          nodes: [node('vcc'), node('gnd'), node('trig'), node('thr'), node('dis'), node('out')],
+          value: 0,
+        },
+      ]
     case 'vsource-dc':
       return [{ id: comp.refdes, type: 'vsource', nodes: [node('pos'), node('neg')], value: comp.params.voltage }]
     case 'vsource-ac':

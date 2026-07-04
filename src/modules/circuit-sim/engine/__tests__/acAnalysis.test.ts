@@ -92,6 +92,95 @@ describe('runAC — RC low-pass filter', () => {
   });
 });
 
+describe('runAC — branch-current phasors', () => {
+  const R = 1000;
+  const C = 1e-7;
+  const fCutoff = 1 / (2 * Math.PI * R * C);
+
+  function rcNetlist(): Netlist {
+    return {
+      components: [
+        { id: 'V1', type: 'vsource', nodes: [1, 0], value: 1 },
+        { id: 'R1', type: 'resistor', nodes: [1, 2], value: R },
+        { id: 'C1', type: 'capacitor', nodes: [2, 0], value: C },
+      ],
+    };
+  }
+
+  it('reports the RC series current |I| = 1/(R·√2) at +45° at the cutoff frequency', () => {
+    // Sweep pinned to hit fCutoff exactly via a 3-point linear sweep.
+    const result = runAC(rcNetlist(), {
+      startFreq: fCutoff / 2,
+      stopFreq: 2 * fCutoff - fCutoff / 2,
+      pointsPerDecade: 20,
+      sweepType: 'linear',
+      numPoints: 3,
+      acSourceId: 'V1',
+    });
+
+    const expectedDb = 20 * Math.log10(1 / (R * Math.SQRT2));
+    expect(result.current_mag_db['R1'][1]).toBeCloseTo(expectedDb, 3);
+    // I = (Vin − Vout)/R leads Vin by 45° at cutoff.
+    expect(result.current_phase_deg['R1'][1]).toBeCloseTo(45, 2);
+
+    // Series circuit: the capacitor carries the identical current.
+    expect(result.current_mag_db['C1'][1]).toBeCloseTo(expectedDb, 3);
+    expect(result.current_phase_deg['C1'][1]).toBeCloseTo(45, 2);
+  });
+});
+
+describe('runAC — linear sweep spacing', () => {
+  const R = 1000;
+  const C = 1e-7;
+  const fCutoff = 1 / (2 * Math.PI * R * C);
+
+  function rcNetlist(): Netlist {
+    return {
+      components: [
+        { id: 'V1', type: 'vsource', nodes: [1, 0], value: 1 },
+        { id: 'R1', type: 'resistor', nodes: [1, 2], value: R },
+        { id: 'C1', type: 'capacitor', nodes: [2, 0], value: C },
+      ],
+    };
+  }
+
+  it('spaces exactly numPoints frequencies evenly from start to stop', () => {
+    const result = runAC(rcNetlist(), {
+      startFreq: 100,
+      stopFreq: 10100,
+      pointsPerDecade: 20,
+      sweepType: 'linear',
+      numPoints: 101,
+      acSourceId: 'V1',
+    });
+
+    expect(result.frequency).toHaveLength(101);
+    expect(result.frequency[0]).toBeCloseTo(100, 9);
+    expect(result.frequency[100]).toBeCloseTo(10100, 6);
+    const step = result.frequency[1] - result.frequency[0];
+    expect(step).toBeCloseTo(100, 6);
+    for (let i = 1; i < result.frequency.length; i++) {
+      expect(result.frequency[i] - result.frequency[i - 1]).toBeCloseTo(step, 6);
+    }
+  });
+
+  it('solves the same physics as the log sweep at matching frequencies', () => {
+    // At exactly fCutoff the RC output must be -3.0103 dB regardless of spacing.
+    const result = runAC(rcNetlist(), {
+      startFreq: fCutoff / 2,
+      stopFreq: 2 * fCutoff - fCutoff / 2, // midpoint of an odd-count linear sweep = fCutoff
+      pointsPerDecade: 20,
+      sweepType: 'linear',
+      numPoints: 3,
+      acSourceId: 'V1',
+    });
+
+    expect(result.frequency[1]).toBeCloseTo(fCutoff, 4);
+    expect(result.magnitude_db[2][1]).toBeCloseTo(20 * Math.log10(1 / Math.SQRT2), 3);
+    expect(result.phase_deg[2][1]).toBeCloseTo(-45, 3);
+  });
+});
+
 describe('runAC — RLC series resonance', () => {
   // Source -> R -> node 2 -> L -> node 3 -> C -> ground, output at node 3.
   const R = 10;

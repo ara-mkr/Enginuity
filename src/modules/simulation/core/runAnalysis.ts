@@ -26,6 +26,12 @@ export interface TransientRunResult {
   time: number[]
   /** Node id → voltage series aligned with `time`. Ground is omitted. */
   nodeVoltages: Record<number, number[]>
+  /**
+   * Display current key (refdes, `Q1 Ic`/`Q1 Ib`, op-amp refdes for its
+   * output current) → current series (A) aligned with `time`. Absent in
+   * runs persisted before current recording existed.
+   */
+  componentCurrents?: Record<string, number[]>
   warnings: string[]
 }
 
@@ -37,6 +43,15 @@ export interface ACRunResult {
   phaseDeg: Record<number, number[]>
   /** Refdes of the source used as the AC stimulus. */
   stimulus: string
+  /** How `frequency` is spaced — the Bode plot picks its x-axis scale from this. Absent in runs persisted before linear sweeps existed (those are log). */
+  sweepType?: 'log' | 'linear'
+  /**
+   * Display current key → branch-current dB(A)/phase series relative to the
+   * unit stimulus, same keying as TransientRunResult.componentCurrents.
+   * Absent in runs persisted before current recording existed.
+   */
+  currentMagDb?: Record<string, number[]>
+  currentPhaseDeg?: Record<string, number[]>
   warnings: string[]
 }
 
@@ -68,6 +83,32 @@ function internalNodesOf(netlist: Netlist): Set<number> {
     }
   }
   return new Set([...macroOnly].filter((n) => !visible.has(n)))
+}
+
+/**
+ * Maps an engine current key to the key results display under: BJT split
+ * branches become `Q1 Ib`/`Q1 Ic`, an op-amp macro's #ROUT resistor current
+ * IS the op-amp's output current (reported under the plain refdes), every
+ * other macro internal is hidden (null), and plain refdes keys pass through.
+ * Mirrors runDCOperatingPoint's componentCurrents keying so probes resolve
+ * the same key in every analysis mode.
+ */
+function displayCurrentKey(engineKey: string): string | null {
+  if (engineKey.includes('#')) {
+    return engineKey.endsWith('#ROUT') ? engineKey.split('#')[0] : null
+  }
+  if (engineKey.endsWith(':ib')) return `${engineKey.slice(0, -3)} Ib`
+  if (engineKey.endsWith(':ic')) return `${engineKey.slice(0, -3)} Ic`
+  return engineKey
+}
+
+function mapCurrentKeys(engineCurrents: Record<string, number[]>): Record<string, number[]> {
+  const mapped: Record<string, number[]> = {}
+  for (const [key, series] of Object.entries(engineCurrents)) {
+    const display = displayCurrentKey(key)
+    if (display) mapped[display] = series
+  }
+  return mapped
 }
 
 function runDCOperatingPoint(netlist: Netlist): DCRunResult {
@@ -128,20 +169,23 @@ function runDCOperatingPoint(netlist: Netlist): DCRunResult {
 
 function runTransientAnalysis(netlist: Netlist, settings: SimulationSettings): TransientRunResult {
   const { stopTime, timeStep } = settings.transient
+  const adaptive = settings.transient.adaptive ?? false
   if (!(stopTime > 0)) throw new Error('Transient stop time must be positive.')
   if (!(timeStep > 0)) throw new Error('Transient time step must be positive.')
   if (timeStep >= stopTime) throw new Error('Transient time step must be smaller than the stop time.')
 
   const warnings: string[] = []
   let h = timeStep
-  if (stopTime / h > MAX_TRANSIENT_POINTS) {
+  // Fixed stepping coarsens the step up front; adaptive stepping controls
+  // its own step count, so its output is decimated after the run instead.
+  if (!adaptive && stopTime / h > MAX_TRANSIENT_POINTS) {
     h = stopTime / MAX_TRANSIENT_POINTS
     warnings.push(
       `Time step coarsened to ${MAX_TRANSIENT_POINTS} points for rendering (requested step was finer).`,
     )
   }
 
-  const result = runTransient(netlist, { startTime: 0, stopTime, timestep: h })
+  const result = runTransient(netlist, { startTime: 0, stopTime, timestep: h, adaptive })
   if (result.warnings) warnings.push(...result.warnings)
 
   const internal = internalNodesOf(netlist)
@@ -149,7 +193,30 @@ function runTransientAnalysis(netlist: Netlist, settings: SimulationSettings): T
   for (const [node, series] of Object.entries(result.nodeVoltages)) {
     if (!internal.has(Number(node))) nodeVoltages[Number(node)] = series
   }
-  return { kind: 'transient', time: result.time, nodeVoltages, warnings }
+  const componentCurrents = mapCurrentKeys(result.componentCurrents)
+
+  let time = result.time
+  if (time.length > MAX_TRANSIENT_POINTS) {
+    const stride = Math.ceil(time.length / MAX_TRANSIENT_POINTS)
+    time = decimate(time, stride)
+    for (const node of Object.keys(nodeVoltages)) {
+      nodeVoltages[Number(node)] = decimate(nodeVoltages[Number(node)], stride)
+    }
+    for (const key of Object.keys(componentCurrents)) {
+      componentCurrents[key] = decimate(componentCurrents[key], stride)
+    }
+    warnings.push(`Waveform decimated to ${time.length} of ${result.time.length} solved points for rendering.`)
+  }
+
+  return { kind: 'transient', time, nodeVoltages, componentCurrents, warnings }
+}
+
+/** Every stride-th sample plus the final one, preserving series alignment across arrays. */
+function decimate(series: number[], stride: number): number[] {
+  const out: number[] = []
+  for (let i = 0; i < series.length; i += stride) out.push(series[i])
+  if ((series.length - 1) % stride !== 0) out.push(series[series.length - 1])
+  return out
 }
 
 function runACSweep(netlist: Netlist, settings: SimulationSettings): ACRunResult {
@@ -160,12 +227,24 @@ function runACSweep(netlist: Netlist, settings: SimulationSettings): ACRunResult
     throw new Error('AC analysis needs an AC voltage source in the circuit to use as the stimulus.')
   }
 
-  const { startFreq, stopFreq, pointsPerDecade } = settings.ac
+  const { startFreq, stopFreq, pointsPerDecade, sweepType } = settings.ac
+  const numPoints = settings.ac.numPoints ?? 200
   if (!(startFreq > 0)) throw new Error('AC start frequency must be positive.')
   if (!(stopFreq > startFreq)) throw new Error('AC stop frequency must be above the start frequency.')
-  if (!(pointsPerDecade >= 1)) throw new Error('AC sweep needs at least 1 point per decade.')
+  if (sweepType === 'linear') {
+    if (!(numPoints >= 2)) throw new Error('A linear AC sweep needs at least 2 points.')
+  } else if (!(pointsPerDecade >= 1)) {
+    throw new Error('AC sweep needs at least 1 point per decade.')
+  }
 
-  const result = runAC(netlist, { startFreq, stopFreq, pointsPerDecade, acSourceId: stimulus.id })
+  const result = runAC(netlist, {
+    startFreq,
+    stopFreq,
+    pointsPerDecade,
+    sweepType,
+    numPoints,
+    acSourceId: stimulus.id,
+  })
   const internal = internalNodesOf(netlist)
   const magnitudeDb: Record<number, number[]> = {}
   const phaseDeg: Record<number, number[]> = {}
@@ -181,6 +260,9 @@ function runACSweep(netlist: Netlist, settings: SimulationSettings): ACRunResult
     magnitudeDb,
     phaseDeg,
     stimulus: stimulus.id,
+    sweepType: sweepType === 'linear' ? 'linear' : 'log',
+    currentMagDb: mapCurrentKeys(result.current_mag_db),
+    currentPhaseDeg: mapCurrentKeys(result.current_phase_deg),
     warnings: [],
   }
 }

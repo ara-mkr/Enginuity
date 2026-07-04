@@ -1,4 +1,4 @@
-import { DEFAULT_BETA, mosfetCompanionModel } from './deviceModels';
+import { DEFAULT_BETA, diodeCurrent, mosfetCompanionModel } from './deviceModels';
 import { Matrix, solve } from './matrix';
 import {
   buildNodeMap,
@@ -194,6 +194,14 @@ function stampLinearComponents(netlist: Netlist, nodeMap: NodeMap, A: Matrix, z:
         stampIndependentVoltageSource(A, z, nodeMap, { ...comp, value: 0 }, branchIndex);
         break;
       }
+      case 'timer555':
+        // A 555 has no single DC operating point — its latch makes it
+        // bistable. (Transient analysis replaces it with primitives before
+        // its internal solveDC calls, so this is only reachable from a
+        // direct DC run.)
+        throw new Error(
+          `DC operating-point analysis does not support the 555 timer ("${comp.id}") — run a transient analysis instead.`
+        );
       default:
         throw new Error(`Unknown component type: ${comp.type}`);
     }
@@ -231,11 +239,7 @@ export function solveDC(netlist: Netlist, options: SolveDCOptions = {}): SolveRe
   }
   for (const d of diodes) {
     const Vd = nodeVoltageOf(x, nodeMap, d.nodes[0]) - nodeVoltageOf(x, nodeMap, d.nodes[1]);
-    const params = d.params as DiodeParams | undefined;
-    const Is = params?.Is ?? 1e-14;
-    const Vt = params?.Vt ?? 0.026;
-    const n = params?.n ?? 1;
-    branchCurrents[d.id] = Is * (Math.exp(Vd / (n * Vt)) - 1);
+    branchCurrents[d.id] = diodeCurrent(Vd, d.params as DiodeParams | undefined);
   }
   for (const q of bjts) {
     // branchCurrents already has `${q.id}:ib` from the branchToIndex loop

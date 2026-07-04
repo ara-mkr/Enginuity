@@ -187,6 +187,55 @@ describe('buildNetlist + runAnalysis — op-amp macro-model', () => {
     expect(result.componentCurrents.U1).toBeCloseTo(5.5 / 11000, 4)
   })
 
+  it('transient currents report the op-amp under its refdes and hide macro internals', () => {
+    const source = makeComponent('vsource-ac', 'VIN', { x: 0, y: 0 }, 0, {
+      amplitude: 0.5,
+      frequency: 1000,
+      phase: 0,
+      offset: 0,
+    })
+    const build = buildNetlist(nonInvertingAmp(source))
+    const result = runAnalysis(
+      build.engineNetlist!,
+      settings({ mode: 'transient', transient: { stopTime: 1e-3, timeStep: 1e-6 } }),
+    )
+    if (result.kind !== 'transient') throw new Error('expected transient result')
+
+    const currents = result.componentCurrents!
+    expect(currents.U1).toBeDefined()
+    expect(currents['U1#RIN']).toBeUndefined()
+    expect(currents['U1#E']).toBeUndefined()
+    expect(currents['U1#ROUT']).toBeUndefined()
+
+    // At the sine peak the amp sources ~5.5V into the 11k feedback path.
+    const peak = Math.max(...currents.U1)
+    expect(peak).toBeGreaterThan((5.5 / 11000) * 0.95)
+    expect(peak).toBeLessThan((5.5 / 11000) * 1.05)
+  })
+
+  it('AC currents report the op-amp under its refdes and hide macro internals', () => {
+    const source = makeComponent('vsource-ac', 'VIN', { x: 0, y: 0 }, 0, {
+      amplitude: 1,
+      frequency: 1000,
+      phase: 0,
+      offset: 0,
+    })
+    const build = buildNetlist(nonInvertingAmp(source))
+    const result = runAnalysis(
+      build.engineNetlist!,
+      settings({ mode: 'ac', ac: { startFreq: 1, stopFreq: 1e4, pointsPerDecade: 5, sweepType: 'log' } }),
+    )
+    if (result.kind !== 'ac') throw new Error('expected ac result')
+
+    expect(result.currentMagDb!.U1).toBeDefined()
+    expect(result.currentMagDb!['U1#RIN']).toBeUndefined()
+    expect(result.currentPhaseDeg!.U1).toBeDefined()
+    // Output sources 11V (gain 11 × 1V stimulus) into 11k → 1 mA → −60 dBA.
+    for (const db of result.currentMagDb!.U1) {
+      expect(db).toBeCloseTo(20 * Math.log10(11 / 11000), 1)
+    }
+  })
+
   it('AC sweep shows the flat 20.8 dB closed-loop gain', () => {
     const source = makeComponent('vsource-ac', 'VIN', { x: 0, y: 0 }, 0, {
       amplitude: 1,
@@ -209,5 +258,54 @@ describe('buildNetlist + runAnalysis — op-amp macro-model', () => {
     // Internal node series are filtered here too.
     const internalNode = build.engineNetlist!.components.find((c) => c.id === 'U1#E')!.nodes[0]
     expect(result.magnitudeDb[internalNode]).toBeUndefined()
+  })
+})
+
+describe('buildNetlist + runAnalysis — 555 timer', () => {
+  // Each 555 pin taps its own node so the pin→engine-node ORDER is checkable:
+  // resistors coincide a-pin-on-U1-pin, b-pin-on-a-ground; vcc via a source.
+  function timerCircuit() {
+    const U1 = makeComponent('timer555', 'U1', { x: 200, y: 0 })
+    const VCC = makeComponent('vsource-dc', 'VCC', { x: 200, y: -20 }, 0, { voltage: 5 }) // pos(200,-50)=vcc
+    const GNDv = makeComponent('ground', 'GND', { x: 200, y: 10 }) // VCC.neg(200,10)
+    const GNDg = makeComponent('ground', 'GND', { x: 200, y: 50 }) // U1.gnd
+    const RT = makeComponent('resistor', 'RT', { x: 190, y: -20 }, 0, { resistance: 100000 }) // a(160,-20)=trig
+    const GNDt = makeComponent('ground', 'GND', { x: 220, y: -20 })
+    const RH = makeComponent('resistor', 'RH', { x: 190, y: 20 }, 0, { resistance: 100000 }) // a(160,20)=thr
+    const GNDh = makeComponent('ground', 'GND', { x: 220, y: 20 })
+    const RD = makeComponent('resistor', 'RD', { x: 190, y: 0 }, 0, { resistance: 100000 }) // a(160,0)=dis
+    const GNDd = makeComponent('ground', 'GND', { x: 220, y: 0 })
+    const RO = makeComponent('resistor', 'RO', { x: 270, y: 0 }, 0, { resistance: 100000 }) // a(240,0)=out
+    const GNDo = makeComponent('ground', 'GND', { x: 300, y: 0 })
+    return {
+      circuit: { components: asRecord([U1, VCC, GNDv, GNDg, RT, GNDt, RH, GNDh, RD, GNDd, RO, GNDo]), wires: [] },
+      U1,
+    }
+  }
+
+  it('maps the six schematic pins to the engine node order [vcc, gnd, trig, thr, dis, out]', () => {
+    const { circuit, U1 } = timerCircuit()
+    const build = buildNetlist(circuit)
+    expect(build.issues.filter((i) => i.severity === 'error')).toEqual([])
+
+    const timer = build.engineNetlist!.components.find((c) => c.type === 'timer555')!
+    const nodeOf = (pin: string) => build.detection.nodeOfPin.get(`${U1.id}:${pin}`)
+    expect(timer.nodes).toEqual([
+      nodeOf('vcc'),
+      nodeOf('gnd'),
+      nodeOf('trig'),
+      nodeOf('thr'),
+      nodeOf('dis'),
+      nodeOf('out'),
+    ])
+    expect(nodeOf('gnd')).toBe(0)
+    // One SPICE line for the whole IC, no macro internals leaking out.
+    expect(build.lines.filter((l) => l.startsWith('U1')).length).toBe(1)
+  })
+
+  it('refuses a DC operating-point run and names the 555', () => {
+    const { circuit } = timerCircuit()
+    const build = buildNetlist(circuit)
+    expect(() => runAnalysis(build.engineNetlist!, settings({ mode: 'dc' }))).toThrow(/555/)
   })
 })

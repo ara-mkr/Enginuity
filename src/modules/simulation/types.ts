@@ -18,6 +18,7 @@ export type SchematicComponentType =
   | 'bjt-npn'
   | 'mosfet-nmos'
   | 'opamp'
+  | 'timer555'
   | 'vsource-dc'
   | 'vsource-ac'
   | 'vsource-pulse'
@@ -55,8 +56,20 @@ export type AnalysisMode = 'dc' | 'transient' | 'ac'
 
 export interface SimulationSettings {
   mode: AnalysisMode
-  transient: { stopTime: number; timeStep: number }
-  ac: { startFreq: number; stopFreq: number; pointsPerDecade: number; sweepType: 'log' | 'linear' }
+  transient: {
+    stopTime: number
+    timeStep: number
+    /** Adaptive stepping: timeStep becomes the max step and the solver refines below it on error. Absent in circuits persisted before it existed — read with `?? false`. */
+    adaptive?: boolean
+  }
+  ac: {
+    startFreq: number
+    stopFreq: number
+    pointsPerDecade: number
+    sweepType: 'log' | 'linear'
+    /** Total point count for a linear sweep. Absent in circuits persisted before it existed — read with `?? 200`. */
+    numPoints?: number
+  }
 }
 
 export interface Viewport {
@@ -84,7 +97,7 @@ export const GRID = 10
 export function defaultSimulationSettings(): SimulationSettings {
   return {
     mode: 'dc',
-    transient: { stopTime: 0.01, timeStep: 1e-5 },
-    ac: { startFreq: 1, stopFreq: 1e6, pointsPerDecade: 20, sweepType: 'log' },
+    transient: { stopTime: 0.01, timeStep: 1e-5, adaptive: false },
+    ac: { startFreq: 1, stopFreq: 1e6, pointsPerDecade: 20, sweepType: 'log', numPoints: 200 },
   }
 }

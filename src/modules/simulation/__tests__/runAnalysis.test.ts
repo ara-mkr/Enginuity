@@ -127,6 +127,52 @@ describe('runAnalysis — transient', () => {
     expect(result.warnings.some((w) => /coarsened/i.test(w))).toBe(true)
   })
 
+  it('maps the recorded current series onto display keys', () => {
+    const source = makeComponent('vsource-dc', 'V1', { x: 0, y: 0 }, 0, { voltage: 5 })
+    const build = buildNetlist(rcCircuit(source))
+    const result = runAnalysis(
+      build.engineNetlist!,
+      settings({ mode: 'transient', transient: { stopTime: 1e-3, timeStep: 1e-5 } }),
+    )
+    if (result.kind !== 'transient') throw new Error('expected transient result')
+
+    const currents = result.componentCurrents!
+    expect(Object.keys(currents).sort()).toEqual(['C1', 'R1', 'V1'])
+    expect(currents.R1).toHaveLength(result.time.length)
+
+    // Ohm's law consistency at every sample: the reported resistor current
+    // is exactly the recorded node-voltage difference over R.
+    const [n0, n1] = build.engineNetlist!.components.find((c) => c.id === 'R1')!.nodes
+    const v = (node: number, i: number) => (node === 0 ? 0 : result.nodeVoltages[node][i])
+    for (let i = 0; i < result.time.length; i++) {
+      expect(currents.R1[i]).toBeCloseTo((v(n0, i) - v(n1, i)) / 1000, 9)
+    }
+  })
+
+  it('adaptive stepping runs through the pipeline with a non-uniform axis under the render cap', () => {
+    const source = makeComponent('vsource-dc', 'V1', { x: 0, y: 0 }, 0, { voltage: 5 })
+    const build = buildNetlist(rcCircuit(source))
+    // τ = 1ms; a coarse max step forces refinement early in the charge.
+    const result = runAnalysis(
+      build.engineNetlist!,
+      settings({ mode: 'transient', transient: { stopTime: 5e-3, timeStep: 1e-3, adaptive: true } }),
+    )
+    if (result.kind !== 'transient') throw new Error('expected transient result')
+
+    expect(result.time.length).toBeLessThanOrEqual(MAX_TRANSIENT_POINTS)
+    const dts: number[] = []
+    for (let i = 1; i < result.time.length; i++) dts.push(result.time[i] - result.time[i - 1])
+    expect(Math.min(...dts)).toBeLessThan(Math.max(...dts))
+
+    // Series stay aligned with the decimation-safe axis.
+    for (const series of Object.values(result.nodeVoltages)) {
+      expect(series).toHaveLength(result.time.length)
+    }
+    for (const series of Object.values(result.componentCurrents!)) {
+      expect(series).toHaveLength(result.time.length)
+    }
+  })
+
   it('rejects a non-positive stop time with an actionable error', () => {
     const build = buildNetlist(dividerCircuit())
     expect(() =>
@@ -169,6 +215,66 @@ describe('runAnalysis — AC sweep', () => {
     expect(() =>
       runAnalysis(build.engineNetlist!, settings({ mode: 'ac' })),
     ).toThrow(/AC voltage source/i)
+  })
+
+  it('spaces a linear sweep evenly and tags the result for the linear x-axis', () => {
+    const source = makeComponent('vsource-ac', 'V1', { x: 0, y: 0 }, 0, {
+      amplitude: 1,
+      frequency: 1000,
+      phase: 0,
+      offset: 0,
+    })
+    const build = buildNetlist(rcCircuit(source))
+
+    const result = runAnalysis(
+      build.engineNetlist!,
+      settings({
+        mode: 'ac',
+        ac: { startFreq: 100, stopFreq: 1e4, pointsPerDecade: 20, sweepType: 'linear', numPoints: 100 },
+      }),
+    )
+    if (result.kind !== 'ac') throw new Error('expected ac result')
+    expect(result.sweepType).toBe('linear')
+    expect(result.frequency).toHaveLength(100)
+    const step = (1e4 - 100) / 99
+    expect(result.frequency[1] - result.frequency[0]).toBeCloseTo(step, 6)
+    expect(result.frequency[99]).toBeCloseTo(1e4, 6)
+  })
+
+  it('defaults persisted circuits without numPoints to a valid linear sweep', () => {
+    const source = makeComponent('vsource-ac', 'V1', { x: 0, y: 0 }, 0, {
+      amplitude: 1,
+      frequency: 1000,
+      phase: 0,
+      offset: 0,
+    })
+    const build = buildNetlist(rcCircuit(source))
+
+    const result = runAnalysis(
+      build.engineNetlist!,
+      settings({
+        mode: 'ac',
+        ac: { startFreq: 100, stopFreq: 1e4, pointsPerDecade: 20, sweepType: 'linear' },
+      }),
+    )
+    if (result.kind !== 'ac') throw new Error('expected ac result')
+    expect(result.frequency).toHaveLength(200)
+  })
+
+  it('tags log sweeps so old and new runs both render correctly', () => {
+    const source = makeComponent('vsource-ac', 'V1', { x: 0, y: 0 }, 0, {
+      amplitude: 1,
+      frequency: 1000,
+      phase: 0,
+      offset: 0,
+    })
+    const build = buildNetlist(rcCircuit(source))
+    const result = runAnalysis(
+      build.engineNetlist!,
+      settings({ mode: 'ac', ac: { startFreq: 1, stopFreq: 1e5, pointsPerDecade: 20, sweepType: 'log' } }),
+    )
+    if (result.kind !== 'ac') throw new Error('expected ac result')
+    expect(result.sweepType).toBe('log')
   })
 })
 
