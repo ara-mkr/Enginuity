@@ -1,0 +1,20 @@
+services:
+  velxio:
+    image: ghcr.io/davidmonterocrespo24/velxio:master
+    container_name: enginguity-velxio
+    ports:
+      - "${VELXIO_PORT:-3080}:80"
+    volumes:
+      - velxio-data:/app/data
+      - velxio-arduino-libs:/root/.arduino15
+      - velxio-arduino-user-libs:/root/Arduino
+      - velxio-ccache:/var/cache/ccache
+      - velxio-build:/var/lib/velxio-build
+    restart: unless-stopped
+
+volumes:
+  velxio-data:
+  velxio-arduino-libs:
+  velxio-arduino-user-libs:
+  velxio-ccache:
+  velxio-build:

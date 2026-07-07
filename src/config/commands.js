@@ -184,12 +184,12 @@ export const COMMANDS = [
   },
   {
     id: 'nav_circuit_sim',
-    name: 'Open Circuit Sim',
+    name: 'Open Circuit Simulator',
     category: 'Navigation',
     icon: 'grid',
     shortcut: null,
     action: () => navigateOrOpen('/circuit-sim'),
-    keywords: ['circuit', 'schematic', 'spice', 'simulation', 'resistor'],
+    keywords: ['circuit', 'schematic', 'spice', 'simulation', 'resistor', 'velxio', 'arduino', 'esp32'],
   },
   {
     id: 'nav_datasheet',

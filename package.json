@@ -6,6 +6,8 @@
   "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
+    "dev:all": "concurrently -k -n VELXIO,APP -c blue,green \"docker compose -f docker-compose.velxio.yml up\" \"vite\"",
+    "dev:all:down": "docker compose -f docker-compose.velxio.yml down",
     "build": "tsc -b && vite build",
     "type-check": "tsc -b",
     "lint": "eslint .",

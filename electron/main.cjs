@@ -78,14 +78,30 @@ function createWindow() {
   const isAppUrl = (url) =>
     isDev ? url.startsWith('http://localhost:5173') : url.startsWith('file://')
 
+  const isLoopbackHost = (host) => (
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host === '[::1]' ||
+    host === '::1'
+  )
+
+  const shouldOpenExternal = (url) => {
+    try {
+      const parsed = new URL(url)
+      if (parsed.protocol === 'https:') return true
+      if (parsed.protocol === 'http:' && isLoopbackHost(parsed.hostname)) return true
+    } catch {}
+    return false
+  }
+
   mainWindow.webContents.on('will-navigate', (event, url) => {
     if (isAppUrl(url)) return
     event.preventDefault()
-    if (url.startsWith('https://')) shell.openExternal(url)
+    if (shouldOpenExternal(url)) shell.openExternal(url)
   })
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('https://')) shell.openExternal(url)
+    if (shouldOpenExternal(url)) shell.openExternal(url)
     return { action: 'deny' }
   })
 

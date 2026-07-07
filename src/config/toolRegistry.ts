@@ -100,8 +100,8 @@ export const BUILTIN_TOOLS: BuiltinTool[] = [
     defaultInstalled: true, kind: 'builtin',
   },
   {
-    id: 'circuit-sim', to: '/circuit-sim', label: 'Circuit Sim', icon: Zap, category: 'Electrical',
-    description: 'Schematic editor with SPICE-style simulation.',
+    id: 'circuit-sim', to: '/circuit-sim', label: 'Circuit Simulator', icon: Zap, category: 'Electrical',
+    description: 'Launch the Velxio circuit and microcontroller simulator.',
     defaultInstalled: true, kind: 'builtin',
   },
   {

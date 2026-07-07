@@ -29,6 +29,29 @@ npm run dev
 
 Open the printed local URL. No backend is required for the core app — AI features are inert until you connect a provider (see [AI providers](#ai-providers) below).
 
+### Circuit Simulator (Velxio)
+
+The **Circuit Simulator** tool embeds Velxio as a separately hosted simulator service. Easiest way to run both together:
+
+```bash
+npm run dev:all
+```
+
+This starts the Velxio Docker container and the Vite dev server together in one terminal (via `concurrently`), and stops both together on Ctrl+C. Run `npm run dev:all:down` afterward if you want to tear down the Velxio container explicitly.
+
+To run them separately instead:
+
+```bash
+docker compose -f docker-compose.velxio.yml up -d
+npm run dev
+```
+
+Vite dev defaults to `http://localhost:3080`. For production or Electron builds, set `VITE_VELXIO_URL` explicitly. Hosted `https://velxio.dev` fallback is opt-in with `VITE_VELXIO_ALLOW_HOSTED_FALLBACK=true`.
+
+Velxio still runs on its own port/origin (`:3080`) intentionally — the iframe sandbox grants `allow-same-origin` for Velxio's own WASM/storage needs, and putting it on the app's own origin would let Velxio's JS reach ENGINGUITY's localStorage/cookies. `dev:all` just removes the need to start/stop it as a separate manual step.
+
+See [docs/integrations/velxio.md](docs/integrations/velxio.md) for Docker volumes, security notes, manual verification, and the AGPLv3/commercial-license compliance checkpoint.
+
 ### Running as a desktop app
 
 ```bash
@@ -53,12 +76,11 @@ Modules are organized into a sidebar you customize — install what you need fro
 - **Parameters** — live-tweak design parameters and watch downstream effects propagate
 
 ### Electrical
-- **Circuit Sim** — a JavaScript-native, SPICE-like schematic editor:
-  - natural-language → AI-parsed netlist
-  - MNA-based operating-point solver
-  - analytical transient response (RC, RL, RLC)
-  - AC frequency sweep / Bode plots
-  - SVG schematic renderer with zoom/pan, plus AI circuit analysis and design review
+- **Circuit Simulator** — Enginguity-branded Velxio host for browser-based circuit and microcontroller simulation:
+  - visual circuit canvas, boards, components, and wiring provided by Velxio
+  - Arduino, ESP32, RP2040, ATtiny85, Raspberry Pi, and related board support through Velxio
+  - Monaco editor, serial monitor, Arduino CLI compilation, library manager, and SPICE/ngspice-WASM analog simulation through Velxio
+  - configurable self-hosted URL with explicit hosted fallback
 - **PCB Reviewer** — AI critique of PCB layouts
 - **Footprint Gen** — generate IPC-7351 PCB footprints with KiCad export
 - **Datasheet** — extract structured, queryable knowledge cards from component datasheets
@@ -161,6 +183,10 @@ What it isn't: room state lives in memory only and is lost on server restart, an
 ## Contributing
 
 Issues and PRs are welcome. Please open an issue before large changes so we can align on scope.
+
+## Third-party notices
+
+Third-party attribution is tracked in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), including Velxio's AGPLv3/commercial-license notice.
 
 ## License
 

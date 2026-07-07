@@ -27,7 +27,7 @@ const ROUTE_NAMES = {
   '/project-ideas': 'Project Ideas',
   '/debug-console': 'Debug Console',
   '/model-comparison': 'Model Compare',
-  '/circuit-sim': 'Circuit Sim',
+  '/circuit-sim': 'Circuit Simulator',
   '/collaborate': 'Collaborate',
   '/datasheet': 'Datasheet Intel',
   '/notebook': 'Engineering Notebook',

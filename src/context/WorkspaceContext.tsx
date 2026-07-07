@@ -58,7 +58,7 @@ const MODULE_TITLES: Record<string, string> = {
   'project-ideas': 'Project Ideas',
   'debug-console': 'Debug Console',
   'model-comparison': 'Model Comparison',
-  'circuit-sim': 'Circuit Sim',
+  'circuit-sim': 'Circuit Simulator',
   'datasheet': 'Datasheet Intel',
   'notebook': 'Engineering Notebook',
   'bom': 'BOM Intelligence',
