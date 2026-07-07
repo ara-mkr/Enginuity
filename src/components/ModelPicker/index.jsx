@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import { ChevronDown, Monitor, Search, Star } from 'lucide-react'
+import { ChevronDown, Monitor, Search, Server, Star } from 'lucide-react'
 import { useOpenRouter } from '../../context/OpenRouterContext'
+import { CUSTOM_PROVIDER_COLOR } from '../../config/customProviders'
 import { TIER_COLORS } from '../../config/openrouterModels'
 import {
   fetchOllamaModels,
@@ -27,6 +28,7 @@ export function ModelPicker({ moduleKey = null }) {
   const {
     apiKey, activeModelId, setModelId, models, isConnected, openSetup,
     activeProvider, setActiveProvider, ollamaModelId, setOllamaModelId,
+    customProviders, activeCustomProviderId, setActiveCustomProviderId,
   } = useOpenRouter()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -75,6 +77,16 @@ export function ModelPicker({ moduleKey = null }) {
 
   const activeModel = models.find((m) => m.id === activeModelId)
   const usingLocal = activeProvider === 'ollama' || activeProvider === 'both'
+  const usingCustom = activeProvider === 'custom'
+  const activeCustom = customProviders.find((p) => p.id === activeCustomProviderId) ?? null
+
+  const handleSelectCustom = (provider) => {
+    setActiveCustomProviderId(provider.id)
+    setActiveProvider('custom')
+    setOpen(false)
+    setToast(`Switched to ${provider.label}`)
+    setTimeout(() => setToast(null), 2500)
+  }
 
   const handleSelect = (model) => {
     setModelId(model.id)
@@ -138,7 +150,18 @@ export function ModelPicker({ moduleKey = null }) {
           transition: 'all 0.15s',
         }}
       >
-        {usingLocal && ollamaModelId ? (
+        {usingCustom && activeCustom ? (
+          <>
+            <Server size={11} style={{ color: CUSTOM_PROVIDER_COLOR, flexShrink: 0 }} />
+            <span
+              title={`${activeCustom.label} — ${activeCustom.baseUrl}`}
+              style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}
+            >
+              {activeCustom.model}
+            </span>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: CUSTOM_PROVIDER_COLOR, flexShrink: 0 }} />
+          </>
+        ) : usingLocal && ollamaModelId ? (
           <>
             <Monitor size={11} style={{ color: '#7aaa8a', flexShrink: 0 }} />
             <span
@@ -227,6 +250,44 @@ export function ModelPicker({ moduleKey = null }) {
                 <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: 'var(--text-dim)' }}>
                   Ollama not detected — start it to run models locally, free
                 </span>
+              </div>
+            )}
+
+            {/* Custom endpoints — saved "Other Provider" configs */}
+            {customProviders.length > 0 && (
+              <div>
+                <div style={{ padding: '8px 12px 4px', position: 'sticky', top: 0, background: 'var(--bg-2)', display: 'flex', alignItems: 'center', gap: 6, zIndex: 1 }}>
+                  <Server size={10} style={{ color: CUSTOM_PROVIDER_COLOR }} />
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: CUSTOM_PROVIDER_COLOR }}>Custom endpoints</span>
+                </div>
+                {customProviders
+                  .filter((p) => !lq || p.label.toLowerCase().includes(lq) || p.model.toLowerCase().includes(lq) || 'custom other'.includes(lq))
+                  .map((p) => {
+                    const isActive = usingCustom && p.id === activeCustomProviderId
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => handleSelectCustom(p)}
+                        style={{
+                          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          padding: '7px 12px', border: 'none', cursor: 'pointer',
+                          background: isActive ? 'var(--accent-glow)' : 'transparent',
+                          borderLeft: `2px solid ${isActive ? 'var(--accent)' : 'transparent'}`,
+                          gap: 8, textAlign: 'left',
+                        }}
+                        onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--surface-2)' }}
+                        onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+                      >
+                        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: isActive ? 'var(--accent)' : 'var(--text)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {p.label}
+                        </span>
+                        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: 'var(--text-dim)', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                          {p.apiKey ? p.model : 'key needed'}
+                        </span>
+                      </button>
+                    )
+                  })}
+                <div style={{ margin: '4px 12px', borderBottom: '1px solid var(--border)' }} />
               </div>
             )}
 

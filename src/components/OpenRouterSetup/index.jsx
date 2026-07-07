@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Zap, Cpu, Eye, EyeOff, ExternalLink, Check, Loader2, AlertTriangle, X, ArrowLeft } from 'lucide-react'
+import { Zap, Cpu, Server, Eye, EyeOff, ExternalLink, Check, Loader2, AlertTriangle, X, ArrowLeft } from 'lucide-react'
 import { useOpenRouter } from '../../context/OpenRouterContext'
 import OPENROUTER_MODELS from '../../config/openrouterModels'
 import { OllamaSetup } from './OllamaSetup'
+import { CustomProviderSetup } from '../CustomProviderPanel'
 import { useOllamaStatus } from '../../hooks/useOllamaStatus'
 
 const PROVIDERS = [
@@ -23,11 +24,12 @@ export function OpenRouterSetup({ onClose }) {
   const [status, setStatus] = useState('idle') // idle | testing | ok | error
   const [error, setError] = useState('')
   const [modelCount, setModelCount] = useState(0)
-  // Provider chooser: 'choose' → 'openrouter' | 'ollama'.
+  // Provider chooser: 'choose' → 'openrouter' | 'ollama' | 'custom'.
   // Default to chooser unless the user already has OpenRouter set up (legacy users
   // re-opening from sidebar should land back on the OpenRouter form they remember).
   const [mode, setMode] = useState(
     activeProvider === 'ollama' && ollamaModelId ? 'ollama'
+      : activeProvider === 'custom' ? 'custom'
       : apiKey ? 'openrouter'
       : 'choose',
   )
@@ -39,6 +41,10 @@ export function OpenRouterSetup({ onClose }) {
 
   if (mode === 'ollama') {
     return <OllamaSetup onBack={() => setMode('choose')} onClose={onClose} />
+  }
+
+  if (mode === 'custom') {
+    return <CustomProviderSetup onBack={() => setMode('choose')} onClose={onClose} />
   }
 
   if (mode === 'choose') {
@@ -352,6 +358,17 @@ function ProviderChooser({ onPick, onClose }) {
             cta={ollama.running ? 'Choose Model →' : 'Set Up →'}
             badge={ollama.running ? 'READY' : null}
             onClick={() => onPick('ollama')}
+          />
+          <ProviderCard
+            icon={<Server size={22} color="#b09470" />}
+            iconBg="rgba(176,148,112,0.1)"
+            iconBorder="rgba(176,148,112,0.25)"
+            title="Other"
+            subtitle="Any OpenAI-compatible API"
+            lines={['NVIDIA NIM, Groq, Together…', 'Your base URL + API key', 'Self-hosted works too']}
+            ctaColor="#b09470"
+            cta="Configure →"
+            onClick={() => onPick('custom')}
           />
         </div>
 
