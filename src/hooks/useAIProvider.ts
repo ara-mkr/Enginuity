@@ -2,7 +2,6 @@ import { useCallback } from 'react'
 import { useOpenRouter } from '../context/OpenRouterContext'
 import { logEvent, summarizeAIExchange } from '../engine/eventLog'
 import { callOllama, OLLAMA_PROVIDER, type OllamaMetrics } from '../config/ollama'
-import { callCustomProvider, CUSTOM_PROVIDER_COLOR } from '../config/customProviders'
 
 import { type ORModel } from '../context/OpenRouterContext'
 
@@ -43,16 +42,11 @@ export function useAIProvider(): AIProviderHandle {
     models,
     activeProvider,
     ollamaModelId,
-    customProviders,
-    activeCustomProviderId,
   } = useOpenRouter()
 
   const activeModelDef = models.find((m) => m.id === activeModelId) ?? null
   const isOllama = activeProvider === 'ollama'
   const isBoth = activeProvider === 'both'
-  const isCustom = activeProvider === 'custom'
-  const activeCustom =
-    (customProviders ?? []).find((p) => p.id === activeCustomProviderId) ?? null
 
   const makeRequest = useCallback(
     async (messages: Message[], systemPrompt?: string, options: RequestOptions = {}): Promise<string> => {
@@ -86,38 +80,6 @@ export function useAIProvider(): AIProviderHandle {
         })
         // Log a zero-cost usage entry so the dashboard reflects local activity.
         logUsage(`ollama/${ollamaModelId}`, 0, options.module || 'app')
-        return text
-      }
-
-      // Custom OpenAI-compatible endpoint — user-supplied base URL/key/model.
-      // Never log the config here: the key must not reach the console.
-      const runCustom = async (): Promise<string> => {
-        if (!activeCustom) {
-          openSetup()
-          throw new Error('No custom provider configured. Add one in AI Settings under "Other".')
-        }
-        if (!activeCustom.apiKey) {
-          openSetup()
-          throw new Error(
-            `No API key for "${activeCustom.label}". Keys live in this browser session only — re-enter it in AI Settings.`,
-          )
-        }
-        const promptText = messages.map((m) => m.content).join('\n')
-        const text = await callCustomProvider(activeCustom, messages, systemPrompt, {
-          stream: options.stream !== false,
-          temperature: options.temperature,
-          maxTokens: options.maxTokens,
-          onToken: options.onToken,
-        })
-        logEvent('AI_ANALYSIS_RUN', {
-          ...summarizeAIExchange(promptText, text),
-          tokens: Math.ceil((promptText.length + text.length) / 4),
-          model: `custom/${activeCustom.model}`,
-          module: options.module || 'global',
-        })
-        // Pricing is unknown for arbitrary endpoints — log activity at $0
-        // so the dashboard still counts the request.
-        logUsage(`custom/${activeCustom.model}`, 0, options.module || 'app')
         return text
       }
 
@@ -218,7 +180,6 @@ export function useAIProvider(): AIProviderHandle {
         return text
       }
 
-      if (isCustom) return runCustom()
       if (isOllama) return runOllama()
 
       // 'both' prefers local Ollama and falls back to OpenRouter on any
@@ -234,30 +195,23 @@ export function useAIProvider(): AIProviderHandle {
       }
       return runOpenRouter()
     },
-    [apiKey, activeModelId, models, logUsage, openSetup, isOllama, isBoth, isCustom, activeCustom, ollamaModelId]
+    [apiKey, activeModelId, models, logUsage, openSetup, isOllama, isBoth, ollamaModelId]
   )
 
   const cloudProvider = activeModelDef
     ? { name: activeModelDef.provider, color: activeModelDef.providerColor }
     : null
   const ollamaProviderShape = { name: OLLAMA_PROVIDER.name, color: OLLAMA_PROVIDER.providerColor }
-  const customProviderShape = activeCustom
-    ? { name: activeCustom.label, color: CUSTOM_PROVIDER_COLOR }
-    : null
   const preferOllama = isOllama || (isBoth && !!ollamaModelId)
 
   return {
-    activeProvider: isCustom ? customProviderShape : preferOllama ? ollamaProviderShape : cloudProvider,
-    activeProviderId: isCustom
-      ? 'custom'
-      : preferOllama
-        ? 'ollama'
-        : activeModelDef?.provider.toLowerCase().replace(/[^a-z0-9]/g, '') ?? null,
-    activeModel: isCustom ? (activeCustom?.model ?? null) : preferOllama ? ollamaModelId : activeModelId,
+    activeProvider: preferOllama ? ollamaProviderShape : cloudProvider,
+    activeProviderId: preferOllama
+      ? 'ollama'
+      : activeModelDef?.provider.toLowerCase().replace(/[^a-z0-9]/g, '') ?? null,
+    activeModel: preferOllama ? ollamaModelId : activeModelId,
     apiKey,
-    isConnected: isCustom
-      ? !!activeCustom?.apiKey
-      : isOllama ? !!ollamaModelId : isBoth ? (!!ollamaModelId || !!apiKey) : !!apiKey,
+    isConnected: isOllama ? !!ollamaModelId : isBoth ? (!!ollamaModelId || !!apiKey) : !!apiKey,
     makeRequest,
     openGrid: openSetup,
     setModel: setModelId,

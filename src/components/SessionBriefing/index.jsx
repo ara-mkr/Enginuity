@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, RefreshCw, ChevronRight } from 'lucide-react'
 import owlMark from '../../assets/owl-mark.png'
 import { useEnginguityStore } from '../../engine/persistenceEngine'
+import { useAIProvider } from '../../hooks/useAIProvider'
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -89,37 +90,25 @@ export function SessionBriefing() {
   const [history, setHistory]     = useState(() => safeJson(STORAGE_KEY, []))
   const [showHistory, setShowHistory] = useState(false)
   const hasChecked = useRef(false)
+  const { makeRequest, isConnected } = useAIProvider()
 
-  const loadBriefing = useCallback(async (context, force = false) => {
+  const loadBriefing = useCallback(async (context) => {
     setLoading(true)
     setBriefing('')
     try {
       const prompt = buildBriefingPrompt(context)
-      const apiKey = localStorage.getItem('enginguity_openrouter_key')
-      if (!apiKey) {
+      if (!isConnected) {
         setBriefing(`Welcome back! You've been away for ${context.absenceHours} hours. You have ${context.openProblems.length} open problem(s) and ${context.scmAlerts.length} supply chain alert(s) to review.`)
         setLoading(false)
         return
       }
 
-      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-          'HTTP-Referer': 'https://enginguity.app',
-          'X-Title': 'Enginguity',
-        },
-        body: JSON.stringify({
-          model: 'anthropic/claude-3-haiku',
-          messages: [{ role: 'user', content: prompt }],
-          max_tokens: 200,
-          temperature: 0.7,
-        }),
-      })
-
-      const data = await res.json()
-      const text = data.choices?.[0]?.message?.content?.trim() || 'Welcome back! Check your notebook and supply chain for updates.'
+      const raw = await makeRequest(
+        [{ role: 'user', content: prompt }],
+        undefined,
+        { maxTokens: 200, temperature: 0.7, stream: false, module: 'session-briefing' },
+      )
+      const text = raw.trim() || 'Welcome back! Check your notebook and supply chain for updates.'
       setBriefing(text)
 
       // Save to history
@@ -134,7 +123,7 @@ export function SessionBriefing() {
       setBriefing(`Welcome back! You've been away for ${context.absenceHours} hours. Check your open problems and supply chain status.`)
     }
     setLoading(false)
-  }, [])
+  }, [makeRequest, isConnected])
 
   // ── Check on mount ──
   useEffect(() => {

@@ -44,6 +44,12 @@ import {
   buildDataDocSections,
 } from './contextAggregator'
 import { jarvisPhrase, JARVIS_VOICE_SYSTEM_PROMPT, enforceResponseLength, maybeAddInsult } from './voice/jarvisPhrases'
+import {
+  cancelKokoroSpeech,
+  DEFAULT_KOKORO_VOICE,
+  KOKORO_MALE_VOICES,
+  speakWithKokoro,
+} from './voice/kokoroTts'
 import type {
   WakeState,
   CanvasItem,
@@ -350,33 +356,79 @@ function speakText(
   onEnd?: () => void,
   intent: JarvisIntent = 'general'
 ) {
-  if (!text || !('speechSynthesis' in window)) return
-  window.speechSynthesis.cancel()
-  const voices = voicesCache.length > 0 ? voicesCache : window.speechSynthesis.getVoices()
+  if (!text || typeof window === 'undefined') return
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel()
+  cancelKokoroSpeech()
+  const voices = 'speechSynthesis' in window
+    ? (voicesCache.length > 0 ? voicesCache : window.speechSynthesis.getVoices())
+    : []
   const lower = text.toLowerCase()
   const isJoke = JOKE_INDICATORS.some((j) => lower.includes(j))
   const openingDelay = isJoke ? 400 : intent === 'correction' ? 300 : 0
   const segments = chunkForSpeech(text)
-  let started = false
-  let i = 0
-  const speakNext = () => {
-    if (i >= segments.length) { onEnd?.(); return }
-    const utt = buildUtterance(segments[i], settings, intent, voices)
-    utt.onstart = () => { if (!started) { started = true; onStart?.() } }
-    utt.onend = () => {
-      i++
-      if (i < segments.length) setTimeout(speakNext, 150)
-      else onEnd?.()
+
+  const speakWithBrowserVoice = () => {
+    if (!('speechSynthesis' in window)) {
+      onEnd?.()
+      return
     }
-    utt.onerror = () => {
-      i++
-      if (i < segments.length) setTimeout(speakNext, 150)
-      else onEnd?.()
+    let started = false
+    let i = 0
+    const speakNext = () => {
+      if (i >= segments.length) { onEnd?.(); return }
+      const utt = buildUtterance(segments[i], settings, intent, voices)
+      utt.onstart = () => { if (!started) { started = true; onStart?.() } }
+      utt.onend = () => {
+        i++
+        if (i < segments.length) setTimeout(speakNext, 150)
+        else onEnd?.()
+      }
+      utt.onerror = () => {
+        i++
+        if (i < segments.length) setTimeout(speakNext, 150)
+        else onEnd?.()
+      }
+      window.speechSynthesis.speak(utt)
     }
-    window.speechSynthesis.speak(utt)
+    if (openingDelay > 0) setTimeout(speakNext, openingDelay)
+    else speakNext()
   }
-  if (openingDelay > 0) setTimeout(speakNext, openingDelay)
-  else speakNext()
+
+  if ((settings.ttsEngine ?? 'kokoro') === 'kokoro') {
+    void (async () => {
+      if (openingDelay > 0) await new Promise((resolve) => setTimeout(resolve, openingDelay))
+      let started = false
+      try {
+        for (let i = 0; i < segments.length; i++) {
+          const processedBase = preprocessForSpeech(segments[i])
+          const rhythmed = addSpeechRhythm(processedBase, settings.pauseIntensity || 'natural')
+          const short = SHORT_RESPONSES[processedBase.trim()]
+          const params = short ?? getSpeechParameters(processedBase, intent, settings)
+          await speakWithKokoro(rhythmed, {
+            voice: settings.kokoroVoice ?? DEFAULT_KOKORO_VOICE,
+            speed: params.rate,
+            onStart: () => {
+              if (!started) {
+                started = true
+                onStart?.()
+              }
+            },
+          })
+          if (i < segments.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 80))
+          }
+        }
+        onEnd?.()
+      } catch (error) {
+        console.warn('Kokoro TTS failed; falling back to browser speech:', error)
+        if (started) onEnd?.()
+        else speakWithBrowserVoice()
+      }
+    })()
+    return
+  }
+
+  speakWithBrowserVoice()
 }
 
 // ────────── Persistence ──────────
@@ -388,7 +440,12 @@ function loadLog(): LogEntry[] {
 }
 function loadSettings(): JarvisSettings {
   try {
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(STORAGE_SETTINGS) || '{}') }
+    const saved = JSON.parse(localStorage.getItem(STORAGE_SETTINGS) || '{}')
+    const next = { ...DEFAULT_SETTINGS, ...saved }
+    if ((saved.kokoroVoice ?? '') === 'bm_george') {
+      next.kokoroVoice = DEFAULT_KOKORO_VOICE
+    }
+    return next
   } catch { return DEFAULT_SETTINGS }
 }
 
@@ -712,34 +769,85 @@ function SettingsPopover({
         </div>
       </div>
 
+      {/* Voice engine */}
+      <div>
+        <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 6 }}>Voice engine</div>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {[
+            { id: 'kokoro', label: 'Kokoro' },
+            { id: 'browser', label: 'System' },
+          ].map((engine) => (
+            <button
+              key={engine.id}
+              onClick={() => onChange({ ...settings, ttsEngine: engine.id as JarvisSettings['ttsEngine'] })}
+              style={{
+                flex: 1,
+                padding: '4px 0',
+                fontSize: 11,
+                borderRadius: 4,
+                cursor: 'pointer',
+                background: (settings.ttsEngine ?? 'kokoro') === engine.id ? 'var(--accent-glow)' : 'transparent',
+                border: `1px solid ${(settings.ttsEngine ?? 'kokoro') === engine.id ? 'var(--accent)' : 'var(--border)'}`,
+                color: (settings.ttsEngine ?? 'kokoro') === engine.id ? 'var(--accent)' : 'var(--text-muted)',
+              }}
+            >
+              {engine.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Voice */}
       <div>
         <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 6 }}>Voice</div>
-        <select
-          value={settings.selectedVoice}
-          onChange={(e) => onChange({ ...settings, selectedVoice: e.target.value })}
-          style={{
-            width: '100%',
-            background: 'var(--bg-2)',
-            border: '1px solid var(--border)',
-            borderRadius: 4,
-            padding: '4px 8px',
-            fontSize: 12,
-            color: 'var(--text)',
-            outline: 'none',
-          }}
-        >
-          <option value="">Auto (best available)</option>
-          {voices
-            .filter((v) => !FEMALE_VOICE_NAMES.some((n) => v.name.toLowerCase().includes(n)))
-            .map((v) => (
-              <option key={v.name} value={v.name}>{v.name} ({v.lang})</option>
+        {(settings.ttsEngine ?? 'kokoro') === 'kokoro' ? (
+          <select
+            value={settings.kokoroVoice ?? DEFAULT_KOKORO_VOICE}
+            onChange={(e) => onChange({ ...settings, kokoroVoice: e.target.value as JarvisSettings['kokoroVoice'] })}
+            style={{
+              width: '100%',
+              background: 'var(--bg-2)',
+              border: '1px solid var(--border)',
+              borderRadius: 4,
+              padding: '4px 8px',
+              fontSize: 12,
+              color: 'var(--text)',
+              outline: 'none',
+            }}
+          >
+            {KOKORO_MALE_VOICES.map((voice) => (
+              <option key={voice.id} value={voice.id}>{voice.label} ({voice.accent} male)</option>
             ))}
-        </select>
-        {!voices.some((v) => v.name.includes('Daniel')) && (
-          <div style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 6, lineHeight: 1.5 }}>
-            For the best JARVIS voice on Mac: System Settings → Accessibility → Spoken Content → System Voice → Manage Voices → English → Daniel
-          </div>
+          </select>
+        ) : (
+          <>
+            <select
+              value={settings.selectedVoice}
+              onChange={(e) => onChange({ ...settings, selectedVoice: e.target.value })}
+              style={{
+                width: '100%',
+                background: 'var(--bg-2)',
+                border: '1px solid var(--border)',
+                borderRadius: 4,
+                padding: '4px 8px',
+                fontSize: 12,
+                color: 'var(--text)',
+                outline: 'none',
+              }}
+            >
+              <option value="">Auto (best available)</option>
+              {voices
+                .filter((v) => !FEMALE_VOICE_NAMES.some((n) => v.name.toLowerCase().includes(n)))
+                .map((v) => (
+                  <option key={v.name} value={v.name}>{v.name} ({v.lang})</option>
+                ))}
+            </select>
+            {!voices.some((v) => v.name.includes('Daniel')) && (
+              <div style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 6, lineHeight: 1.5 }}>
+                {'For the best JARVIS voice on Mac: System Settings > Accessibility > Spoken Content > System Voice > Manage Voices > English > Daniel'}
+              </div>
+            )}
+          </>
         )}
       </div>
 

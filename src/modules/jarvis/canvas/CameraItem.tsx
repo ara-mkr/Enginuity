@@ -145,6 +145,7 @@ export function CameraItem({
             height: '100%',
             objectFit: 'cover',
             display: 'block',
+            transform: 'scaleX(-1)',
           }}
         />
 

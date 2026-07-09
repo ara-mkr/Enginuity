@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { velxioProxyPlugin } from './scripts/velxioProxyPlugin'
 
 // When building for Electron, assets must use relative paths (file:// protocol)
 const isElectronBuild = process.env.ELECTRON_BUILD === 'true'
@@ -10,7 +11,7 @@ const isElectronBuild = process.env.ELECTRON_BUILD === 'true'
 const devPort = process.env.PORT ? Number(process.env.PORT) : undefined
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), velxioProxyPlugin()],
   base: isElectronBuild ? './' : '/',
   server: devPort ? { port: devPort, strictPort: true } : undefined,
   build: {

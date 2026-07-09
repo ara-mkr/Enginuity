@@ -1,193 +1,181 @@
+<!-- IMAGE: hero banner — wide (2400×800) image, Ohma the owl on the left, big "ENGINGUITY" wordmark centered, faint circuit-board motif behind. Near-black background, steel-blue (#94a5ba) accents, no gradients/glow. -->
+
 # ENGINGUITY
 
-An AI-powered engineering workspace — one app for CAD, circuits, firmware, BOM, and documentation, with a local-first infinite-canvas assistant at its core.
+<!-- IMAGE: badge row — a tight row of shields.io badges (CI status, License MIT, Electron, Node ≥20, a custom steel-blue "Made with Ohma 🦉"). -->
 
-<!--
-  Replace this with a real capture before publishing:
-  ![ENGINGUITY demo](docs/hero.gif)
--->
-`[ hero GIF placeholder — record a 15–30s walkthrough of Jarvis + one other module, save as docs/hero.gif ]`
+[![License: MIT](https://img.shields.io/badge/license-MIT-94a5ba.svg)](LICENSE)
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+**An AI-powered engineering workspace for engineers and makers.** Web app + Electron desktop. Circuit simulation, CAD viewing, firmware diffing, BOM intelligence, collaboration, and voice — one workspace, one keyboard away.
+
+> ⚠️ **Work in progress.** ENGINGUITY is under active solo development by a
+> single builder. The core loops work; some corners are half-wired; some
+> features are behind a flag or not yet reachable from the UI. The
+> **Known Limitations** section below is honest about what isn't done yet.
+> If you clone this and something breaks, it's not you — it's this note
+> being accurate. PRs and issues welcome.
+
+<!-- IMAGE: hero screenshot — a real screenshot of the app running, three-pane layout, center panel showing the Simulation tab with a simple demo circuit (resistor divider or RC low-pass). Dark Polaris chrome. -->
 
 ---
 
-## What is this?
+## What ENGINGUITY does
 
-ENGINGUITY is a workspace for engineers that bundles the tools you'd otherwise juggle across a dozen tabs — CAD viewing, circuit simulation, PCB review, BOM sourcing, firmware diffing, documentation — into a single app, with AI woven into each one. It runs in the browser or as a desktop app (Electron), and works with either cloud models (via OpenRouter) or fully local models (via Ollama), so you can keep proprietary designs off the network entirely.
+- **Circuit simulation.** Draw a circuit in the visual Simulation tab, or describe one in plain English and let the Simulation Assistant draft the SPICE netlist — either way, a deterministic in-house MNA solver runs the math (DC operating point, DC sweep, transient, AC; diodes, BJTs, MOSFETs, op-amps, the 555). **AI never touches the numbers.**
+- **Jarvis voice.** A voice-controlled infinite canvas. Neural speech via Kokoro-82M running fully in-browser (ONNX/WASM — no cloud TTS, no audio leaves your machine), with automatic fallback to the browser's Web Speech API.
+- **Collaboration.** Real-time multi-user sessions over a hardened WebSocket server: per-room tokens with timing-safe comparison, prototype-pollution guards, message size caps, per-connection rate limits.
+- **Local or cloud AI.** Bring your own OpenRouter key (entered in-app, kept in sessionStorage — never in the bundle or on disk), or run everything locally through Ollama. A "both" mode prefers local and falls back to cloud.
+- **The rest of the bench.** CAD viewer (STL/OBJ/3MF via Three.js), BOM intelligence, PCB review, firmware diff, datasheet library, engineering notebook, formula lab, and more — all AI-assisted, all in one shell.
+- **Polaris design system.** Near-black palette, steel-blue (`#94a5ba`) accents, Ohma the owl.
 
-At the center is **Jarvis**, a voice-controlled infinite canvas for thinking out loud, sketching ideas, and pulling other modules into the same space.
+<!-- IMAGE: feature grid — a 2×3 grid of small tiles (Simulation, Jarvis, Collaboration, Local AI, CAD/BOM, Desktop), each with a line-style steel-blue icon and a one-line label. -->
 
-## Quick start
+---
+
+## Architecture at a glance
+
+<!-- IMAGE: architecture diagram — boxes and arrows: React 19 + Vite → Zustand store (persisted, big blobs offloaded to IndexedDB) → MNA solver (Web Worker) + AI providers (OpenRouter / Ollama) → Kokoro voice → WebSocket collab server; Three.js off to the side; Electron as the outer box. Steel-blue nodes, plain arrows. -->
+
+- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS
+- **State:** Zustand with `persist` middleware; large payloads offloaded to IndexedDB via `idb`
+- **3D:** Three.js
+- **AI:** OpenRouter (cloud) and/or Ollama (local), switchable in-app; native Ollama token metrics on the dashboard
+- **Voice:** Kokoro-82M (`onnx-community/Kokoro-82M-v1.0-ONNX`, quantized, WASM) running entirely in-browser; Web Speech API fallback
+- **Simulation:** Deterministic in-house MNA solver in a Web Worker. **The AI never performs numerical computation.** Circuit math is owned by the solver, always. (An optional Velxio simulator embed is also available as a separate iframe-hosted tool — see `docs/integrations/velxio.md`.)
+- **Collaboration:** Hardened WebSocket server (`collaboration-server.js`) — per-room tokens, timing-safe comparison, prototype-pollution guards, 64 KB message cap enforced before parse, rate limits
+- **Desktop:** Electron with `contextIsolation` on, `nodeIntegration` off, and a narrow validated IPC surface
+
+---
+
+## Getting started
+
+Requires Node 20+.
 
 ```bash
-git clone https://github.com/<your-org>/enginguity.git
+git clone https://github.com/<owner>/enginguity.git
 cd enginguity
 npm install
 npm run dev
 ```
 
-Open the printed local URL. No backend is required for the core app — AI features are inert until you connect a provider (see [AI providers](#ai-providers) below).
+<!-- IMAGE: getting-started terminal — one screenshot of the four commands above running through to the Vite dev-server URL, dark terminal theme. -->
 
-### Circuit Simulator (Velxio)
-
-The **Circuit Simulator** tool embeds Velxio as a separately hosted simulator service. Easiest way to run both together:
+For the Electron desktop app:
 
 ```bash
-npm run dev:all
+npm run electron:dev     # dev
+npm run electron:build   # packaged build (unsigned — see Known Limitations)
 ```
 
-This starts the Velxio Docker container and the Vite dev server together in one terminal (via `concurrently`), and stops both together on Ctrl+C. Run `npm run dev:all:down` afterward if you want to tear down the Velxio container explicitly.
-
-To run them separately instead:
+For collaboration, run the WebSocket server in a second terminal:
 
 ```bash
-docker compose -f docker-compose.velxio.yml up -d
-npm run dev
+npm run collab           # starts collaboration-server.js on :3001
 ```
 
-Vite dev defaults to `http://localhost:3080`. For production or Electron builds, set `VITE_VELXIO_URL` explicitly. Hosted `https://velxio.dev` fallback is opt-in with `VITE_VELXIO_ALLOW_HOSTED_FALLBACK=true`.
-
-Velxio still runs on its own port/origin (`:3080`) intentionally — the iframe sandbox grants `allow-same-origin` for Velxio's own WASM/storage needs, and putting it on the app's own origin would let Velxio's JS reach ENGINGUITY's localStorage/cookies. `dev:all` just removes the need to start/stop it as a separate manual step.
-
-See [docs/integrations/velxio.md](docs/integrations/velxio.md) for Docker volumes, security notes, manual verification, and the AGPLv3/commercial-license compliance checkpoint.
-
-### Running as a desktop app
+For the optional Velxio circuit-simulator embed with Docker:
 
 ```bash
-npm run electron:dev      # dev, with hot reload
-npm run electron:build    # production build for your current OS
+npm run dev:all          # Velxio container + Vite together
 ```
 
-## Features
+---
 
-Modules are organized into a sidebar you customize — install what you need from the built-in set or the Tool Marketplace, hide the rest.
+## Configuration
 
-### Core
-- **Jarvis** — voice-controlled infinite-canvas workspace; the AI-native home base for a project
-- **Dashboard** — project status, recent activity, and key metrics
-- **Version History** — snapshots and rollback across project state
-- **Project Timeline** — chronological view of milestones and events
-- **Debug Console** — internal logs, telemetry, and AI request inspection
-- **Tool Marketplace** — browse, install, and share community tools (JSON manifests, sandboxed)
+Everything is optional. **AI keys are not configured in `.env`** — enter your OpenRouter key in-app (Settings → Connect AI); it is kept in sessionStorage only, never written to disk or bundled. The Ollama host is also set in-app.
 
-### Mechanical
-- **CAD Viewer** — load and inspect 3D models (STL, STEP, and more) via Three.js
-- **Parameters** — live-tweak design parameters and watch downstream effects propagate
+Copy `.env.example` to `.env` to configure the rest:
 
-### Electrical
-- **Circuit Simulator** — Enginguity-branded Velxio host for browser-based circuit and microcontroller simulation:
-  - visual circuit canvas, boards, components, and wiring provided by Velxio
-  - Arduino, ESP32, RP2040, ATtiny85, Raspberry Pi, and related board support through Velxio
-  - Monaco editor, serial monitor, Arduino CLI compilation, library manager, and SPICE/ngspice-WASM analog simulation through Velxio
-  - configurable self-hosted URL with explicit hosted fallback
-- **PCB Reviewer** — AI critique of PCB layouts
-- **Footprint Gen** — generate IPC-7351 PCB footprints with KiCad export
-- **Datasheet** — extract structured, queryable knowledge cards from component datasheets
+```
+# Collaboration server (use wss:// behind TLS in production)
+VITE_COLLAB_WS_URL=ws://localhost:3001
 
-### Firmware
-- **Firmware Diff** — compare firmware revisions semantically across HEX, BIN, ELF, and ZIP
-
-### AI
-- **Asset Gen** — generate images and diagrams from prompts
-- **Simulation Assistant** — AI assistant for setting up engineering simulations
-- **Project Ideas** — AI-generated project concepts and feasibility starting points
-- **Model Compare** — run the same engineering prompt across multiple AI providers simultaneously, with side-by-side streaming responses, semantic diff highlighting, an AI meta-analysis panel, cost/token/latency estimates, and Markdown-exportable history
-- **Formula Lab** — interactive engineering formula calculator with units
-- **Challenges** — gamified engineering challenge mode
-
-### Documentation
-- **Notebook** — engineering lab notebook with timestamped entries
-- **Templates** — reusable project and document templates
-- **Live Docs** — live, data-bound project documentation
-- **Drawing Board** — freehand sketching and annotation canvas
-
-### Supply Chain
-- **BOM Intel** — bill-of-materials management with AI sourcing intelligence
-- **Supply Chain** — monitor BOMs for part availability, pricing, and lead-time changes
-
-### Quality
-- **Test Harness** — AI-generated tests for Python and JavaScript functions
-- **Compliance** — identify required certifications, cost, and timeline for a product
-
-### Collaboration
-- **Collaborate** — multi-user presence and shared state over WebSockets *(see [scoping note](#collaboration-a-local-prototype) below)*
-
-## AI providers
-
-ENGINGUITY talks to two kinds of model providers, switchable per-session from the model picker.
-
-### OpenRouter (cloud)
-
-Gives you access to frontier models (Claude, GPT, Gemini, and more) through a single API key. Add your key from the in-app **API Key Manager** — it's stored locally, never sent anywhere except OpenRouter.
-
-### Ollama (local)
-
-Run models entirely on your own machine — free, private, offline, no API key.
-
-1. [Install Ollama](https://ollama.com)
-2. Pull a model:
-   ```bash
-   ollama pull qwen2.5:7b
-   ```
-3. Start Ollama (`ollama serve`, or it's already running if installed as a service) — ENGINGUITY auto-detects it at `http://localhost:11434`
-4. Select **Local** in the model picker
-
-Recommended models by use case:
-
-| Use case | Model | Size | Min RAM |
-|---|---|---|---|
-| General engineering | `qwen2.5:7b` | 4.7GB | 8GB |
-| Firmware / coding | `qwen2.5-coder:7b` | 4.7GB | 8GB |
-| Reasoning-heavy analysis | `deepseek-r1:7b` | 4.7GB | 8GB |
-| Low-RAM machines | `llama3.2:3b` | 2.0GB | 4GB |
-| Best local quality (needs a GPU) | `qwen2.5:32b` | 19GB | 24GB |
-
-Rough inference speed by hardware: Apple Silicon (M1–M4) and 8GB+ NVIDIA GPUs land around 20–80 tok/s; AMD GPUs around 15–40 tok/s; CPU-only is usable but slower at 3–10 tok/s.
-
-If ENGINGUITY runs on a different port than Ollama's default, start Ollama with CORS opened up:
-
-```sh
-OLLAMA_ORIGINS="*" ollama serve       # macOS / Linux
-set OLLAMA_ORIGINS=* && ollama serve  # Windows
+# Velxio simulator embed (optional; see .env.example for all knobs)
+VITE_VELXIO_URL=http://localhost:3080
 ```
 
-When using Ollama, nothing leaves your machine — designs, BOM data, and notebook entries stay fully local.
+If no AI provider is connected, AI features are inert and prompt you to connect one — the solver, visual editor, and every non-AI tool keep working. With Ollama selected and the server down, "both" mode falls back to OpenRouter; with neither reachable you get an explicit error, not a hang.
 
-## Collaboration
+<!-- IMAGE: settings panel — screenshot of the UI Settings drawer (Ctrl/Cmd+,), Appearance and Behavior tabs, plus the AI provider toggle (OpenRouter / Ollama / Both). -->
 
-The **Collaborate** module is a lightweight real-time layer. `collaboration-server.js` (run with `npm run collab`) is a WebSocket server that broadcasts cursor position, shared parameter state, and pinned comments between clients in the same room, identified by a `?room=XXXX-XXXX#ctk=...` URL — the token after `#ctk=` is a per-room shared secret generated on the client and required by the server to join or rejoin that room, so a room can't be joined by guessing its (short, shareable) id alone. A standalone demo without a build step is available at `collab-standalone.html` after `npm run dev`.
+---
 
-The server also caps message size (64KB), room state size (2MB), users per room (50), and messages per second per connection, and rejects malformed or prototype-polluting payloads. The room token travels only in the URL *fragment* (`#ctk=...`), which browsers never send in HTTP requests — so it can't end up in a proxy's or server's access logs, and it is stripped from Referer headers. It is also cached per-tab in sessionStorage so a refresh rejoins without re-entering it. Still treat an invite link like a password: anyone who has the full link can join, and it remains visible in your browser history.
+## Known Limitations
 
-By default the server listens on plain `ws://localhost:3001`, which is fine for local/LAN use. For a public deployment, put it behind a reverse proxy that terminates TLS and exposes it as `wss://`, then point the client at it with an environment variable at build time:
+**This section is deliberately honest.** ENGINGUITY is pre-1.0 and built by
+one person. It is generated from the pre-launch audit (`AUDIT_REPORT.md`)
+and will shrink as things get fixed.
 
-```sh
-VITE_COLLAB_WS_URL=wss://collab.example.com npm run build   # full URL override
-# or, if you're only changing the port on the same host as the page:
-VITE_COLLAB_WS_PORT=8443 npm run build
-```
+- **Test Harness — Python path.** The JavaScript test runner is sandboxed and safe. The Python runner expects Pyodide to already be loaded, which the harness doesn't do on its own yet, so Python tests fail unless the Debug Console (which loads Pyodide) has been opened first. Fix in flight.
+- **Type-safety debt.** The tree compiles in CI, but ~170 `@ts-ignore`/`any` escapes remain at the TypeScript/JSX seams. Being burned down module by module.
+- **No Content-Security-Policy yet.** The renderer has no CSP header. It's a defense-in-depth hardening item, not a live exploit, and it's on the pre-1.0 list.
+- **Unsigned desktop builds.** The packaged `.dmg`/`.exe` are unsigned; macOS Gatekeeper and Windows SmartScreen will warn. Build from source, or click through knowingly. No auto-updater yet.
+- **Fonts need a network on first load.** UI fonts (DM Sans / JetBrains Mono) load from Google Fonts; fully-offline sessions fall back to system fonts. Self-hosting is planned.
+- **Collaboration trust model.** The first client to join a room establishes its token. Use long, unguessable room IDs (the app generates them) and run the server behind TLS (`wss://`) in production. A `server/README.md` documenting this isn't written yet.
+- **Jarvis + Drawing Board.** Opening the Drawing Board from inside Jarvis can occasionally render blank on first mount (suspected store-rehydration race — still being pinned down). Refresh recovers.
+- **Open-source solver migration.** A migration to `eecircuit-engine` (ngspice-WASM, MIT) has passed its correctness spike but the adapter isn't landed; today's solver is the in-house MNA engine. Microcontroller co-simulation (avr8js Code Box) is designed but not reachable from the UI.
+- **CAD** beyond viewing (STL/OBJ/3MF/DXF) is planned, not shipped.
+- **Docs.** `server/README.md`, the contributor guide, and inline JSDoc are incomplete.
 
-With neither variable set, the client falls back to `wss://<page host>:3001` on HTTPS pages (avoiding the mixed-content block) or `ws://localhost:3001` in local dev.
+<!-- IMAGE (optional): a small Ohma illustration wearing a hard-hat holding an "under construction" sign, steel-blue, kept minimal (not cutesy). -->
 
-What it isn't: room state lives in memory only and is lost on server restart, and there's no conflict resolution beyond last-write-wins. It's suited to pairing on a local network, a trusted LAN, or a single-process deployment behind a TLS proxy — not a CRDT-backed, horizontally-scaled collaborative editor.
+---
 
-## Tech stack
+## Design system: Polaris
 
-- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS
-- **State**: Zustand, persisted to localStorage (mirrored to disk in the desktop app); large binaries (photos, big SVGs, large sketchboards) offloaded to IndexedDB via `idb`
-- **3D/CAD**: Three.js
-- **Desktop**: Electron
-- **AI**: OpenRouter (cloud) and Ollama (local), routed through a single provider abstraction
+<!-- IMAGE: Polaris tokens — one dark canvas showing the palette swatches (near-black backgrounds, steel-blue #94a5ba accent), the DM Sans + JetBrains Mono type samples, and a small three-pane layout diagram. -->
+
+- Palette: near-black backgrounds, steel-blue (`#94a5ba`) accent, no saturated colors.
+- Typography: DM Sans for UI, JetBrains Mono for code.
+- No gradients, no glow effects.
+- Three-pane layout: left sidebar navigation, center panel, right context panel.
+- Mascot: Ohma the owl.
+
+<!-- IMAGE: Ohma mascot — the owl at high resolution on a transparent background, steel-blue plumage, minimal linework, no gradients. -->
+
+---
+
+## AI integrity
+
+ENGINGUITY treats large language models as language tools, not calculators.
+Every number that matters — voltages, currents, timing, pin states — is
+computed by the deterministic MNA engine. Netlists, explanations, and
+component suggestions are the model's job. Simulation and code execution
+are not. The solver path has deliberately no fallback: simulation numbers
+only ever come from the solver.
+
+This is a load-bearing design decision. If you contribute a code path
+where the model is asked to compute a numerical answer, it will not be
+merged.
+
+---
 
 ## Contributing
 
-Issues and PRs are welcome. Please open an issue before large changes so we can align on scope.
+See [CONTRIBUTING.md](CONTRIBUTING.md). The short version:
 
-## Third-party notices
+1. Open an issue before large PRs.
+2. Keep changes Polaris-compliant.
+3. Do not introduce runtime LLM calls for deterministic computation.
+4. If you touch persisted state, make sure hydration is safe.
 
-Third-party attribution is tracked in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), including Velxio's AGPLv3/commercial-license notice.
+CI runs lint, `tsc -b`, and the build on every PR.
+
+---
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+[MIT](LICENSE). Third-party license notices are tracked in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); see `AUDIT_REPORT.md`
+for the license status of evaluated simulator engines.
+
+---
+
+## Acknowledgments
+
+- Ohma 🦉
+- The ngspice, EEcircuit, and avr8js maintainers, whose work shapes the solver roadmap
+- Everyone who has stress-tested the app and filed an issue
+
+<!-- IMAGE: footer mark — a small, subtle steel-blue Ohma silhouette, centered. -->

@@ -39,7 +39,11 @@ function useSmallViewport(maxWidth = 760) {
 }
 
 function statusCopy(status: VelxioEmbedStatus, source: VelxioSource | null) {
-  if (status === 'ready') return source?.mode === 'hosted-fallback' ? 'Hosted fallback' : 'Self-hosted'
+  if (status === 'ready') {
+    if (source?.mode === 'hosted-fallback') return 'Hosted fallback'
+    if (source?.mode === 'dev-proxy') return 'Hosted (dev proxy)'
+    return 'Self-hosted'
+  }
   if (status === 'checking') return 'Checking'
   if (status === 'disabled') return 'Not configured'
   return 'Unavailable'
@@ -124,10 +128,13 @@ export default function CircuitSim() {
       if (cancelled) return
       setSelectedSource(config.sources[0])
       setStatus('unavailable')
+      const hasDevProxy = config.sources.some((source) => source.mode === 'dev-proxy')
       setMessage([
         failures[0] ?? 'Could not reach the configured Velxio service.',
         isLoopbackVelxioUrl(config.sources[0].url)
-          ? 'Start the local Velxio Docker service with docker compose -f docker-compose.velxio.yml up -d.'
+          ? hasDevProxy
+            ? 'Start the local Velxio Docker service with docker compose -f docker-compose.velxio.yml up -d, or restart the dev server (npm run dev) so its built-in hosted Velxio proxy can serve the simulator.'
+            : 'Start the local Velxio Docker service with docker compose -f docker-compose.velxio.yml up -d.'
           : 'Check the Velxio URL, TLS setup, and iframe/CSP policy for this deployment.',
       ].join(' '))
       logEvent('VELXIO_HEALTH_CHECKED', {

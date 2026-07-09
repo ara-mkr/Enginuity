@@ -13,18 +13,10 @@ import OPENROUTER_MODELS, {
   OR_DEFAULT_MODEL,
 } from '../config/openrouterModels'
 import { OLLAMA_MODEL_STORAGE, OLLAMA_PROVIDER_STORAGE } from '../config/ollama'
-import {
-  type CustomProviderConfig,
-  loadCustomProviders,
-  persistCustomProviders,
-  loadActiveCustomProviderId,
-  persistActiveCustomProviderId,
-  clearCustomProviderKey,
-} from '../config/customProviders'
 import { logEvent } from '../engine/eventLog'
 import { readStoredKey, writeStoredKey, clearStoredKey } from '../utils/keyStorage'
 
-export type ProviderId = 'openrouter' | 'ollama' | 'both' | 'custom'
+export type ProviderId = 'openrouter' | 'ollama' | 'both'
 
 export interface ORModel {
   id: string
@@ -70,14 +62,6 @@ interface OpenRouterContextValue {
   setActiveProvider: (p: ProviderId) => void
   ollamaModelId: string | null
   setOllamaModelId: (id: string) => void
-  // Custom OpenAI-compatible endpoints ('custom' provider). A list, not a
-  // single slot — the user will add Groq/self-hosted next to NVIDIA.
-  customProviders: CustomProviderConfig[]
-  activeCustomProviderId: string | null
-  addCustomProvider: (config: Omit<CustomProviderConfig, 'id' | 'createdAt'>) => string
-  updateCustomProvider: (id: string, patch: Partial<Omit<CustomProviderConfig, 'id'>>) => void
-  removeCustomProvider: (id: string) => void
-  setActiveCustomProviderId: (id: string | null) => void
 }
 
 const OpenRouterContext = createContext<OpenRouterContextValue | null>(null)
@@ -99,15 +83,12 @@ export function OpenRouterProvider({ children }: { children: ReactNode }) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [usageLog, setUsageLog] = useState<UsageEntry[]>(readUsageLog)
   const [activeProvider, setActiveProviderState] = useState<ProviderId>(() => {
+    // A previously stored 'custom' (retired provider) falls back to OpenRouter.
     const v = localStorage.getItem(OLLAMA_PROVIDER_STORAGE)
-    return v === 'ollama' || v === 'both' || v === 'custom' ? v : 'openrouter'
+    return v === 'ollama' || v === 'both' ? v : 'openrouter'
   })
   const [ollamaModelId, setOllamaModelIdState] = useState<string | null>(
     () => localStorage.getItem(OLLAMA_MODEL_STORAGE),
-  )
-  const [customProviders, setCustomProviders] = useState<CustomProviderConfig[]>(loadCustomProviders)
-  const [activeCustomProviderId, setActiveCustomProviderIdState] = useState<string | null>(
-    loadActiveCustomProviderId,
   )
 
   const setActiveProvider = useCallback((p: ProviderId) => {
@@ -125,57 +106,6 @@ export function OpenRouterProvider({ children }: { children: ReactNode }) {
     setOllamaModelIdState(id)
     localStorage.setItem(OLLAMA_MODEL_STORAGE, id)
     window.dispatchEvent(new CustomEvent('enginguity:ollama-model-changed', { detail: id }))
-  }, [])
-
-  const setActiveCustomProviderId = useCallback((id: string | null) => {
-    setActiveCustomProviderIdState(id)
-    persistActiveCustomProviderId(id)
-  }, [])
-
-  const addCustomProvider = useCallback(
-    (config: Omit<CustomProviderConfig, 'id' | 'createdAt'>): string => {
-      const id = crypto.randomUUID()
-      setCustomProviders((prev) => {
-        const next = [...prev, { ...config, id, createdAt: Date.now() }]
-        persistCustomProviders(next)
-        return next
-      })
-      // First saved endpoint becomes the active one so "custom" is usable
-      // immediately without a second click.
-      setActiveCustomProviderIdState((prevActive) => {
-        const nextActive = prevActive ?? id
-        persistActiveCustomProviderId(nextActive)
-        return nextActive
-      })
-      logEvent('PROVIDER_SWITCHED', { oldProvider: 'none', newProvider: 'custom-added', module: 'ai' })
-      return id
-    },
-    [],
-  )
-
-  const updateCustomProvider = useCallback(
-    (id: string, patch: Partial<Omit<CustomProviderConfig, 'id'>>) => {
-      setCustomProviders((prev) => {
-        const next = prev.map((p) => (p.id === id ? { ...p, ...patch, id } : p))
-        persistCustomProviders(next)
-        return next
-      })
-    },
-    [],
-  )
-
-  const removeCustomProvider = useCallback((id: string) => {
-    clearCustomProviderKey(id)
-    setCustomProviders((prev) => {
-      const next = prev.filter((p) => p.id !== id)
-      persistCustomProviders(next)
-      setActiveCustomProviderIdState((prevActive) => {
-        const nextActive = prevActive === id ? (next[0]?.id ?? null) : prevActive
-        persistActiveCustomProviderId(nextActive)
-        return nextActive
-      })
-      return next
-    })
   }, [])
 
   const saveKey = useCallback((key: string) => {
@@ -229,16 +159,11 @@ export function OpenRouterProvider({ children }: { children: ReactNode }) {
     (e) => new Date(e.timestamp).toISOString().slice(0, 10) === today
   ).length
 
-  const activeCustom = customProviders.find((p) => p.id === activeCustomProviderId) ?? null
-
   return (
     <OpenRouterContext.Provider
       value={{
         apiKey,
-        isConnected:
-          activeProvider === 'custom'
-            ? !!activeCustom?.apiKey
-            : !!apiKey || activeProvider === 'ollama',
+        isConnected: !!apiKey || ((activeProvider === 'ollama' || activeProvider === 'both') && !!ollamaModelId),
         activeModelId,
         setModelId,
         models: OPENROUTER_MODELS,
@@ -257,12 +182,6 @@ export function OpenRouterProvider({ children }: { children: ReactNode }) {
         setActiveProvider,
         ollamaModelId,
         setOllamaModelId,
-        customProviders,
-        activeCustomProviderId,
-        addCustomProvider,
-        updateCustomProvider,
-        removeCustomProvider,
-        setActiveCustomProviderId,
       }}
     >
       {children}

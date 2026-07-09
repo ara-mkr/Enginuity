@@ -9,17 +9,43 @@ import {
 } from '../velxioConfig'
 
 describe('Velxio config', () => {
-  it('defaults to local Velxio in dev without enabling hosted fallback', () => {
+  it('defaults to local Velxio in dev, with the dev proxy as the next source', () => {
     const config = resolveVelxioConfig({}, { isDev: true })
 
-    expect(config.sources).toHaveLength(1)
+    expect(config.sources).toHaveLength(2)
     expect(config.sources[0]).toMatchObject({
       mode: 'self-hosted',
       url: `${DEFAULT_VELXIO_DEV_URL}/`,
       configured: false,
     })
+    expect(config.sources[1]).toMatchObject({
+      mode: 'dev-proxy',
+      url: 'http://127.0.0.1:3081/editor',
+      configured: false,
+    })
     expect(config.hostedFallbackAllowed).toBe(false)
     expect(config.disabledReason).toBeNull()
+  })
+
+  it('lets VITE_VELXIO_DEV_PROXY=false remove the dev proxy source', () => {
+    const config = resolveVelxioConfig({ VITE_VELXIO_DEV_PROXY: 'false' }, { isDev: true })
+
+    expect(config.sources.map((source) => source.mode)).toEqual(['self-hosted'])
+  })
+
+  it('honors VITE_VELXIO_DEV_PROXY_PORT and warns on an invalid one', () => {
+    const custom = resolveVelxioConfig({ VITE_VELXIO_DEV_PROXY_PORT: '4444' }, { isDev: true })
+    expect(custom.sources[1].url).toBe('http://127.0.0.1:4444/editor')
+
+    const invalid = resolveVelxioConfig({ VITE_VELXIO_DEV_PROXY_PORT: 'nope' }, { isDev: true })
+    expect(invalid.sources[1].url).toBe('http://127.0.0.1:3081/editor')
+    expect(invalid.warnings.some((warning) => warning.includes('VITE_VELXIO_DEV_PROXY_PORT'))).toBe(true)
+  })
+
+  it('never adds the dev proxy source outside dev', () => {
+    const config = resolveVelxioConfig({ VITE_VELXIO_URL: 'https://velxio.example.com' }, { isDev: false })
+
+    expect(config.sources.map((source) => source.mode)).toEqual(['self-hosted'])
   })
 
   it('requires an explicit URL or hosted fallback in production', () => {

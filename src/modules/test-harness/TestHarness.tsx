@@ -57,6 +57,46 @@ function deepEqual(a: unknown, b: unknown): boolean {
   return false
 }
 
+// Runs generated test code inside a sandboxed iframe. `allow-scripts` WITHOUT
+// `allow-same-origin` gives the frame an opaque origin, so it gets its own
+// empty storage partition and cannot read this app's sessionStorage/IndexedDB
+// (where the API key lives). The user's code and inputs arrive over postMessage
+// — never interpolated into this HTML — and only JSON-safe results come back.
+const JS_SANDBOX_HTML = `<!doctype html><meta charset="utf-8"><script>
+function deepEqual(a,b){
+  if(a===b)return true;
+  if(typeof a!==typeof b)return false;
+  if(typeof a==='number'&&typeof b==='number')return Math.abs(a-b)<1e-9;
+  if(Array.isArray(a)&&Array.isArray(b))return a.length===b.length&&a.every(function(v,i){return deepEqual(v,b[i]);});
+  if(a&&b&&typeof a==='object'&&typeof b==='object'){
+    var ak=Object.keys(a).sort(),bk=Object.keys(b).sort();
+    return JSON.stringify(ak)===JSON.stringify(bk)&&ak.every(function(k){return deepEqual(a[k],b[k]);});
+  }
+  return false;
+}
+function safe(v){try{return JSON.parse(JSON.stringify(v));}catch(e){return String(v);}}
+addEventListener('message',function(e){
+  var d=e.data||{},cases=d.cases||[],out=[];
+  for(var i=0;i<cases.length;i++){
+    var tc=cases[i],start=performance.now();
+    try{
+      (0,eval)(d.code);
+      var fn=(0,eval)('('+d.funcName+')');
+      if(tc.expected_behavior==='throw_error'){
+        try{fn.apply(null,tc.args);out.push({id:tc.id,passed:false,actual:'No error thrown',expected:'Should throw',runtime:performance.now()-start});}
+        catch(err){out.push({id:tc.id,passed:true,actual:'threw error',runtime:performance.now()-start});}
+      }else{
+        var actual=fn.apply(null,tc.args);
+        out.push({id:tc.id,passed:deepEqual(actual,tc.expected_output),actual:safe(actual),expected:tc.expected_output,runtime:performance.now()-start});
+      }
+    }catch(err){
+      out.push({id:tc.id,passed:false,error:(err&&err.message)||String(err),runtime:performance.now()-start});
+    }
+  }
+  parent.postMessage({__testHarness:true,results:out},'*');
+});
+<\/script>`
+
 function priorityOrder(p: Priority): number {
   return { critical: 0, high: 1, medium: 2, low: 3 }[p]
 }
@@ -425,43 +465,46 @@ Return a JSON array where each item is:
     return new Promise((resolve) => {
       const iframe = document.createElement('iframe')
       iframe.style.display = 'none'
-      document.body.appendChild(iframe)
+      // Opaque-origin sandbox: the generated code cannot reach this app's
+      // storage or DOM. It talks back only over postMessage (see JS_SANDBOX_HTML).
+      iframe.setAttribute('sandbox', 'allow-scripts')
+      iframe.srcdoc = JS_SANDBOX_HTML
 
-      const results: TestResult[] = []
-      let idx = 0
+      const cases = toRun.map((tc) => ({
+        id: tc.id,
+        args: Object.values(tc.inputs),
+        expected_behavior: tc.expected_behavior,
+        expected_output: tc.expected_output,
+      }))
 
-      const runNext = () => {
-        if (idx >= toRun.length) {
-          document.body.removeChild(iframe)
-          resolve(results)
-          return
-        }
-        const tc = toRun[idx++]
-        const start = performance.now()
-        try {
-          const win = iframe.contentWindow as Window & { eval: (code: string) => unknown }
-          // Inject function
-          win.eval(code)
-          const funcName = sig?.functionName ?? ''
-          const args = Object.values(tc.inputs).map(v => JSON.stringify(v)).join(', ')
-          if (tc.expected_behavior === 'throw_error') {
-            try {
-              win.eval(`(${funcName})(${args})`)
-              results.push({ id: tc.id, passed: false, actual: 'No error thrown', expected: 'Should throw', runtime: performance.now() - start })
-            } catch {
-              results.push({ id: tc.id, passed: true, actual: 'threw error', runtime: performance.now() - start })
-            }
-          } else {
-            const actual = win.eval(`(${funcName})(${args})`)
-            const passed = deepEqual(actual, tc.expected_output)
-            results.push({ id: tc.id, passed, actual, expected: tc.expected_output, runtime: performance.now() - start })
-          }
-        } catch (e: unknown) {
-          results.push({ id: tc.id, passed: false, error: e instanceof Error ? e.message : String(e), runtime: performance.now() - start })
-        }
-        runNext()
+      let settled = false
+      const onMessage = (e: MessageEvent) => {
+        if (e.source !== iframe.contentWindow) return
+        const d = e.data as { __testHarness?: boolean; results?: TestResult[] }
+        if (!d || d.__testHarness !== true) return
+        finish(d.results ?? [])
       }
-      runNext()
+      const finish = (results: TestResult[]) => {
+        if (settled) return
+        settled = true
+        window.removeEventListener('message', onMessage)
+        clearTimeout(timer)
+        if (iframe.parentNode) document.body.removeChild(iframe)
+        resolve(results)
+      }
+
+      // Guard against a frame that never replies (e.g. a runaway async case).
+      // A synchronous infinite loop still blocks the thread — that limit is
+      // inherent to running untrusted code in-page and is unchanged here.
+      const timer = setTimeout(() => {
+        finish(toRun.map((tc) => ({ id: tc.id, passed: false, error: 'Test run timed out.', runtime: 0 })))
+      }, 10000)
+
+      window.addEventListener('message', onMessage)
+      iframe.onload = () => {
+        iframe.contentWindow?.postMessage({ code, funcName: sig?.functionName ?? '', cases }, '*')
+      }
+      document.body.appendChild(iframe)
     })
   }, [code, sig])
 

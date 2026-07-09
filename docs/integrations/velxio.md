@@ -34,6 +34,17 @@ Open Enginguity and choose Tools / Circuit Simulator. In Vite dev, Enginguity de
 
 Velxio intentionally keeps its own origin/port rather than being reverse-proxied onto Enginguity's — see Security Notes below.
 
+### No Docker? The dev proxy fallback
+
+If nothing answers on port 3080 (for example, Docker is not installed), plain `npm run dev` still gives you a working simulator: the Vite plugin `scripts/velxioProxyPlugin.ts` starts a loopback-only reverse proxy at `http://127.0.0.1:3081` that forwards to the hosted `https://velxio.dev` and strips its `X-Frame-Options`/`frame-ancestors` headers so the iframe embed works. The Circuit Simulator tries the Docker service first and falls back to the proxy; the status badge reads `Hosted (dev proxy)` when the fallback is active.
+
+Notes on the dev proxy:
+
+- Dev-only. It never runs in production builds, `vite preview`, or Electron builds — those still require `VITE_VELXIO_URL` (or the opt-in hosted fallback).
+- Simulation traffic goes to the public velxio.dev instance while it is active.
+- Disable it with `VITE_VELXIO_DEV_PROXY=false`, or move it with `VITE_VELXIO_DEV_PROXY_PORT`.
+- A running Docker Velxio always wins the source order, and the proxy leaves its port alone if something else already holds it.
+
 To run Velxio without compose:
 
 ```bash

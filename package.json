@@ -21,13 +21,15 @@
     "electron:build": "tsc -b && cross-env ELECTRON_BUILD=true vite build && electron-builder",
     "electron:build:mac": "tsc -b && cross-env ELECTRON_BUILD=true vite build && electron-builder --mac",
     "electron:build:win": "tsc -b && cross-env ELECTRON_BUILD=true vite build && electron-builder --win",
-    "electron:build:linux": "tsc -b && cross-env ELECTRON_BUILD=true vite build && electron-builder --linux"
+    "electron:build:linux": "tsc -b && cross-env ELECTRON_BUILD=true vite build && electron-builder --linux",
+    "electron:build:all": "tsc -b && cross-env ELECTRON_BUILD=true vite build && electron-builder --mac --win"
   },
   "dependencies": {
     "@types/three": "^0.184.1",
     "dxf-parser": "^1.1.2",
     "idb": "^8.0.3",
     "jszip": "^3.10.1",
+    "kokoro-js": "^1.2.1",
     "lucide-react": "^1.17.0",
     "papaparse": "^5.5.3",
     "pdfjs-dist": "^5.6.205",

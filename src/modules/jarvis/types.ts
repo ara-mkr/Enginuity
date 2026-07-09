@@ -1,3 +1,5 @@
+import type { KokoroVoiceId } from './voice/kokoroTts'
+
 export type WakeState = 'sleeping' | 'listening' | 'processing'
 
 export type ItemType =
@@ -79,6 +81,8 @@ export interface JarvisSettings {
   canvasBackground: 'dark' | 'darker' | 'pure'
   selectedVoice: string
   dailyLimit: number
+  ttsEngine?: 'kokoro' | 'browser'
+  kokoroVoice?: KokoroVoiceId
   deliveryStyle?: 'deadpan' | 'measured' | 'crisp'
   pauseIntensity?: 'minimal' | 'natural' | 'dramatic'
 }
@@ -91,6 +95,8 @@ export const DEFAULT_SETTINGS: JarvisSettings = {
   canvasBackground: 'dark',
   selectedVoice: '',
   dailyLimit: 2.00,
+  ttsEngine: 'kokoro',
+  kokoroVoice: 'am_puck',
   deliveryStyle: 'measured',
   pauseIntensity: 'natural',
 }

@@ -1,4 +1,4 @@
-export type VelxioMode = 'self-hosted' | 'hosted-fallback'
+export type VelxioMode = 'self-hosted' | 'dev-proxy' | 'hosted-fallback'
 
 export interface VelxioSource {
   mode: VelxioMode
@@ -29,6 +29,11 @@ type EnvLike = Record<string, string | boolean | undefined>
 
 export const DEFAULT_VELXIO_DEV_URL = 'http://localhost:3080'
 export const DEFAULT_VELXIO_HOSTED_URL = 'https://velxio.dev'
+// Dev-only reverse proxy started by scripts/velxioProxyPlugin.ts; it serves
+// the hosted Velxio with frame-blocking headers stripped. /editor lands
+// straight in the simulator instead of the marketing page.
+export const DEFAULT_VELXIO_DEV_PROXY_PORT = 3081
+export const VELXIO_DEV_PROXY_APP_PATH = '/editor'
 export const DEFAULT_VELXIO_HEALTHCHECK_PATH = '/'
 export const DEFAULT_VELXIO_IFRAME_SANDBOX =
   'allow-scripts allow-same-origin allow-forms allow-downloads allow-popups allow-modals allow-pointer-lock'
@@ -144,6 +149,31 @@ export function resolveVelxioConfig(env: EnvLike, options: { isDev?: boolean } =
       warnings,
     )
     if (source) sources.push(source)
+  }
+
+  // In dev, the Vite server runs a loopback proxy that makes the hosted
+  // Velxio embeddable (scripts/velxioProxyPlugin.ts), so the simulator works
+  // without Docker. Tried after the self-hosted service so a running
+  // container always wins. Opt out with VITE_VELXIO_DEV_PROXY=false.
+  if (isDev && parseBooleanFlag(env.VITE_VELXIO_DEV_PROXY, true)) {
+    const rawPort = asString(env.VITE_VELXIO_DEV_PROXY_PORT)
+    const parsedPort = rawPort ? Number.parseInt(rawPort, 10) : DEFAULT_VELXIO_DEV_PROXY_PORT
+    const validPort = Number.isInteger(parsedPort) && parsedPort > 0 && parsedPort <= 65535
+    if (rawPort && !validPort) {
+      warnings.push(`Invalid VITE_VELXIO_DEV_PROXY_PORT "${rawPort}"; using ${DEFAULT_VELXIO_DEV_PROXY_PORT}.`)
+    }
+    const proxyPort = validPort ? parsedPort : DEFAULT_VELXIO_DEV_PROXY_PORT
+    const proxySource = createSource(
+      `http://127.0.0.1:${proxyPort}${VELXIO_DEV_PROXY_APP_PATH}`,
+      'dev-proxy',
+      'Hosted Velxio via local dev proxy',
+      safeHealthcheckPath,
+      false,
+      warnings,
+    )
+    if (proxySource && !sources.some((source) => source.url === proxySource.url)) {
+      sources.push(proxySource)
+    }
   }
 
   if (hostedFallbackAllowed) {

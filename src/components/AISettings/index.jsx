@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react'
 import {
   X, Cloud, Cpu, Check, AlertTriangle, Trash2, ExternalLink,
-  Download, RefreshCw, Copy, Loader2, Zap, Sparkles, Server,
+  Download, RefreshCw, Copy, Loader2, Zap, Sparkles,
 } from 'lucide-react'
 import { useOpenRouter } from '../../context/OpenRouterContext'
-import { CustomProviderPanel } from '../CustomProviderPanel'
 import { useOllamaStatus } from '../../hooks/useOllamaStatus'
 import { useDeviceSpecs, modelFitsInRAM } from '../../hooks/useDeviceSpecs'
 import OPENROUTER_MODELS from '../../config/openrouterModels'
@@ -22,24 +21,17 @@ export function AISettings({ onClose }) {
     activeModelId, setModelId,
     ollamaModelId, setOllamaModelId,
     apiKey, openSetup,
-    customProviders, activeCustomProviderId,
   } = useOpenRouter()
 
-  const [tab, setTab] = useState(
-    activeProvider === 'ollama' ? 'ollama' : activeProvider === 'custom' ? 'custom' : 'openrouter',
-  )
+  const [tab, setTab] = useState(activeProvider === 'ollama' ? 'ollama' : 'openrouter')
 
   const handleClose = () => onClose?.()
 
-  const activeCustom = customProviders.find((p) => p.id === activeCustomProviderId) ?? null
-
-  const activeLabel = activeProvider === 'ollama'
-    ? `Ollama · ${ollamaModelId ?? '—'}`
-    : activeProvider === 'both'
-      ? `Hybrid · ${ollamaModelId ?? '—'} → ${activeModelId ?? '—'}`
-      : activeProvider === 'custom'
-        ? `${activeCustom?.label ?? 'Custom'} · ${activeCustom?.model ?? '—'}`
-        : `OpenRouter · ${activeModelId ?? '—'}`
+  const activeLabel = activeProvider === 'both'
+    ? `Hybrid · ${ollamaModelId ?? '—'} → ${activeModelId ?? '—'}`
+    : activeProvider === 'ollama'
+      ? `Ollama · ${ollamaModelId ?? '—'}`
+      : `OpenRouter · ${activeModelId ?? '—'}`
 
   return (
     <div
@@ -118,14 +110,6 @@ export function AISettings({ onClose }) {
             sublabel="Free · runs locally"
             onClick={() => setTab('ollama')}
           />
-          <ProviderCard
-            active={tab === 'custom'}
-            selected={activeProvider === 'custom'}
-            icon={<Server size={16} />}
-            label="Other"
-            sublabel="Your own endpoint"
-            onClick={() => setTab('custom')}
-          />
         </div>
 
         {/* Hybrid mode: prefer Ollama, fall back to OpenRouter */}
@@ -144,7 +128,7 @@ export function AISettings({ onClose }) {
                   setActiveProvider('both')
                 } else {
                   // Fall back to whichever single provider the open tab shows.
-                  setActiveProvider(tab === 'ollama' ? 'ollama' : tab === 'custom' ? 'custom' : 'openrouter')
+                  setActiveProvider(tab === 'ollama' ? 'ollama' : 'openrouter')
                 }
               }}
               style={{ accentColor: 'var(--accent)' }}
@@ -175,8 +159,6 @@ export function AISettings({ onClose }) {
               onSelect={(id) => { setModelId(id); setActiveProvider('openrouter') }}
               onConnectKey={openSetup}
             />
-          ) : tab === 'custom' ? (
-            <CustomProviderPanel />
           ) : (
             <OllamaPanel
               ollamaModelId={ollamaModelId}
@@ -199,14 +181,7 @@ export function AISettings({ onClose }) {
             <span style={{
               fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--text-muted)',
             }}>
-              ACTIVE: {activeProvider === 'ollama' ? 'Ollama · '
-                : activeProvider === 'custom' ? `${activeCustom?.label ?? 'Custom'} · `
-                : 'OpenRouter · '}
-              <span style={{ color: '#e2e4f0' }}>
-                {activeProvider === 'ollama' ? (ollamaModelId ?? '—')
-                  : activeProvider === 'custom' ? (activeCustom?.model ?? '—')
-                  : (activeModelId ?? '—')}
-              </span>
+              ACTIVE: <span style={{ color: '#e2e4f0' }}>{activeLabel}</span>
             </span>
           </div>
           <span style={{

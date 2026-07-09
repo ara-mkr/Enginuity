@@ -1,10 +1,10 @@
 appId: com.enginguity.app
-productName: Enginguity
+productName: ENGINGUITY
 copyright: "Copyright © 2024 Enginguity"
 
 # Entry point
 directories:
-  output: dist-electron
+  output: release
   buildResources: build
 
 files:
@@ -12,46 +12,46 @@ files:
   - electron/**/*.cjs
   - "!**/*.map"
 
-# App icon (placed in build/ directory)
-icon: build/icon.png
+# App icon (build/icon.icns / .ico / .png generated from the 2000px Ohma source)
+icon: build/icon
 
 mac:
+  icon: build/icon.icns
   category: public.app-category.developer-tools
   hardenedRuntime: false
   gatekeeperAssess: false
   target:
     - target: dmg
       arch: [x64, arm64]
-    - target: zip
-      arch: [x64, arm64]
-  dmg:
-    title: "Enginguity ${version}"
-    icon: build/icon.png
-    background: null
-    window:
-      width: 540
-      height: 380
-    contents:
-      - x: 130
-        y: 220
-      - x: 410
-        y: 220
-        type: link
-        path: /Applications
+
+dmg:
+  title: "ENGINGUITY ${version}"
+  icon: build/icon.icns
+  window:
+    width: 540
+    height: 380
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
 
 win:
-  icon: build/icon.png
+  icon: build/icon.ico
   target:
     - target: nsis
       arch: [x64]
-  nsis:
-    oneClick: false
-    perMachine: false
-    allowToChangeInstallationDirectory: true
-    createDesktopShortcut: true
-    createStartMenuShortcut: true
-    installerIcon: build/icon.png
-    uninstallerIcon: build/icon.png
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
 
 linux:
   icon: build/icon.png

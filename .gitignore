@@ -1,3 +1,6 @@
+# Local workspace state (Electron/dev writes here; never commit it)
+data/
+
 # Dependencies
 node_modules/
 .pnp

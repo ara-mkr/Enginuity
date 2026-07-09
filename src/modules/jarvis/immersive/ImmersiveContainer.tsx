@@ -5,6 +5,7 @@ import { SubtitleSystem } from './SubtitleSystem'
 import { StatusPanel } from './StatusPanel'
 import { ActivityLog } from './ActivityLog'
 import { BottomBar } from './BottomBar'
+import { getVideoElement } from '../camera/cameraEngine'
 import type { JarvisVisualState } from './useOrbState'
 import type { LogEntry, CanvasItem } from '../types'
 
@@ -56,6 +57,18 @@ export function ImmersiveContainer({
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
+
+  // The inset <video> only mounts once cameraActive flips true, which happens
+  // in the same tick the engine fires its onStream callback — so the ref is
+  // still null when that callback tries to attach the stream. Pull the live
+  // stream from the engine singleton here instead, once the element exists.
+  useEffect(() => {
+    if (!cameraActive || !cameraVideoRef?.current) return
+    const engineVideo = getVideoElement()
+    if (!engineVideo?.srcObject) return
+    cameraVideoRef.current.srcObject = engineVideo.srcObject
+    cameraVideoRef.current.play().catch(() => {})
+  }, [cameraActive, cameraVideoRef])
 
   // Mount-in animation
   useEffect(() => {
@@ -381,7 +394,8 @@ export function ImmersiveContainer({
                 height: '100%',
                 borderLeft: '1px solid rgba(0,140,210,0.3)',
                 position: 'relative',
-                background: '#fbfbfb',
+                background: '#111111',
+                overflow: 'hidden',
               }}
             >
               <div
@@ -398,7 +412,17 @@ export function ImmersiveContainer({
               >
                 CANVAS
               </div>
-              <div style={{ position: 'absolute', inset: 0 }}>{renderCanvas?.()}</div>
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  minWidth: 0,
+                  minHeight: 0,
+                }}
+              >
+                {renderCanvas?.()}
+              </div>
             </div>
           )}
         </div>
