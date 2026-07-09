@@ -9,6 +9,7 @@ import {
 } from '../../hooks/useUISettings'
 import type { UISettings, ThemeColors } from '../../hooks/useUISettings'
 import { StoragePanel } from '../StoragePanel'
+import ohmaMascot from '../../assets/ohma-mascot.png'
 
 // ── Curated accent palette ────────────────────────────────────────────────────
 
@@ -388,34 +389,8 @@ function ThemePreviewCard() {
 
 function OhmaOwl() {
   return (
-    <span title="Ohma approves 🦉" style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--color-accent)' }}>
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 20 20"
-        fill="currentColor"
-        className="ps-owl-wink"
-        style={{ display: 'block' }}
-      >
-        {/* Body */}
-        <ellipse cx="10" cy="13" rx="5.5" ry="6" />
-        {/* Head */}
-        <circle cx="10" cy="6.5" r="4.5" />
-        {/* Eye whites */}
-        <circle cx="8" cy="6" r="1.8" fill="var(--color-bg)" />
-        <circle cx="12" cy="6" r="1.8" fill="var(--color-bg)" />
-        {/* Pupils */}
-        <circle cx="8" cy="6" r="1" fill="currentColor" className="ps-owl-pupil-l" />
-        <circle cx="12" cy="6" r="1" fill="currentColor" className="ps-owl-pupil-r" />
-        {/* Beak */}
-        <path d="M9.2 8.2 L10 9.4 L10.8 8.2 Z" fill="var(--color-warning, #d4933d)" />
-        {/* Ear tufts */}
-        <path d="M6.5 3 L7 1 L8 3.5Z" />
-        <path d="M13.5 3 L13 1 L12 3.5Z" />
-        {/* Wings */}
-        <path d="M4.5 14 Q2.5 11 4.5 9" stroke="var(--color-bg)" strokeWidth="1" fill="none" />
-        <path d="M15.5 14 Q17.5 11 15.5 9" stroke="var(--color-bg)" strokeWidth="1" fill="none" />
-      </svg>
+    <span title="Ohma approves 🦉" style={{ display: 'inline-flex', alignItems: 'center' }}>
+      <img src={ohmaMascot} alt="Ohma" width={20} height={20} className="ps-owl-wink" style={{ display: 'block' }} />
     </span>
   )
 }

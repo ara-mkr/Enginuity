@@ -1,6 +1,8 @@
 // Empty-canvas easter egg, following the OhmaOwl convention from
-// <UISettingsPanel /> — same owl geometry, but dozing (lidded eyes) until the
-// first component wakes the canvas. Muted tones only, no glow.
+// <UISettingsPanel /> — the real Ohma mascot, muted until the first
+// component wakes the canvas.
+
+import ohmaMascot from '../../../assets/ohma-mascot.png'
 
 export function OhmaDormant() {
   return (
@@ -18,26 +20,7 @@ export function OhmaDormant() {
       }}
     >
       <span title="Ohma is dozing 🦉" style={{ display: 'inline-flex', opacity: 0.55 }}>
-        <svg width="44" height="44" viewBox="0 0 20 20" fill="currentColor" style={{ display: 'block' }}>
-          {/* Body */}
-          <ellipse cx="10" cy="13" rx="5.5" ry="6" />
-          {/* Head */}
-          <circle cx="10" cy="6.5" r="4.5" />
-          {/* Eye whites */}
-          <circle cx="8" cy="6" r="1.8" fill="var(--color-bg)" />
-          <circle cx="12" cy="6" r="1.8" fill="var(--color-bg)" />
-          {/* Dozing lids instead of pupils */}
-          <path d="M6.8 6.2 Q8 7 9.2 6.2" stroke="currentColor" strokeWidth="0.7" fill="none" strokeLinecap="round" />
-          <path d="M10.8 6.2 Q12 7 13.2 6.2" stroke="currentColor" strokeWidth="0.7" fill="none" strokeLinecap="round" />
-          {/* Beak */}
-          <path d="M9.2 8.2 L10 9.4 L10.8 8.2 Z" fill="var(--color-warning, #d4933d)" />
-          {/* Ear tufts */}
-          <path d="M6.5 3 L7 1 L8 3.5Z" />
-          <path d="M13.5 3 L13 1 L12 3.5Z" />
-          {/* Wings */}
-          <path d="M4.5 14 Q2.5 11 4.5 9" stroke="var(--color-bg)" strokeWidth="1" fill="none" />
-          <path d="M15.5 14 Q17.5 11 15.5 9" stroke="var(--color-bg)" strokeWidth="1" fill="none" />
-        </svg>
+        <img src={ohmaMascot} alt="Ohma" width={44} height={44} style={{ display: 'block' }} />
       </span>
       <div
         style={{
