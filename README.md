@@ -1,10 +1,12 @@
-<!-- IMAGE: hero banner — wide (2400×800) image, Ohma the owl on the left, big "ENGINGUITY" wordmark centered, faint circuit-board motif behind. Near-black background, steel-blue (#94a5ba) accents, no gradients/glow. -->
+![ENGINGUITY](docs/images/hero-banner.png)
 
 # ENGINGUITY
 
-<!-- IMAGE: badge row — a tight row of shields.io badges (CI status, License MIT, Electron, Node ≥20, a custom steel-blue "Made with Ohma 🦉"). -->
-
+[![CI](https://github.com/ara-mkr/Enginuity/actions/workflows/ci.yml/badge.svg)](https://github.com/ara-mkr/Enginuity/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-94a5ba.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%E2%89%A520-94a5ba.svg)](package.json)
+[![Electron](https://img.shields.io/badge/electron-desktop-94a5ba.svg)](electron-builder.yml)
+[![Made with Ohma](https://img.shields.io/badge/made%20with-Ohma%20🦉-94a5ba.svg)](#)
 
 **An AI-powered engineering workspace for engineers and makers.** Web app + Electron desktop. Circuit simulation, CAD viewing, firmware diffing, BOM intelligence, collaboration, and voice — one workspace, one keyboard away.
 
@@ -15,7 +17,7 @@
 > If you clone this and something breaks, it's not you — it's this note
 > being accurate. PRs and issues welcome.
 
-<!-- IMAGE: hero screenshot — a real screenshot of the app running, three-pane layout, center panel showing the Simulation tab with a simple demo circuit (resistor divider or RC low-pass). Dark Polaris chrome. -->
+![ENGINGUITY hero screenshot](docs/images/hero-screenshot.png)
 
 ---
 
@@ -28,13 +30,13 @@
 - **The rest of the bench.** CAD viewer (STL/OBJ/3MF via Three.js), BOM intelligence, PCB review, firmware diff, datasheet library, engineering notebook, formula lab, and more — all AI-assisted, all in one shell.
 - **Polaris design system.** Near-black palette, steel-blue (`#94a5ba`) accents, Ohma the owl.
 
-<!-- IMAGE: feature grid — a 2×3 grid of small tiles (Simulation, Jarvis, Collaboration, Local AI, CAD/BOM, Desktop), each with a line-style steel-blue icon and a one-line label. -->
+![Feature overview: Simulation, Jarvis, Collaboration, Local AI, CAD/BOM, Desktop](docs/images/feature-grid.png)
 
 ---
 
 ## Architecture at a glance
 
-<!-- IMAGE: architecture diagram — boxes and arrows: React 19 + Vite → Zustand store (persisted, big blobs offloaded to IndexedDB) → MNA solver (Web Worker) + AI providers (OpenRouter / Ollama) → Kokoro voice → WebSocket collab server; Three.js off to the side; Electron as the outer box. Steel-blue nodes, plain arrows. -->
+![Architecture diagram: React 19 + Vite at the center of the Electron shell, connected to the WebSocket collab server, AI providers, Zustand store (IndexedDB + MNA solver worker), and Three.js](docs/images/architecture-diagram.png)
 
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS
 - **State:** Zustand with `persist` middleware; large payloads offloaded to IndexedDB via `idb`
@@ -52,8 +54,8 @@
 Requires Node 20+.
 
 ```bash
-git clone https://github.com/<owner>/enginguity.git
-cd enginguity
+git clone https://github.com/ara-mkr/Enginuity.git
+cd Enginuity
 npm install
 npm run dev
 ```
@@ -97,7 +99,7 @@ VITE_VELXIO_URL=http://localhost:3080
 
 If no AI provider is connected, AI features are inert and prompt you to connect one — the solver, visual editor, and every non-AI tool keep working. With Ollama selected and the server down, "both" mode falls back to OpenRouter; with neither reachable you get an explicit error, not a hang.
 
-<!-- IMAGE: settings panel — screenshot of the UI Settings drawer (Ctrl/Cmd+,), Appearance and Behavior tabs, plus the AI provider toggle (OpenRouter / Ollama / Both). -->
+![AI Settings modal: OpenRouter selected, with the "Connect your OpenRouter key" prompt and the Local (Ollama) / Hybrid mode toggle](docs/images/settings-panel-ai-providers.png)
 
 ---
 
@@ -124,6 +126,8 @@ and will shrink as things get fixed.
 
 ## Design system: Polaris
 
+![UI Settings drawer: Appearance tab with theme presets (Polaris Dark, Polaris Light, Midnight Steel, Custom)](docs/images/settings-panel-ui.png)
+
 <!-- IMAGE: Polaris tokens — one dark canvas showing the palette swatches (near-black backgrounds, steel-blue #94a5ba accent), the DM Sans + JetBrains Mono type samples, and a small three-pane layout diagram. -->
 
 - Palette: near-black backgrounds, steel-blue (`#94a5ba`) accent, no saturated colors.
@@ -132,7 +136,7 @@ and will shrink as things get fixed.
 - Three-pane layout: left sidebar navigation, center panel, right context panel.
 - Mascot: Ohma the owl.
 
-<!-- IMAGE: Ohma mascot — the owl at high resolution on a transparent background, steel-blue plumage, minimal linework, no gradients. -->
+![Ohma the owl, ENGINGUITY's mascot](docs/images/ohma-mascot.png)
 
 ---
 
