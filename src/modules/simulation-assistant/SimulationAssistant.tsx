@@ -2,22 +2,28 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Sparkles, Play, Sliders, Download, Copy, ExternalLink,
-  ChevronRight, AlertTriangle, Info, HelpCircle, FileCode2,
-  TrendingUp, Activity, CheckCircle, RefreshCw
+  AlertTriangle, FileCode2,
+  Activity, CheckCircle, RefreshCw
 } from 'lucide-react'
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis,
-  CartesianGrid, Tooltip, Legend, ReferenceLine
+  CartesianGrid, Tooltip, Legend
 } from 'recharts'
 import { useAIProvider } from '../../hooks/useAIProvider'
 import { useChartPalette } from '../../hooks/useChartPalette'
 import { useProbeContext } from '../../hooks/useProbeContext'
 import { logEvent } from '../../engine/eventLog'
-// @ts-ignore
+// @ts-expect-error - untyped JS module, no .d.ts yet
 import { parseCircuitNetlist } from '../circuit-sim/engine/netlistParser'
 import { runNetlistAnalysis } from '../circuit-sim/engine/runSimulation'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
+
+// The KaTeX global (loaded from CDN) and the SPICE simulation result/sweep-param
+// shapes are genuinely dynamic/external here — one localized disable instead of
+// suppressing every call site individually.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SimAny = any
 
 interface Equation {
   label: string
@@ -34,7 +40,7 @@ interface ComponentAdvice {
 interface SuggestedSweep {
   name: string
   type: 'transient' | 'ac' | 'dc_sweep' | 'operating_point'
-  params: Record<string, any>
+  params: Record<string, SimAny>
 }
 
 interface AIResponse {
@@ -75,14 +81,14 @@ function Latex({ math, block = false }: { math: string; block?: boolean }) {
     const tryRender = () => {
       const container = containerRef.current
       if (!container) return
-      if ((window as any).katex) {
+      if ((window as SimAny).katex) {
         try {
-          (window as any).katex.render(math, container, {
+          (window as SimAny).katex.render(math, container, {
             throwOnError: false,
             displayMode: block,
           })
           rendered = true
-        } catch (e) {
+        } catch {
           container.textContent = math
         }
       } else {
@@ -92,9 +98,9 @@ function Latex({ math, block = false }: { math: string; block?: boolean }) {
 
     tryRender()
 
-    if (!rendered && !(window as any).katex) {
+    if (!rendered && !(window as SimAny).katex) {
       const interval = setInterval(() => {
-        if ((window as any).katex) {
+        if ((window as SimAny).katex) {
           tryRender()
           clearInterval(interval)
         }
@@ -134,7 +140,7 @@ export function SimulationAssistant() {
   const [dcStep, setDcStep] = useState('0.1')
 
   // Simulation execution state
-  const [simResult, setSimResult] = useState<any>(null)
+  const [simResult, setSimResult] = useState<SimAny>(null)
   const [simError, setSimError] = useState<string | null>(null)
   const [simulating, setSimulating] = useState(false)
 
@@ -156,7 +162,7 @@ export function SimulationAssistant() {
       link.href = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css'
       document.head.appendChild(link)
     }
-    if (!(window as any).katex && !document.getElementById('katex-js')) {
+    if (!(window as SimAny).katex && !document.getElementById('katex-js')) {
       const script = document.createElement('script')
       script.id = 'katex-js'
       script.src = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.js'
@@ -318,7 +324,7 @@ Return ONLY a valid, raw JSON object matching this schema. Do not enclose it in 
     const d = simResult.data
     return (d.time ?? []).map((t: number, i: number) => {
       const pt: Record<string, number> = { t: t * 1e3 } // convert to ms for display
-      Object.entries(d.voltages ?? {}).forEach(([k, arr]: [string, any]) => {
+      Object.entries(d.voltages ?? {}).forEach(([k, arr]: [string, SimAny]) => {
         pt[k] = arr[i] ?? 0
       })
       return pt
@@ -340,7 +346,7 @@ Return ONLY a valid, raw JSON object matching this schema. Do not enclose it in 
     const d = simResult.data
     return (d.sweepVar ?? []).map((v: number, i: number) => {
       const pt: Record<string, number> = { v }
-      Object.entries(d.outputVars ?? {}).forEach(([k, arr]: [string, any]) => {
+      Object.entries(d.outputVars ?? {}).forEach(([k, arr]: [string, SimAny]) => {
         pt[k] = arr[i] ?? 0
       })
       return pt
@@ -858,7 +864,7 @@ Return ONLY a valid, raw JSON object matching this schema. Do not enclose it in 
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {Object.entries(simResult.data?.nodeVoltages ?? {}).map(([node, val]: [string, any]) => (
+                                    {Object.entries(simResult.data?.nodeVoltages ?? {}).map(([node, val]: [string, SimAny]) => (
                                       <tr key={node} className="border-b last:border-0" style={{ borderColor: 'var(--border)' }}>
                                         <td className="py-1 text-white">{node}</td>
                                         <td className="py-1 text-right text-[#7ab4c4]">{val.toFixed(5)} V</td>
@@ -878,7 +884,7 @@ Return ONLY a valid, raw JSON object matching this schema. Do not enclose it in 
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {Object.entries(simResult.data?.branchCurrents ?? {}).map(([dev, val]: [string, any]) => (
+                                    {Object.entries(simResult.data?.branchCurrents ?? {}).map(([dev, val]: [string, SimAny]) => (
                                       <tr key={dev} className="border-b last:border-0" style={{ borderColor: 'var(--border)' }}>
                                         <td className="py-1 text-white">{dev}</td>
                                         <td className="py-1 text-right text-red-400">{(val * 1e3).toFixed(5)} mA</td>
