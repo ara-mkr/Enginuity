@@ -8,6 +8,10 @@ import { useProjectContext as useProject } from '../../hooks/useProjectContext'
 import type { NotebookEntry, EntryType } from './types'
 import { ENTRY_META, MODULE_LINKS } from './types'
 
+// Web Speech API (SpeechRecognition) isn't in standard lib.dom types.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SpeechAny = any
+
 const TYPE_ICONS: Record<EntryType, React.ReactNode> = {
   DECISION:    <GitBranch size={16} />,
   EXPERIMENT:  <FlaskConical size={16} />,
@@ -67,7 +71,7 @@ function TextWithAI({ label, value, onChange, multiline = true }: {
   const { description: projectDescription } = useProject()
   const [loading, setLoading] = useState(false)
   const [dictating, setDictating] = useState(false)
-  const recognitionRef = useRef<any>(null)
+  const recognitionRef = useRef<SpeechAny>(null)
 
   async function aiAssist() {
     setLoading(true)
@@ -79,7 +83,7 @@ function TextWithAI({ label, value, onChange, multiline = true }: {
         { maxTokens: 512 }
       )
       onChange(value ? `${value}\n\n${res.trim()}` : res.trim())
-    } catch (e) {
+    } catch {
       /* silent */
     } finally {
       setLoading(false)
@@ -96,13 +100,13 @@ function TextWithAI({ label, value, onChange, multiline = true }: {
       setDictating(false)
       return
     }
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    const SR = (window as SpeechAny).SpeechRecognition || (window as SpeechAny).webkitSpeechRecognition
     if (!SR) return
     const recognition = new SR()
     recognition.continuous = true
     recognition.interimResults = false
-    recognition.onresult = (e: any) => {
-      const transcript = Array.from(e.results).map((r: any) => r[0].transcript).join(' ')
+    recognition.onresult = (e: SpeechAny) => {
+      const transcript = Array.from(e.results).map((r: SpeechAny) => r[0].transcript).join(' ')
       onChange(value ? `${value} ${transcript}` : transcript)
     }
     recognition.onend = () => setDictating(false)
