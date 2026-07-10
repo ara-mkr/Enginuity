@@ -52,6 +52,7 @@ export function ProjectProvider({ children, projectId }: { children: ReactNode; 
   const [data, setData] = useState<ProjectData>(() => loadProjectData(projectId))
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reloading project data when the active projectId changes
     setData(loadProjectData(projectId))
   }, [projectId])
 
@@ -108,6 +109,7 @@ export function ProjectProvider({ children, projectId }: { children: ReactNode; 
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook is tightly coupled to this provider's context instance
 export function useProject() {
   const ctx = useContext(ProjectContext)
   if (!ctx) throw new Error('useProject must be used within ProjectProvider')
