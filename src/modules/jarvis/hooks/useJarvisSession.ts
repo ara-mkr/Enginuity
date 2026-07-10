@@ -56,12 +56,15 @@ export function useJarvisSession({ dailyLimit, speak }: UseJarvisSessionParams) 
   })
 
   const dailyLimitRef = useRef(dailyLimit)
-  dailyLimitRef.current = dailyLimit
+  useEffect(() => {
+    dailyLimitRef.current = dailyLimit
+  }, [dailyLimit])
 
   // Sync daily budget limit and unpause logic
   useEffect(() => {
     localStorage.setItem(DAILY_LIMIT_STORAGE_KEY, String(dailyLimit))
     if (runningCost < dailyLimit) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- unpausing as a side effect of the limit or running cost changing
       setIsPaused(false)
     } else {
       setIsPaused(true)
