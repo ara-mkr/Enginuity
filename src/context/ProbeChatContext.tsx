@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo } from 'react'
+import { createContext, useContext } from 'react'
 import { useChatSessions, deriveTitleFromText, type UseChatSessionsResult } from '../hooks/useChatSessions'
 
 export interface ProbeMessage {
@@ -41,6 +41,7 @@ export function ProbeChatProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook is tightly coupled to this provider's context instance
 export function useProbeChat(): ProbeChatContextValue {
   const ctx = useContext(ProbeChatContext)
   if (!ctx) throw new Error('useProbeChat must be used within ProbeChatProvider')
