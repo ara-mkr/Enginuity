@@ -8,6 +8,11 @@ import {
 } from 'react'
 import { getCurrentProjectId } from '../utils/projectManager'
 
+// Persisted/imported layout state (from localStorage or a shared layout
+// file) has a loosely-defined, historically-evolved shape.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type LayoutStateAny = any
+
 export interface WorkspaceWindow {
   id: string
   type: string
@@ -41,7 +46,7 @@ interface WorkspaceContextValue {
   setWindowProject: (id: string, projId: string) => void
   bringToFront: (id: string) => void
   tileWindows: (format: 'grid' | 'vertical' | 'horizontal') => void
-  applyLayoutState: (layoutState: any) => void
+  applyLayoutState: (layoutState: LayoutStateAny) => void
   setActiveLayoutId: (id: string | null) => void
   setLayoutsModalOpen: (open: boolean) => void
 }
@@ -310,7 +315,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  const applyLayoutState = useCallback((layoutState: any) => {
+  const applyLayoutState = useCallback((layoutState: LayoutStateAny) => {
     setRestoring(true)
     setLayoutModeState('workspace')
 
@@ -323,14 +328,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       return Math.floor((parseFloat(val) / 100) * maxVal)
     }
 
-    const parseDim = (val: any, maxVal: number, offset = 0) => {
+    const parseDim = (val: LayoutStateAny, maxVal: number, offset = 0) => {
       if (typeof val === 'string' && val.endsWith('%')) {
         return parsePercent(val, maxVal) + offset
       }
       return parseFloat(val) + offset
     }
 
-    const restored = layoutState.windows.map((w: any, index: number) => {
+    const restored = layoutState.windows.map((w: LayoutStateAny, index: number) => {
       const type = w.moduleId || w.type
       const titleBase = MODULE_TITLES[type] || 'Window'
       return {
@@ -403,6 +408,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook is tightly coupled to this provider's context instance
 export function useWorkspace() {
   const ctx = useContext(WorkspaceContext)
   if (!ctx) throw new Error('useWorkspace must be used within WorkspaceProvider')
