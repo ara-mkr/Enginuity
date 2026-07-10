@@ -9,8 +9,14 @@
 
 type DiagType = 'info' | 'success' | 'warn' | 'error'
 
+// Web Speech API (SpeechRecognition) isn't in the standard lib.dom types
+// and jarvisDiag is a debug bridge attached to window at runtime — one
+// localized disable instead of suppressing every callsite individually.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type VoiceEngineAny = any
+
 const diag = (msg: string, type: DiagType = 'info') =>
-  (window as any).jarvisDiag?.(msg, type)
+  (window as VoiceEngineAny).jarvisDiag?.(msg, type)
 
 const WAKE_WORDS = [
   'hey jarvis', 'jarvis', 'hey javis',
@@ -19,7 +25,7 @@ const WAKE_WORDS = [
 ]
 
 // Module-level singletons — one instance for the page lifetime
-let recognition: any = null
+let recognition: VoiceEngineAny = null
 let _isListening = false
 let _isAwake = false
 
@@ -41,7 +47,7 @@ export function setVoiceCallbacks(callbacks: VoiceCallbacks): void {
 export function initRecognition(): boolean {
   diag('initRecognition() called', 'info')
 
-  const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+  const SR = (window as VoiceEngineAny).SpeechRecognition || (window as VoiceEngineAny).webkitSpeechRecognition
   if (!SR) {
     diag('SpeechRecognition NOT supported', 'error')
     cbs.onError?.('Speech recognition not supported. Use Chrome or Edge.')
@@ -72,7 +78,7 @@ export function initRecognition(): boolean {
       try {
         recognition.start()
         diag('recognition restarted', 'info')
-      } catch (e: any) {
+      } catch (e: VoiceEngineAny) {
         if (!e.message?.includes('already started')) {
           diag(`restart failed: ${e.message}`, 'error')
           // Full reinit after 1s
@@ -85,7 +91,7 @@ export function initRecognition(): boolean {
     }, 300)
   }
 
-  recognition.onerror = (e: any) => {
+  recognition.onerror = (e: VoiceEngineAny) => {
     const err = e.error as string
     diag(`recognition.onerror: ${err}`, 'error')
     switch (err) {
@@ -109,7 +115,7 @@ export function initRecognition(): boolean {
     }
   }
 
-  recognition.onresult = (event: any) => {
+  recognition.onresult = (event: VoiceEngineAny) => {
     let interimTranscript = ''
     let finalTranscript = ''
 
@@ -192,7 +198,7 @@ export function startVoice(): void {
   try {
     recognition.start()
     diag('recognition.start() called', 'info')
-  } catch (e: any) {
+  } catch (e: VoiceEngineAny) {
     if (e.message?.includes('already started')) {
       diag('already running (ok)', 'info')
     } else {
