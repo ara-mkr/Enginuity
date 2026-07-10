@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { CentralOrb } from './CentralOrb'
 import { ImmersiveBackground } from './ImmersiveBackground'
 import { SubtitleSystem } from './SubtitleSystem'
@@ -50,7 +50,7 @@ export function ImmersiveContainer({
   const [opacity, setOpacity] = useState(0)
   const [scanIn, setScanIn] = useState(false)
   const [viewport, setViewport] = useState({ w: window.innerWidth, h: window.innerHeight })
-  const sessionStartRef = useRef(Date.now())
+  const [sessionStart] = useState(() => Date.now())
 
   useEffect(() => {
     const onResize = () => setViewport({ w: window.innerWidth, h: window.innerHeight })
@@ -73,6 +73,7 @@ export function ImmersiveContainer({
   // Mount-in animation
   useEffect(() => {
     if (visible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- kicking off a one-time mount-in scan animation
       setScanIn(true)
       const t1 = setTimeout(() => setOpacity(1), 200)
       const t2 = setTimeout(() => setScanIn(false), 450)
@@ -435,7 +436,7 @@ export function ImmersiveContainer({
           onToggleCamera={onToggleCamera}
           modelName={activeModel}
           canvasItemCount={canvasItems.length}
-          sessionStart={sessionStartRef.current}
+          sessionStart={sessionStart}
         />
 
         <style>{`
