@@ -11,15 +11,23 @@ import { useAIProvider } from '../../hooks/useAIProvider'
 import { useProjectContext } from '../../hooks/useProjectContext'
 import { useFocusMode } from '../../context/FocusModeContext'
 import { logEvent } from '../../engine/eventLog'
-// @ts-ignore
+// @ts-expect-error - untyped JS module, no .d.ts yet
 import { moduleStateStore } from '../../store/moduleState'
 import {
   Layers, RotateCcw, AlertTriangle, Eye, EyeOff, Sparkles, Loader2,
-  Download, Copy, RefreshCw, Box, HelpCircle, X, ExternalLink, Maximize2, Minimize2
+  Copy, X, Maximize2, Minimize2
 } from 'lucide-react'
 
 // Dev-only diagnostics for the CAD load pipeline; stripped from production output.
 const cadDebug = (...args: unknown[]) => { if (import.meta.env.DEV) console.debug(...args) }
+
+// Three.js scene-graph traversal callbacks below (obj.geometry/obj.material)
+// operate on heterogeneous Object3D subtypes (Mesh, Group, Line, etc.) whose
+// exact shape isn't known until runtime — one localized disable instead of
+// suppressing every call site individually. Parsed-model metadata is
+// similarly format-dependent (STL/OBJ/3MF/PLY each expose different fields).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type CadAny = any
 
 // ── Interfaces ─────────────────────────────────────────────────────────────
 
@@ -44,7 +52,7 @@ interface ModelStats {
   unit: string
   partCount: number
   thumbnail: string | null
-  extraMeta: any
+  extraMeta: CadAny
 }
 
 interface PartItem {
@@ -65,7 +73,7 @@ export function CadViewer() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { isFocusMode, toggleFocusMode } = useFocusMode()
 
-  const { makeRequest, isConnected, activeModel } = useAIProvider()
+  const { makeRequest, isConnected } = useAIProvider()
   const { tags: brainTags, setTags: setBrainTags } = useProjectContext()
 
   // React state
@@ -107,7 +115,7 @@ export function CadViewer() {
 
     // Traverse and dispose geometries and materials
     if (modelGroupRef.current) {
-      modelGroupRef.current.traverse((obj: any) => {
+      modelGroupRef.current.traverse((obj: CadAny) => {
         if (obj.geometry) {
           obj.geometry.dispose()
         }
@@ -232,16 +240,6 @@ export function CadViewer() {
     }
   }, [cleanupScene])
 
-  // Auto-restore persisted file when navigating back to CAD viewer
-  useEffect(() => {
-    if (!_persistedFile) return
-    // Defer until after Three.js init effect has run and set up the scene
-    const id = setTimeout(() => {
-      if (_persistedFile) loadFile(_persistedFile)
-    }, 50)
-    return () => clearTimeout(id)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   // ── Camera Fit Function ────────────────────────────────────────────────────
   const fitCameraToObject = useCallback((object: THREE.Object3D) => {
@@ -292,7 +290,7 @@ export function CadViewer() {
   // ── Shading Control Updates ────────────────────────────────────────────────
   useEffect(() => {
     if (!modelGroupRef.current) return
-    modelGroupRef.current.traverse((child: any) => {
+    modelGroupRef.current.traverse((child: CadAny) => {
       if (child.isMesh) {
         child.material.wireframe = shadingMode === 'wireframe'
         child.material.side = doubleSided ? THREE.DoubleSide : THREE.FrontSide
@@ -337,7 +335,7 @@ export function CadViewer() {
 
     try {
       let object3D: THREE.Object3D | THREE.Group
-      let metadata: any = {}
+      let metadata: CadAny = {}
 
       const arrayBuffer = await file.arrayBuffer()
       cadDebug('[CAD] arrayBuffer read', arrayBuffer.byteLength, 'bytes')
@@ -438,7 +436,7 @@ export function CadViewer() {
           URL.revokeObjectURL(url)
           object3D = gltf.scene
           
-          object3D.traverse((child: any) => {
+          object3D.traverse((child: CadAny) => {
             if (child.isMesh) {
               child.castShadow = true
               child.receiveShadow = true
@@ -469,7 +467,7 @@ export function CadViewer() {
       const boundingBox = new THREE.Box3()
       const partsAccumulator: PartItem[] = []
 
-      object3D.traverse((child: any) => {
+      object3D.traverse((child: CadAny) => {
         if (child.isMesh) {
           child.castShadow = true
           child.receiveShadow = true
@@ -563,6 +561,19 @@ export function CadViewer() {
       })
     }
   }
+
+  // Auto-restore persisted file when navigating back to CAD viewer.
+  // Placed after loadFile's declaration (used inside) to avoid a
+  // temporal-dead-zone access-before-declared reference.
+  useEffect(() => {
+    if (!_persistedFile) return
+    // Defer until after Three.js init effect has run and set up the scene
+    const id = setTimeout(() => {
+      if (_persistedFile) loadFile(_persistedFile)
+    }, 50)
+    return () => clearTimeout(id)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── Handlers for Drag and Drop ──────────────────────────────────────────────
   const handleDragOver = (e: React.DragEvent) => {
