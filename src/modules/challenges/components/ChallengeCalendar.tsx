@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Calendar, Flame, Lock } from 'lucide-react'
 import { CHALLENGES } from '../../../config/challenges'
 import type { ChallengeHistoryEntry } from '../types'
@@ -8,6 +8,9 @@ interface ChallengeCalendarProps {
 }
 
 export function ChallengeCalendar({ completedChallenges }: ChallengeCalendarProps) {
+  // Pin "now" once per mount rather than calling Date.now() during render.
+  const [now] = useState(() => Date.now())
+
   // Sort challenges by posted date
   const sortedChallenges = useMemo(() => {
     return [...CHALLENGES].sort((a, b) => new Date(a.postedDate).getTime() - new Date(b.postedDate).getTime())
@@ -20,7 +23,6 @@ export function ChallengeCalendar({ completedChallenges }: ChallengeCalendarProp
     const completedIds = new Set(completedChallenges.map(h => h.challengeId))
 
     // Walk backwards from current week
-    const now = Date.now()
     const pastWeeks = sortedChallenges.filter(c => new Date(c.postedDate).getTime() <= now)
 
     for (let i = pastWeeks.length - 1; i >= 0; i--) {
@@ -33,11 +35,10 @@ export function ChallengeCalendar({ completedChallenges }: ChallengeCalendarProp
     }
 
     return currentStreak
-  }, [completedChallenges, sortedChallenges])
+  }, [completedChallenges, sortedChallenges, now])
 
   const getWeekStatus = (challengeDateStr: string, challengeId: string) => {
     const time = new Date(challengeDateStr).getTime()
-    const now = Date.now()
     const isCompleted = completedChallenges.some(h => h.challengeId === challengeId)
 
     if (time > now) return 'future'
