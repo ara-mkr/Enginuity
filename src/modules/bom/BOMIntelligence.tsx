@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect } from 'react'
-// @ts-ignore
 import { moduleStateStore } from '../../store/moduleState'
 import { RefreshCw, Layers } from 'lucide-react'
 import { useAIProvider } from '../../hooks/useAIProvider'
@@ -7,7 +6,6 @@ import { CostSummary } from './CostSummary'
 import { RiskAnalysis } from './RiskAnalysis'
 import { BOMTable } from './BOMTable'
 import { AlternativePanel } from './AlternativePanel'
-// @ts-ignore
 import { UniversalDropZone } from '../../components/UniversalDropZone/index.jsx'
 import { parseKiCadPCBText, parseKiCadXMLText } from './kicadParser'
 import type { BOMItem, AvailabilityResult, RiskAnalysisResult, AlternativePart } from './types'
@@ -16,16 +14,22 @@ import { logEvent } from '../../engine/eventLog'
 const LOCAL_STORAGE_KEY = 'enginguity_boms'
 const LAST_KICAD_KEY = 'enginguity_last_kicad'
 
+// The CDN-loaded SheetJS (XLSX) global and various AI/parsed-file payloads
+// are untyped/dynamic here — one localized disable instead of suppressing
+// every call site individually.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type BOMAny = any
+
 // Dynamic script loader for SheetJS
-function loadSheetJS(): Promise<any> {
+function loadSheetJS(): Promise<BOMAny> {
   return new Promise((resolve, reject) => {
-    if ((window as any).XLSX) {
-      resolve((window as any).XLSX)
+    if ((window as BOMAny).XLSX) {
+      resolve((window as BOMAny).XLSX)
       return
     }
     const script = document.createElement('script')
     script.src = 'https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js'
-    script.onload = () => resolve((window as any).XLSX)
+    script.onload = () => resolve((window as BOMAny).XLSX)
     script.onerror = reject
     document.body.appendChild(script)
   })
@@ -53,6 +57,7 @@ export function BOMIntelligence() {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY)
       if (saved) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time BOM restore from localStorage on mount
         setItems(JSON.parse(saved))
       }
     } catch (e) {
@@ -87,7 +92,7 @@ export function BOMIntelligence() {
       const workbook = XLSX.read(new Uint8Array(data), { type: 'array' })
       const firstSheetName = workbook.SheetNames[0]
       const worksheet = workbook.Sheets[firstSheetName]
-      const rawRows: any[] = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+      const rawRows: BOMAny[] = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
       
       if (!rawRows.length) return
 
@@ -100,13 +105,13 @@ export function BOMIntelligence() {
         const row = rawRows[r]
         if (Array.isArray(row) && row.some(cell => /qty|quantity|part|desc|mfr|manuf|val|pkg|footprint|ref/i.test(String(cell)))) {
           headerIdx = r
-          headers = row.map((h: any) => String(h || '').trim().toLowerCase())
+          headers = row.map((h: BOMAny) => String(h || '').trim().toLowerCase())
           break
         }
       }
 
       if (!headers.length && rawRows.length) {
-        headers = rawRows[0].map((h: any) => String(h || '').trim().toLowerCase())
+        headers = rawRows[0].map((h: BOMAny) => String(h || '').trim().toLowerCase())
       }
 
       const startIndex = headerIdx + 1
@@ -169,7 +174,7 @@ export function BOMIntelligence() {
   }
 
   // Handle file drop/load from UniversalDropZone
-  const handleFileLoaded = useCallback((result: any) => {
+  const handleFileLoaded = useCallback((result: BOMAny) => {
     // Check if result has rows (Parsed CSV)
     if (result.viewMode === 'csv' && result.metadata?.rows) {
       const rows = result.metadata.rows
@@ -189,7 +194,7 @@ export function BOMIntelligence() {
         ref: getColIndex(['ref', 'designator', 'reference']),
       }
 
-      const bomItems: BOMItem[] = rows.map((row: any, i: number) => {
+      const bomItems: BOMItem[] = rows.map((row: BOMAny, i: number) => {
         const qtyVal = colIdx.qty !== -1 ? parseInt(row[result.metadata.headers[colIdx.qty]]) : 1
         const part = colIdx.part !== -1 ? String(row[result.metadata.headers[colIdx.part]] || '') : ''
         const desc = colIdx.desc !== -1 ? String(row[result.metadata.headers[colIdx.desc]] || '') : ''
@@ -245,7 +250,7 @@ export function BOMIntelligence() {
       const parsed = JSON.parse(cleaned)
 
       if (Array.isArray(parsed)) {
-        const bomItems: BOMItem[] = parsed.map((item: any, i: number) => ({
+        const bomItems: BOMItem[] = parsed.map((item: BOMAny, i: number) => ({
           id: `${Date.now()}-${i}`,
           quantity: item.quantity || 1,
           part_number: item.part_number || null,
@@ -285,7 +290,7 @@ export function BOMIntelligence() {
       }
 
       const { name, text } = JSON.parse(savedKicad)
-      let parsed: any[] = []
+      let parsed: BOMAny[] = []
       
       if (name.endsWith('.kicad_pcb')) {
         parsed = parseKiCadPCBText(text)
@@ -312,7 +317,7 @@ export function BOMIntelligence() {
           module: 'bom'
         })
       }
-    } catch (e) {
+    } catch {
       alert('Failed to import KiCad PCB file from CAD Viewer history.')
     }
   }
@@ -444,7 +449,7 @@ Return JSON structure:
 
       // Log risk alerts
       if (report.riskItems && report.riskItems.length > 0) {
-        report.riskItems.forEach((ri: any) => {
+        report.riskItems.forEach((ri: BOMAny) => {
           logEvent('BOM_ALERT', {
             type: 'risk_analysis',
             partNumber: ri.partNumber,
@@ -528,7 +533,7 @@ Return JSON array of alternatives:
       const shareUrl = `${window.location.origin}/bom?share=${encoded}`
       navigator.clipboard.writeText(shareUrl)
       alert('Share link copied to clipboard!')
-    } catch (e) {
+    } catch {
       alert('Failed to generate sharing URL.')
     }
   }
@@ -557,6 +562,7 @@ Return JSON array of alternatives:
             leadTimeWeeks: null,
             altAvailable: null,
           }))
+          // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time BOM import from a shared URL param on mount
           updateItems(bomItems)
           // Clean URL parameters
           window.history.replaceState({}, document.title, window.location.pathname)

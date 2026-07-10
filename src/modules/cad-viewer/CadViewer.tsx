@@ -11,7 +11,6 @@ import { useAIProvider } from '../../hooks/useAIProvider'
 import { useProjectContext } from '../../hooks/useProjectContext'
 import { useFocusMode } from '../../context/FocusModeContext'
 import { logEvent } from '../../engine/eventLog'
-// @ts-expect-error - untyped JS module, no .d.ts yet
 import { moduleStateStore } from '../../store/moduleState'
 import {
   Layers, RotateCcw, AlertTriangle, Eye, EyeOff, Sparkles, Loader2,

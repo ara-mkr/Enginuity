@@ -33,36 +33,27 @@ import { ComplianceChecker } from './modules/compliance/ComplianceChecker'
 import { TimelineModule } from './modules/timeline/TimelineModule'
 import { DrawingBoard } from './modules/drawing-board/DrawingBoard'
 import { logEvent } from './engine/eventLog'
-// @ts-expect-error - untyped JS module, no .d.ts yet
 import { useEnginguityStore } from './engine/persistenceEngine'
-// @ts-expect-error - untyped JS module, no .d.ts yet
 import { Copilot } from './components/Copilot/index.jsx'
-// @ts-expect-error - untyped JS module, no .d.ts yet
 import { CrossSearch } from './components/CrossSearch/index.jsx'
-// @ts-expect-error - untyped JS module, no .d.ts yet
 import { SessionBriefing } from './components/SessionBriefing/index.jsx'
-// @ts-expect-error - untyped JS module, no .d.ts yet
 import { HistoryPage } from './modules/history/HistoryPage.jsx'
-// @ts-expect-error - untyped JS module, no .d.ts yet
 import { SupplyChainMonitor } from './modules/supply-chain/SupplyChainMonitor.jsx'
 import { JarvisModule } from './modules/jarvis/JarvisModule'
 import { SimulationTab } from './modules/simulation/SimulationTab'
 import { LiveDocs } from './modules/live-docs/LiveDocs'
 import { ToolMarketplace } from './modules/tool-marketplace/ToolMarketplace'
 import { CustomToolFrame } from './modules/tool-marketplace/CustomToolFrame'
-// @ts-expect-error - untyped JS module, no .d.ts yet
 import { startWatcher } from './modules/live-docs/docWatcher'
 import { WorkspaceProvider, useWorkspace } from './context/WorkspaceContext'
 import { WorkspaceCanvas } from './components/Workspace/WorkspaceCanvas'
 import { LayoutManagerModal, TemplateSelectorModal } from './components/LayoutManager'
 import { TooltipManager } from './components/TooltipManager'
 import { layoutEngine } from './engine/layoutEngine'
-// @ts-expect-error - untyped JS module, no .d.ts yet
 import { initSessionDiff } from './engine/sessionDiff'
 import { FocusModeProvider, useFocusMode } from './context/FocusModeContext'
 import { ProbeChatProvider } from './context/ProbeChatContext'
 import { HomeChatProvider } from './context/HomeChatContext'
-// @ts-expect-error - untyped JS module, no .d.ts yet
 import CommandPalette from './components/CommandPalette/index.jsx'
 
 initSessionDiff()

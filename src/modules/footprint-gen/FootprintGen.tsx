@@ -1,12 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Download, Copy, ChevronDown, ChevronUp, Loader2, Sparkles } from 'lucide-react'
-// @ts-expect-error - untyped JS module, no .d.ts yet
 import { useEnginguityStore } from '../../engine/persistenceEngine'
-// @ts-expect-error - untyped JS module, no .d.ts yet
 import { PACKAGES, CATEGORIES } from '../../config/packages'
-// @ts-expect-error - untyped JS module, no .d.ts yet
 import { generateKicadMod } from './engine/generateKicad'
-// @ts-expect-error - untyped JS module, no .d.ts yet
 import { buildPreviewSVG, LAYER_COLORS } from './engine/previewSVG'
 import { useAIProvider } from '../../hooks/useAIProvider'
 import { useProbeContext } from '../../hooks/useProbeContext'

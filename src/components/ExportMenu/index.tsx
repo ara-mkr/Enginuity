@@ -52,8 +52,8 @@ export function ExportMenu({ moduleName, exportData, onClose }: ExportMenuProps)
 
   // List of formats available for this module
   const availableFormats = useMemo(() => {
-    if (!exporter) return ['json']
-    const formats: string[] = ['json']
+    if (!exporter) return ['json'] as Array<typeof selectedFormat>
+    const formats: Array<typeof selectedFormat> = ['json']
     if (exporter.toMarkdown) formats.push('markdown')
     if (exporter.toHTML) formats.push('html')
     if (exporter.toNetlist) formats.push('netlist')

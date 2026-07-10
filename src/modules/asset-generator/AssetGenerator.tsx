@@ -21,9 +21,7 @@ import { useAIProvider } from '../../hooks/useAIProvider'
 import { useProbeContext } from '../../hooks/useProbeContext'
 import { useProjectContext } from '../../hooks/useProjectContext'
 import { logEvent } from '../../engine/eventLog'
-// @ts-expect-error - untyped JS module, no .d.ts yet
 import { useEnginguityStore } from '../../engine/persistenceEngine'
-// @ts-expect-error - untyped JS module, no .d.ts yet
 import { blobStore } from '../../engine/blobStore'
 
 // The global persistence store's selector callbacks are untyped (persistenceEngine

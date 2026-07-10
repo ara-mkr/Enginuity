@@ -13,7 +13,6 @@ import { useAIProvider } from '../../hooks/useAIProvider'
 import { useChartPalette } from '../../hooks/useChartPalette'
 import { useProbeContext } from '../../hooks/useProbeContext'
 import { logEvent } from '../../engine/eventLog'
-// @ts-expect-error - untyped JS module, no .d.ts yet
 import { parseCircuitNetlist } from '../circuit-sim/engine/netlistParser'
 import { runNetlistAnalysis } from '../circuit-sim/engine/runSimulation'
 

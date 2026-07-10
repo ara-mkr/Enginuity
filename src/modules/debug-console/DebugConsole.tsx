@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-// @ts-expect-error - untyped JS module, no .d.ts yet
 import { moduleStateStore } from '../../store/moduleState'
 import { FileCode, Code2, Radio, Cpu, Plus, ChevronRight, X, Maximize2, Minimize2 } from 'lucide-react'
 import { useAIProvider } from '../../hooks/useAIProvider'
