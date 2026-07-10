@@ -414,6 +414,7 @@ export default function ModelComparison() {
 
   useEffect(() => {
     const media = window.matchMedia('(min-width: 768px)')
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time mount read of matchMedia state
     setIsDesktop(media.matches)
     const listener = (e: MediaQueryListEvent) => setIsDesktop(e.matches)
     media.addEventListener('change', listener)
@@ -423,12 +424,14 @@ export default function ModelComparison() {
   // Load history
   useEffect(() => {
     try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time mount restore from localStorage
       setHistory(JSON.parse(localStorage.getItem('enginguity_comparisons') || '[]'))
     } catch { /* corrupted/missing stored value — fall back to default */ }
   }, [])
 
   // Pre-fill system context from project
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time prefill sync from external project context
     if (projectDesc && !systemCtx) setSystemCtx(projectDesc.slice(0, 600))
   }, [projectDesc])
 
@@ -447,25 +450,9 @@ export default function ModelComparison() {
         { modelId: 'deepseek/deepseek-chat-v3-0324' },
       )
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time mount default-model selection when an API key is present
     setSelected(defaults)
   }, [])
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const mod = e.metaKey || e.ctrlKey
-      if (mod && e.key === 'Enter') { e.preventDefault(); handleRun() }
-      if (mod && e.key === 'd') { e.preventDefault(); setDiffMode((d) => !d) }
-      if (e.key === 'Escape') { cancelAll(); setShortcutsOpen(false) }
-      if (e.key === '?') setShortcutsOpen((o) => !o)
-      if (!mod && /^[1-9]$/.test(e.key)) {
-        const el = document.getElementById(`result-${parseInt(e.key) - 1}`)
-        el?.focus()
-      }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [prompt, selected])
 
   const isSelected = (mid: string) =>
     selected.some((s) => s.modelId === mid)
@@ -485,6 +472,50 @@ export default function ModelComparison() {
     setResults((prev) => prev.map((r) => r.status === 'loading' ? { ...r, status: 'error', error: 'Cancelled' } : r))
   }
 
+  // handleRun is declared later (it depends on generateSummary); keep a
+  // stable ref so this mount-order-independent keydown listener can call
+  // the latest version without a "used before declared" violation.
+  const handleRunRef = useRef<() => void>(() => {})
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey
+      if (mod && e.key === 'Enter') { e.preventDefault(); handleRunRef.current() }
+      if (mod && e.key === 'd') { e.preventDefault(); setDiffMode((d) => !d) }
+      if (e.key === 'Escape') { cancelAll(); setShortcutsOpen(false) }
+      if (e.key === '?') setShortcutsOpen((o) => !o)
+      if (!mod && /^[1-9]$/.test(e.key)) {
+        const el = document.getElementById(`result-${parseInt(e.key) - 1}`)
+        el?.focus()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [prompt, selected])
+
+  const generateSummary = async (doneResults: ResultState[]) => {
+    if (!readStoredKey(OR_KEY_STORAGE)) return
+    const summaryModelId = 'anthropic/claude-haiku-4-5'
+    const responsesText = doneResults
+      .map((r) => {
+        const def = OPENROUTER_MODELS.find((m) => m.id === r.modelId)
+        return `[${def?.name ?? r.modelId}]:\n${r.text}`
+      })
+      .join('\n\n---\n\n')
+
+    const summaryPrompt = `You are analyzing responses from multiple AI models to the same engineering question. Here are the responses:\n\n${responsesText}\n\nProvide a structured comparison. Return ONLY valid JSON with keys: {"consensus": "string", "differences": "string", "recommended": "string", "warnings": "string"}`
+
+    try {
+      const { url, headers, body } = buildRequest(summaryModelId, summaryPrompt)
+      const resp = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) })
+      if (!resp.ok) return
+      const data = await resp.json()
+      const { text } = extractResponse(data as Record<string, unknown>)
+      const parsed = JSON.parse(text.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim())
+      setSummary(parsed)
+    } catch { /* summary is a best-effort extra — comparison results stand on their own */ }
+  }
   const handleRun = useCallback(async () => {
     if (!prompt.trim() || selected.length === 0 || running) return
     setRunning(true)
@@ -575,28 +606,11 @@ export default function ModelComparison() {
     if (done.length > 1) generateSummary(done)
   }, [prompt, selected, running, systemCtx, systemCtxOpen, history])
 
-  const generateSummary = async (doneResults: ResultState[]) => {
-    if (!readStoredKey(OR_KEY_STORAGE)) return
-    const summaryModelId = 'anthropic/claude-haiku-4-5'
-    const responsesText = doneResults
-      .map((r) => {
-        const def = OPENROUTER_MODELS.find((m) => m.id === r.modelId)
-        return `[${def?.name ?? r.modelId}]:\n${r.text}`
-      })
-      .join('\n\n---\n\n')
+  useEffect(() => {
+    handleRunRef.current = handleRun
+  }, [handleRun])
 
-    const summaryPrompt = `You are analyzing responses from multiple AI models to the same engineering question. Here are the responses:\n\n${responsesText}\n\nProvide a structured comparison. Return ONLY valid JSON with keys: {"consensus": "string", "differences": "string", "recommended": "string", "warnings": "string"}`
 
-    try {
-      const { url, headers, body } = buildRequest(summaryModelId, summaryPrompt)
-      const resp = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) })
-      if (!resp.ok) return
-      const data = await resp.json()
-      const { text } = extractResponse(data as Record<string, unknown>)
-      const parsed = JSON.parse(text.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim())
-      setSummary(parsed)
-    } catch { /* summary is a best-effort extra — comparison results stand on their own */ }
-  }
 
   const exportMarkdown = () => {
     const md = [
