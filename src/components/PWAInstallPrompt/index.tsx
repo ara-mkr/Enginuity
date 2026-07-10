@@ -1,9 +1,15 @@
 import { useState, useEffect } from 'react'
 
+// The beforeinstallprompt event (BeforeInstallPromptEvent) isn't in
+// standard lib.dom types, and window.navigator.standalone/MSStream are
+// non-standard iOS/legacy-IE properties.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PWAAny = any
+
 export function PWAInstallPrompt() {
-  const [installPromptEvent, setInstallPromptEvent] = useState<any>(null)
+  const [installPromptEvent, setInstallPromptEvent] = useState<PWAAny>(null)
   const [showPrompt, setShowPrompt] = useState(false)
-  const [isiOS, setIsiOS] = useState(false)
+  const [, setIsiOS] = useState(false)
   const [showiOSPrompt, setShowiOSPrompt] = useState(false)
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false)
 
@@ -21,9 +27,10 @@ export function PWAInstallPrompt() {
 
     // 3. Detect iOS platform
     const ua = window.navigator.userAgent
-    const isAppleMobile = /iPhone|iPad|iPod/.test(ua) && !(window as any).MSStream
-    const isStandalone = (window.navigator as any).standalone === true || window.matchMedia('(display-mode: standalone)').matches
+    const isAppleMobile = /iPhone|iPad|iPod/.test(ua) && !(window as PWAAny).MSStream
+    const isStandalone = (window.navigator as PWAAny).standalone === true || window.matchMedia('(display-mode: standalone)').matches
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time mount platform detection
     setIsiOS(isAppleMobile)
 
     // 4. Handle Standard PWA install prompts
@@ -64,10 +71,7 @@ export function PWAInstallPrompt() {
     if (!installPromptEvent) return
     setShowPrompt(false)
     installPromptEvent.prompt()
-    const choiceResult = await installPromptEvent.userChoice
-    if (choiceResult.outcome === 'accepted') {
-    } else {
-    }
+    await installPromptEvent.userChoice
     setInstallPromptEvent(null)
   }
 
