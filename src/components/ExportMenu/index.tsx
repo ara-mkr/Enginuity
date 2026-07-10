@@ -3,13 +3,8 @@ import {
   Share2,
   Lock,
   Unlock,
-  Copy,
-  Download,
   Check,
-  Loader2,
-  ExternalLink,
-  BookOpen,
-  ArrowRight
+  ExternalLink
 } from 'lucide-react'
 import {
   EXPORT_TARGETS,
@@ -19,14 +14,21 @@ import {
 } from '../../engine/exportEngine'
 import { logEvent } from '../../engine/eventLog'
 
+// exportData and the resolved exporter are genuinely polymorphic — the shape
+// depends entirely on which module (notebook, BOM, CAD viewer, circuit sim,
+// etc.) is exporting, dispatched at runtime by moduleName below. One
+// localized disable instead of suppressing every call site individually.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ExporterDataAny = any
+
 interface ExportMenuProps {
   moduleName: string
-  exportData: any // Module-specific raw dataset to feed exporters
+  exportData: ExporterDataAny // Module-specific raw dataset to feed exporters
   onClose: () => void
 }
 
 export function ExportMenu({ moduleName, exportData, onClose }: ExportMenuProps) {
-  const exporter = getExporterForModule(moduleName) as any
+  const exporter: ExporterDataAny = getExporterForModule(moduleName)
 
   // Auth States loaded from local storage
   const [githubToken, setGithubToken] = useState(localStorage.getItem('enginguity_github_token') || '')
@@ -51,7 +53,7 @@ export function ExportMenu({ moduleName, exportData, onClose }: ExportMenuProps)
   // List of formats available for this module
   const availableFormats = useMemo(() => {
     if (!exporter) return ['json']
-    const formats: any[] = ['json']
+    const formats: string[] = ['json']
     if (exporter.toMarkdown) formats.push('markdown')
     if (exporter.toHTML) formats.push('html')
     if (exporter.toNetlist) formats.push('netlist')
@@ -62,12 +64,14 @@ export function ExportMenu({ moduleName, exportData, onClose }: ExportMenuProps)
 
   // Default selected format setup
   useEffect(() => {
+    // Re-derive the default format whenever the available set changes (e.g. module switch).
     if (availableFormats.length > 0) {
       // Prefer markdown or first format
       if (availableFormats.includes('markdown')) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSelectedFormat('markdown')
       } else {
-        setSelectedFormat(availableFormats[0])
+        setSelectedFormat(availableFormats[0] as typeof selectedFormat)
       }
     }
   }, [availableFormats])
@@ -150,8 +154,8 @@ export function ExportMenu({ moduleName, exportData, onClose }: ExportMenuProps)
       }
 
       return 'Format selected: ' + selectedFormat
-    } catch (e: any) {
-      return `Failed to compile preview: ${e.message}`
+    } catch (e) {
+      return `Failed to compile preview: ${e instanceof Error ? e.message : String(e)}`
     }
   }, [selectedFormat, exporter, exportData, moduleName])
 
@@ -204,6 +208,7 @@ export function ExportMenu({ moduleName, exportData, onClose }: ExportMenuProps)
 
     const content = getCompiledContent()
     const ext = selectedFormat === 'markdown' ? 'md' : selectedFormat === 'html' ? 'html' : selectedFormat === 'patch' ? 'patch' : 'json'
+    // eslint-disable-next-line react-hooks/purity -- click handler, not render; timestamp makes the exported filename unique
     const filename = `enginguity-${moduleName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.${ext}`
 
     try {
@@ -270,8 +275,8 @@ export function ExportMenu({ moduleName, exportData, onClose }: ExportMenuProps)
         target: targetId,
         module: moduleName
       })
-    } catch (e: any) {
-      setExportError(e.message || 'Action failed.')
+    } catch (e) {
+      setExportError((e instanceof Error && e.message) || 'Action failed.')
     } finally {
       setIsExporting(false)
     }
@@ -401,7 +406,7 @@ export function ExportMenu({ moduleName, exportData, onClose }: ExportMenuProps)
           )}
 
           <div style={gridStyle}>
-            {EXPORT_TARGETS.filter(t => t.formats.includes(selectedFormat as any) || t.id === 'share_link' || t.id === 'download_json').map(target => {
+            {EXPORT_TARGETS.filter((t: ExporterDataAny) => t.formats.includes(selectedFormat) || t.id === 'share_link' || t.id === 'download_json').map((target: ExporterDataAny) => {
               const hasToken = target.requiresAuth
                 ? (target.authKey === 'enginguity_github_token' ? !!githubToken : !!notionToken)
                 : true
