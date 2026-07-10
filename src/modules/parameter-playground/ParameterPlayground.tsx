@@ -1,5 +1,4 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
-// @ts-ignore
 import { moduleStateStore } from '../../store/moduleState'
 import {
   LineChart,
@@ -245,7 +244,7 @@ export function ParameterPlayground() {
   const [promptOpen, setPromptOpen] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const promptPrefilled = useRef(false)
-  const debounceTimerRef = useRef<Record<string, any>>({})
+  const debounceTimerRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
   const lastParamValuesRef = useRef<Record<string, number>>({})
 
   // Cleanup timeouts on unmount
@@ -262,6 +261,7 @@ export function ParameterPlayground() {
     if (encoded) {
       const decoded = decodeState(encoded)
       if (decoded) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time mount restore from a shared URL param
         setSchema(decoded.schema)
         setValues(decoded.values)
         setSweepParam(decoded.sweep)
