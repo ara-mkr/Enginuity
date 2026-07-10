@@ -23,9 +23,7 @@ import ChallengeMode from '../../modules/challenges/ChallengeMode'
 import { FirmwareDiffViewer } from '../../modules/firmware-diff/FirmwareDiffViewer'
 import { PCBReviewer } from '../../modules/pcb-reviewer/PCBReviewer'
 import { FootprintGen } from '../../modules/footprint-gen/FootprintGen'
-// @ts-ignore
 import { HistoryPage } from '../../modules/history/HistoryPage.jsx'
-// @ts-ignore
 import { SupplyChainMonitor } from '../../modules/supply-chain/SupplyChainMonitor.jsx'
 import { TestHarness } from '../../modules/test-harness/TestHarness'
 import { ComplianceChecker } from '../../modules/compliance/ComplianceChecker'
@@ -33,6 +31,7 @@ import { JarvisModule } from '../../modules/jarvis/JarvisModule'
 import CollabLanding from '../../modules/collaboration/CollabLanding'
 import { DrawingBoard } from '../../modules/drawing-board/DrawingBoard'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- heterogeneous module components (some accept props, most don't)
 const MODULE_COMPONENTS: Record<string, React.ComponentType<any>> = {
   'drawing-board': DrawingBoard,
   'dashboard': Dashboard,
