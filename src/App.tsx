@@ -33,43 +33,43 @@ import { ComplianceChecker } from './modules/compliance/ComplianceChecker'
 import { TimelineModule } from './modules/timeline/TimelineModule'
 import { DrawingBoard } from './modules/drawing-board/DrawingBoard'
 import { logEvent } from './engine/eventLog'
-// @ts-ignore
+// @ts-expect-error - untyped JS module, no .d.ts yet
 import { useEnginguityStore } from './engine/persistenceEngine'
-// @ts-ignore
+// @ts-expect-error - untyped JS module, no .d.ts yet
 import { Copilot } from './components/Copilot/index.jsx'
-// @ts-ignore
+// @ts-expect-error - untyped JS module, no .d.ts yet
 import { CrossSearch } from './components/CrossSearch/index.jsx'
-// @ts-ignore
+// @ts-expect-error - untyped JS module, no .d.ts yet
 import { SessionBriefing } from './components/SessionBriefing/index.jsx'
-// @ts-ignore
+// @ts-expect-error - untyped JS module, no .d.ts yet
 import { HistoryPage } from './modules/history/HistoryPage.jsx'
-// @ts-ignore
+// @ts-expect-error - untyped JS module, no .d.ts yet
 import { SupplyChainMonitor } from './modules/supply-chain/SupplyChainMonitor.jsx'
 import { JarvisModule } from './modules/jarvis/JarvisModule'
 import { SimulationTab } from './modules/simulation/SimulationTab'
 import { LiveDocs } from './modules/live-docs/LiveDocs'
 import { ToolMarketplace } from './modules/tool-marketplace/ToolMarketplace'
 import { CustomToolFrame } from './modules/tool-marketplace/CustomToolFrame'
-// @ts-ignore
+// @ts-expect-error - untyped JS module, no .d.ts yet
 import { startWatcher } from './modules/live-docs/docWatcher'
 import { WorkspaceProvider, useWorkspace } from './context/WorkspaceContext'
 import { WorkspaceCanvas } from './components/Workspace/WorkspaceCanvas'
 import { LayoutManagerModal, TemplateSelectorModal } from './components/LayoutManager'
 import { TooltipManager } from './components/TooltipManager'
 import { layoutEngine } from './engine/layoutEngine'
-// @ts-ignore
+// @ts-expect-error - untyped JS module, no .d.ts yet
 import { initSessionDiff } from './engine/sessionDiff'
 import { FocusModeProvider, useFocusMode } from './context/FocusModeContext'
 import { ProbeChatProvider } from './context/ProbeChatContext'
 import { HomeChatProvider } from './context/HomeChatContext'
-// @ts-ignore
+// @ts-expect-error - untyped JS module, no .d.ts yet
 import CommandPalette from './components/CommandPalette/index.jsx'
 
 initSessionDiff()
 try { startWatcher() } catch { /* doc watcher is non-critical */ }
 
 class ModuleErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
-  constructor(props: any) { super(props); this.state = { hasError: false } }
+  constructor(props: { children: React.ReactNode }) { super(props); this.state = { hasError: false } }
   static getDerivedStateFromError() { return { hasError: true } }
   render() {
     if (this.state.hasError) return (
@@ -82,7 +82,7 @@ class ModuleErrorBoundary extends Component<{ children: React.ReactNode }, { has
 }
 
 class RootErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean; error: Error | null }> {
-  constructor(props: any) { super(props); this.state = { hasError: false, error: null } }
+  constructor(props: { children: React.ReactNode }) { super(props); this.state = { hasError: false, error: null } }
   static getDerivedStateFromError(error: Error) { return { hasError: true, error } }
   render() {
     if (this.state.hasError) return (
@@ -132,7 +132,7 @@ function AppContent() {
 
       const oldHistory = JSON.parse(localStorage.getItem('enginguity_file_history') || '[]')
       if (Array.isArray(oldHistory)) {
-        oldHistory.forEach((item: any) => {
+        oldHistory.forEach((item: { name?: string; [key: string]: unknown }) => {
           if (item && item.name) store.addToFileHistory(item)
         })
       }
@@ -210,6 +210,8 @@ function AppContent() {
     if (layoutMode === 'workspace') {
       const onboarded = localStorage.getItem('enginguity_workspace_onboarded')
       if (!onboarded) {
+        // one-time onboarding prompt gated on an external system (localStorage), not derivable during render
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setTemplateSelectorOpen(true)
       }
     }
@@ -235,12 +237,9 @@ function AppContent() {
           if (layouts.length === 0) return
 
           const currentIdx = layouts.findIndex(l => l.id === activeLayoutId)
-          let nextIdx = 0
-          if (e.key === 'ArrowDown') {
-            nextIdx = currentIdx === -1 ? 0 : (currentIdx + 1) % layouts.length
-          } else {
-            nextIdx = currentIdx === -1 ? layouts.length - 1 : (currentIdx - 1 + layouts.length) % layouts.length
-          }
+          const nextIdx = e.key === 'ArrowDown'
+            ? (currentIdx === -1 ? 0 : (currentIdx + 1) % layouts.length)
+            : (currentIdx === -1 ? layouts.length - 1 : (currentIdx - 1 + layouts.length) % layouts.length)
           applyLayoutState(layouts[nextIdx])
         }
       }
