@@ -1,18 +1,24 @@
 import React, { useState } from 'react'
-import { RefreshCw, Edit2, MoreHorizontal, Check, X } from 'lucide-react'
+import { RefreshCw, Edit2, Check, X } from 'lucide-react'
+
+// Section content shapes (parameters, outputs, decisions, etc.) are
+// AI-generated and structurally heterogeneous per section type — one
+// localized disable instead of suppressing every field individually.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DocAny = any
 
 interface SectionContent {
   type: 'prose' | 'parameter_table' | 'bom_table' | 'decisions_list' | 'issues_table' | 'references_list'
   content?: string
   error?: string
   empty?: boolean
-  parameters?: any[]
-  outputs?: any[]
-  items?: any[]
+  parameters?: DocAny[]
+  outputs?: DocAny[]
+  items?: DocAny[]
   totalCost?: number
-  decisions?: any[]
-  problems?: any[]
-  references?: any[]
+  decisions?: DocAny[]
+  problems?: DocAny[]
+  references?: DocAny[]
 }
 
 interface Props {
@@ -25,7 +31,7 @@ interface Props {
   onUpdate: (content: SectionContent) => void
 }
 
-export function DocSection({ sectionKey, title, index, content, generating, onRegenerate, onUpdate }: Props) {
+export function DocSection({ title, index, content, generating, onRegenerate, onUpdate }: Props) {
   const [editMode, setEditMode] = useState(false)
   const [editText, setEditText] = useState('')
   const [hovered, setHovered] = useState(false)
@@ -36,7 +42,7 @@ export function DocSection({ sectionKey, title, index, content, generating, onRe
   }
 
   const saveEdit = () => {
-    onUpdate({ type: 'prose', content: editText, generatedAt: Date.now() } as any)
+    onUpdate({ type: 'prose', content: editText, generatedAt: Date.now() } as DocAny)
     setEditMode(false)
   }
 
@@ -174,7 +180,7 @@ function SectionBody({ content }: { content: SectionContent }) {
     case 'decisions_list':
       return content.decisions && content.decisions.length > 0 ? (
         <div>
-          {content.decisions.map((d: any, i: number) => (
+          {content.decisions.map((d: DocAny, i: number) => (
             <div key={i} style={{ paddingBottom: 20, marginBottom: 20, borderBottom: i < content.decisions!.length - 1 ? '1px solid var(--border)' : 'none' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                 <span style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{d.title || 'Decision'}</span>
@@ -202,7 +208,7 @@ function SectionBody({ content }: { content: SectionContent }) {
     case 'references_list':
       return content.references && content.references.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {content.references.map((ref: any, i: number) => (
+          {content.references.map((ref: DocAny, i: number) => (
             <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--text-dim)', minWidth: 28 }}>[{i + 1}]</span>
               <span style={{ fontSize: 16 }}>{ref.type === 'video' ? '▶' : '📄'}</span>
@@ -238,7 +244,7 @@ function GeneratingSkeleton() {
   )
 }
 
-function DataTable({ headers, rows, statusCol }: { headers: string[], rows: any[][], statusCol?: number }) {
+function DataTable({ headers, rows, statusCol }: { headers: string[], rows: DocAny[][], statusCol?: number }) {
   return (
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
