@@ -2,16 +2,12 @@ import React, { useState, useEffect, useRef, useMemo } from 'react'
 import ResizablePanel from '../../components/ResizablePanel'
 import {
   GitCompare,
-  Upload,
   Sparkles,
   Download,
   Copy,
   Trash2,
-  ChevronDown,
   Info,
   Brain,
-  AlertTriangle,
-  Check,
   RotateCcw,
   FileText
 } from 'lucide-react'
@@ -35,18 +31,24 @@ import {
 
 import type { ParsedFile, DiffLine, Hunk, AIAnalysisResult, FileTreeNode } from './types'
 
+// Firmware parsing/diffing engine (diffEngine.js) and the CDN-loaded
+// Highlight.js global are untyped external surfaces — one localized disable
+// instead of suppressing every call site individually.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type FirmwareAny = any
+
 // Dynamic loader helper for Highlight.js
-const loadHighlightJS = (): Promise<any> => {
+const loadHighlightJS = (): Promise<FirmwareAny> => {
   return new Promise((resolve) => {
-    if ((window as any).hljs) {
-      resolve((window as any).hljs)
+    if ((window as FirmwareAny).hljs) {
+      resolve((window as FirmwareAny).hljs)
       return
     }
     const script = document.createElement('script')
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js'
     script.async = true
     script.onload = () => {
-      resolve((window as any).hljs)
+      resolve((window as FirmwareAny).hljs)
     }
     
     const link = document.createElement('link')
@@ -271,7 +273,7 @@ export function FirmwareDiffViewer() {
           type: 'ELF',
           content: summaryText,
           rawBuffer: bytes,
-          elfData: elfResult as any
+          elfData: elfResult as FirmwareAny
         })
       } else {
         const text = await new Promise<string>((resolve, reject) => {
@@ -287,8 +289,9 @@ export function FirmwareDiffViewer() {
           content: text
         })
       }
-    } catch (err: any) {
-      setError(err.message || 'Error parsing file.')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      setError(message || 'Error parsing file.')
     } finally {
       setLoading(false)
     }
@@ -382,6 +385,7 @@ export function FirmwareDiffViewer() {
     if (comparisons.length > 0 && !selectedFilePath) {
       const firstChanged = comparisons.find(c => c.status !== 'unchanged') || comparisons[0]
       if (firstChanged) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- deriving default file selection when a new comparison set loads, not per-render derived state
         setSelectedFilePath(firstChanged.path)
       }
     }
@@ -468,9 +472,9 @@ export function FirmwareDiffViewer() {
     const highlightText = (content: string) => {
       if (!content) return []
       try {
-        const res = (window as any).hljs.highlight(content, { language: lang }).value
+        const res = (window as FirmwareAny).hljs.highlight(content, { language: lang }).value
         return res.split('\n')
-      } catch (e) {
+      } catch {
         return content.split('\n')
       }
     }
@@ -478,6 +482,7 @@ export function FirmwareDiffViewer() {
     if (fileA?.type === 'ZIP' && fileB?.type === 'ZIP' && selectedFilePath) {
       const inA = fileA.zipFiles?.find(f => f.name === selectedFilePath)
       const inB = fileB.zipFiles?.find(f => f.name === selectedFilePath)
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- recomputing syntax-highlighted lines when the selected file/comparison changes, not per-render derived state
       setHighlightedLinesA(inA ? highlightText(inA.content) : [])
       setHighlightedLinesB(inB ? highlightText(inB.content) : [])
     } else if (fileA && fileB && !['HEX', 'BIN', 'ELF'].includes(fileA.type)) {
@@ -492,7 +497,7 @@ export function FirmwareDiffViewer() {
   // Context hunks computation
   const hunks: Hunk[] = useMemo(() => {
     if (contextLines === 'all') return []
-    return generateHunks(diffLines, contextLines) as any
+    return generateHunks(diffLines, contextLines) as FirmwareAny
   }, [diffLines, contextLines])
 
   // Navigation: target markers
@@ -595,7 +600,7 @@ export function FirmwareDiffViewer() {
     setIsAnalyzing(true)
     setAnalysisResult(null)
 
-    let diffText = ''
+    let diffText: string
     if (binaryDiffResult) {
       diffText = binaryDiffResult.diffDumpText
     } else {
@@ -673,12 +678,13 @@ Generate the report in this exact JSON structure:
         message: 'Semantic review generated successfully. Risks mapped.',
         type: 'success'
       })
-    } catch (e: any) {
+    } catch (e) {
       console.error(e)
+      const message = e instanceof Error ? e.message : String(e)
       setToast({
         show: true,
         title: 'AI Request Failed',
-        message: e.message || 'Failed to fetch AI verification report.',
+        message: message || 'Failed to fetch AI verification report.',
         type: 'error'
       })
     } finally {
@@ -756,7 +762,7 @@ Generate the report in this exact JSON structure:
 
   // Exports: Standalone HTML
   const handleExportHTML = () => {
-    let html = `
+    const html = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -782,7 +788,7 @@ Generate the report in this exact JSON structure:
     File B: ${fileB?.name}
   </div>
   <div class="table">
-    ${diffLines.map((l, i) => `
+    ${diffLines.map((l) => `
       <div class="line ${l.type.toLowerCase()}">
         <span class="num">${l.lineA || ''}</span>
         <span class="num">${l.lineB || ''}</span>
@@ -797,6 +803,7 @@ Generate the report in this exact JSON structure:
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
+    // eslint-disable-next-line react-hooks/purity -- click handler, not render; timestamp makes the exported filename unique
     link.download = `diff-${Date.now()}.html`
     link.click()
   }
@@ -1111,7 +1118,7 @@ Generate the report in this exact JSON structure:
     let bg = 'transparent'
     let prefix = ' '
     let color = 'inherit'
-    let content: React.ReactNode = ''
+    let content: React.ReactNode
 
     if (line.type === 'REMOVED') {
       bg = 'rgba(255, 107, 107, 0.12)'
@@ -1291,7 +1298,7 @@ Generate the report in this exact JSON structure:
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <UniversalDropZone
                   acceptedCategories={['all']}
-                  onFileLoaded={(res: any) => processAndSetFile(res.file, 'A')}
+                  onFileLoaded={(res: FirmwareAny) => processAndSetFile(res.file, 'A')}
                 />
                 {isLoadingA && (
                   <span style={{ fontSize: 11, color: 'var(--accent)', alignSelf: 'center', marginTop: 10 }}>Parsing Version A buffer...</span>
@@ -1344,7 +1351,7 @@ Generate the report in this exact JSON structure:
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <UniversalDropZone
                   acceptedCategories={['all']}
-                  onFileLoaded={(res: any) => processAndSetFile(res.file, 'B')}
+                  onFileLoaded={(res: FirmwareAny) => processAndSetFile(res.file, 'B')}
                 />
                 {isLoadingB && (
                   <span style={{ fontSize: 11, color: 'var(--accent)', alignSelf: 'center', marginTop: 10 }}>Parsing Version B buffer...</span>
@@ -1722,7 +1729,7 @@ Generate the report in this exact JSON structure:
                         style={{ flex: 1, overflow: 'auto', borderRight: '1px solid var(--border)' }}
                       >
                         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 'max-content', width: '100%' }}>
-                          {diffLines.map((line, idx) => renderSplitLine(line as any, idx))}
+                          {diffLines.map((line, idx) => renderSplitLine(line as FirmwareAny, idx))}
                         </div>
                       </div>
                       <div
@@ -1732,7 +1739,7 @@ Generate the report in this exact JSON structure:
                         style={{ flex: 1, overflow: 'auto' }}
                       >
                         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 'max-content', width: '100%' }}>
-                          {diffLines.map((line, idx) => renderSplitLine(line as any, idx))}
+                          {diffLines.map((line, idx) => renderSplitLine(line as FirmwareAny, idx))}
                         </div>
                       </div>
                     </div>
@@ -1743,7 +1750,7 @@ Generate the report in this exact JSON structure:
                       style={{ flex: 1, overflow: 'auto' }}
                     >
                       <div style={{ display: 'flex', flexDirection: 'column', minWidth: 'max-content', width: '100%' }}>
-                        {diffLines.map((line, idx) => renderUnifiedLine(line as any, idx))}
+                        {diffLines.map((line, idx) => renderUnifiedLine(line as FirmwareAny, idx))}
                       </div>
                     </div>
                   )
@@ -1797,8 +1804,8 @@ Generate the report in this exact JSON structure:
                                     lineB: lineB?.lineB ?? null,
                                     valueA: lineA?.value || lineA?.valueA,
                                     valueB: lineB?.value || lineB?.valueB,
-                                    charDiffA: (lineA as any)?.charDiff || lineA?.charDiffA,
-                                    charDiffB: (lineB as any)?.charDiff || lineB?.charDiffB
+                                    charDiffA: (lineA as FirmwareAny)?.charDiff || lineA?.charDiffA,
+                                    charDiffB: (lineB as FirmwareAny)?.charDiff || lineB?.charDiffB
                                   }
 
                                   if (lineA?.type === 'UNCHANGED' && lineB?.type === 'UNCHANGED') {
@@ -1816,8 +1823,8 @@ Generate the report in this exact JSON structure:
                                     ...line,
                                     valueA: line.value || line.valueA,
                                     valueB: line.value || line.valueB,
-                                    charDiffA: (line as any).charDiff || line.charDiffA,
-                                    charDiffB: (line as any).charDiff || line.charDiffB
+                                    charDiffA: (line as FirmwareAny).charDiff || line.charDiffA,
+                                    charDiffB: (line as FirmwareAny).charDiff || line.charDiffB
                                   }
                                   return renderUnifiedLine(dummy, idx)
                                 })
