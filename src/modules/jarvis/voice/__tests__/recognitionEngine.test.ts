@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
+// Test doubles for the untyped Web Speech API (not in standard lib.dom types).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SRTestAny = any
+
 // The engine keeps its state in module-level variables that aren't exported,
 // so each test gets a clean slate via vi.resetModules() + a fresh dynamic import.
 async function loadEngine() {
@@ -22,7 +26,7 @@ class FakeSpeechRecognition {
 
 function installFakeSR() {
   const instances: FakeSpeechRecognition[] = []
-  ;(window as any).SpeechRecognition = vi.fn().mockImplementation(function (this: unknown) {
+  ;(window as SRTestAny).SpeechRecognition = vi.fn().mockImplementation(function (this: unknown) {
     const inst = new FakeSpeechRecognition()
     instances.push(inst)
     return inst
@@ -34,7 +38,7 @@ function fakeResultEvent(transcripts: Array<{ text: string; isFinal: boolean }>,
   return {
     resultIndex,
     results: transcripts.map((t) => {
-      const arr: any = [{ transcript: t.text, confidence: 0.9 }]
+      const arr: SRTestAny = [{ transcript: t.text, confidence: 0.9 }]
       arr.isFinal = t.isFinal
       return arr
     }),
@@ -42,8 +46,8 @@ function fakeResultEvent(transcripts: Array<{ text: string; isFinal: boolean }>,
 }
 
 beforeEach(() => {
-  delete (window as any).SpeechRecognition
-  delete (window as any).webkitSpeechRecognition
+  delete (window as SRTestAny).SpeechRecognition
+  delete (window as SRTestAny).webkitSpeechRecognition
   vi.useRealTimers()
 })
 
