@@ -51,8 +51,17 @@ function persistInstalled(ids: Set<string>) {
   window.dispatchEvent(new Event(CHANGE_EVENT))
 }
 
+// Drop the runtime-only kind/defaultInstalled/to fields before persisting.
+function toManifest(tool: CustomTool): CustomToolManifest {
+  const rest = { ...tool } as Partial<CustomTool>
+  delete rest.kind
+  delete rest.defaultInstalled
+  delete rest.to
+  return rest as CustomToolManifest
+}
+
 function persistCustom(tools: CustomTool[]) {
-  const manifests: CustomToolManifest[] = tools.map(({ kind, defaultInstalled, to, ...rest }) => rest)
+  const manifests: CustomToolManifest[] = tools.map(toManifest)
   localStorage.setItem(CUSTOM_KEY, JSON.stringify(manifests))
   window.dispatchEvent(new Event(CHANGE_EVENT))
 }
