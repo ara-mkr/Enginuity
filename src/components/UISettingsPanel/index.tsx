@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Palette, Type, LayoutGrid, Zap, Eye, X, RotateCcw,
-  Download, Upload, Check, Shuffle, ChevronRight, HardDrive,
+  Download, Upload, Check, Shuffle, HardDrive,
 } from 'lucide-react'
 import {
   useUISettings, THEME_PRESETS, DEFAULT_SETTINGS,
@@ -237,7 +237,10 @@ function ColorPicker({
 }) {
   const [hex, setHex] = useState(value)
 
-  useEffect(() => { setHex(value) }, [value])
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing local hex text input from the controlled color value prop
+    setHex(value)
+  }, [value])
 
   const commit = (v: string) => {
     if (/^#[0-9a-fA-F]{6}$/.test(v)) onChange(varName, v)
@@ -412,7 +415,7 @@ function BounceDot({ speed }: { speed: UISettings['transitionSpeed'] }) {
 // ── Swatchcard (theme preset) ─────────────────────────────────────────────────
 
 function ThemeCard({
-  id, label, colors, selected, onClick,
+  label, colors, selected, onClick,
 }: {
   id: string; label: string; colors: ThemeColors | null
   selected: boolean; onClick: () => void
@@ -965,9 +968,6 @@ function BehaviorSection({
   settings: UISettings
   update: (p: Partial<UISettings>) => void
 }) {
-  const formatInterval = (s: number) =>
-    s < 60 ? `${s}s` : `${Math.round(s / 60)}m`
-
   return (
     <div>
       <SectionHeader>Animation</SectionHeader>
