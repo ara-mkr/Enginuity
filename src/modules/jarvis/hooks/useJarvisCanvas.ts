@@ -60,13 +60,16 @@ export function useJarvisCanvas({ speak, addLog }: UseJarvisCanvasParams) {
   const [groups, setGroups] = useState<CanvasGroup[]>(initial.groups)
   const [transform, setTransform] = useState<CanvasTransform>(initial.transform)
   const [placementCount, setPlacementCount] = useState(0)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped persistence store selector
   const setJarvisCanvasState = useEnginguityStore((s: any) => s.setJarvisCanvasState)
 
   const itemsRef = useRef(items)
   const transformRef = useRef(transform)
   const placementCountRef = useRef(0)
-  itemsRef.current = items
-  transformRef.current = transform
+  useEffect(() => {
+    itemsRef.current = items
+    transformRef.current = transform
+  }, [items, transform])
 
   // Auto-grouping: a burst of items placed within 60s of a voice command gets grouped
   const sessionRef = useRef<{
@@ -108,7 +111,6 @@ export function useJarvisCanvas({ speak, addLog }: UseJarvisCanvasParams) {
       )
     })()
     return () => { cancelled = true }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const getPlacementPos = useCallback(() => {
