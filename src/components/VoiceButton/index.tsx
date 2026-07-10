@@ -403,6 +403,10 @@ export function VoiceButton() {
     localStorage.setItem('enginguity_voice_history', JSON.stringify(updated))
   }
 
+  // Intentionally re-created every render (not memoized) — the refs below
+  // exist precisely to give other effects a stable handle onto the latest
+  // closure, so wrapping these in useCallback isn't needed.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const toggleListening = () => {
     if (state === 'listening' || state === 'processing' || state === 'speaking') {
       stopVoiceMode()
@@ -411,6 +415,7 @@ export function VoiceButton() {
     }
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const stopVoiceMode = () => {
     setActive(false)
     setState('idle')

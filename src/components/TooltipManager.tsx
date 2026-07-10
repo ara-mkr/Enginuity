@@ -89,6 +89,10 @@ export function TooltipManager() {
     if (x !== tip.x || y !== tip.y) {
       setTip(t => ({ ...t, x, y }))
     }
+    // Intentionally excludes 'tip' (beyond visible/text) — this effect
+    // clamps tip.x/tip.y, so depending on the full object would re-fire
+    // itself in a loop every time it adjusts the position.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tip.visible, tip.text])
 
   if (!tip.visible && !tip.text) return null
