@@ -2,17 +2,12 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import {
   Clock,
   Sparkles,
-  HelpCircle,
   CheckSquare,
   Square,
-  BookOpen,
   Send,
   Loader2,
-  Lock,
   ChevronLeft,
-  Share2,
-  ExternalLink,
-  ChevronDown
+  ExternalLink
 } from 'lucide-react'
 import { ParameterPlayground } from '../../parameter-playground/ParameterPlayground'
 import CircuitSim from '../../circuit-sim/CircuitSim'
@@ -59,6 +54,18 @@ export function ChallengeWorkspace({ challenge, onExit, onSubmitSolution }: Chal
   // Local backups for state isolation
   const backupDataRef = useRef<Record<string, string | null>>({})
 
+  // Declared before the init effect below since its cleanup calls this.
+  const saveWorkspaceState = () => {
+    const wsState: ChallengeWorkspaceState = {
+      consoleCode: localStorage.getItem('enginguity_starter_code') || '',
+      notebookNotes: localStorage.getItem('enginguity_notebook') || '[]',
+      playgroundState: localStorage.getItem('enginguity_params_prefill') || '{}',
+      circuitState: localStorage.getItem('enginguity_circuit_prefill') || '{}',
+      checkedConstraints
+    }
+    localStorage.setItem(`enginguity_challenge_${challenge.id}_workspace`, JSON.stringify(wsState))
+  }
+
   // Initialize: backup main localStorage, load challenge workspace state
   useEffect(() => {
     const backupKeys = [
@@ -82,6 +89,7 @@ export function ChallengeWorkspace({ challenge, onExit, onSubmitSolution }: Chal
         if (parsed.notebookNotes) localStorage.setItem('enginguity_notebook', parsed.notebookNotes)
         if (parsed.playgroundState) localStorage.setItem('enginguity_params_prefill', parsed.playgroundState)
         if (parsed.circuitState) localStorage.setItem('enginguity_circuit_prefill', parsed.circuitState)
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time workspace restore on mount
         if (parsed.checkedConstraints) setCheckedConstraints(parsed.checkedConstraints)
       } catch (e) {
         console.error('Failed to parse saved challenge workspace', e)
@@ -145,17 +153,6 @@ export function ChallengeWorkspace({ challenge, onExit, onSubmitSolution }: Chal
 
     return () => clearInterval(autoSave)
   }, [showResultsCard, checkedConstraints])
-
-  const saveWorkspaceState = () => {
-    const wsState: ChallengeWorkspaceState = {
-      consoleCode: localStorage.getItem('enginguity_starter_code') || '',
-      notebookNotes: localStorage.getItem('enginguity_notebook') || '[]',
-      playgroundState: localStorage.getItem('enginguity_params_prefill') || '{}',
-      circuitState: localStorage.getItem('enginguity_circuit_prefill') || '{}',
-      checkedConstraints
-    }
-    localStorage.setItem(`enginguity_challenge_${challenge.id}_workspace`, JSON.stringify(wsState))
-  }
 
   // Points ticks down 1% per 2 minutes
   const pointsRemaining = useMemo(() => {
@@ -254,7 +251,7 @@ Please structure the solution with:
     try {
       const response = await makeRequest([{ role: 'user', content: prompt }], system)
       setAiReferenceSolution(response)
-    } catch (e: any) {
+    } catch {
       setAiReferenceSolution('Failed to load reference solution. Make sure you are connected to the internet.')
     } finally {
       setLoadingAISolution(false)
