@@ -1,15 +1,15 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useAIProvider } from '../../hooks/useAIProvider'
 import { useProjectContext } from '../../hooks/useProjectContext'
 import { useProbeContext } from '../../hooks/useProbeContext'
 import { logEvent } from '../../engine/eventLog'
-// @ts-ignore
+// @ts-expect-error - untyped JS module, no .d.ts yet
 import { useEnginguityStore } from '../../engine/persistenceEngine'
-// @ts-ignore
+// @ts-expect-error - untyped JS module, no .d.ts yet
 import ResizablePanel from '../../components/ResizablePanel'
 import {
   Play, Download, Copy, ChevronDown, ChevronRight,
-  Pencil, Check, X, FileCode, Loader2, AlertCircle
+  Pencil, X, FileCode, Loader2
 } from 'lucide-react'
 import { parseSignature } from './parseSignature'
 import { generatePytestFile, generateJestFile } from './codeGenerator'
@@ -95,7 +95,7 @@ addEventListener('message',function(e){
   }
   parent.postMessage({__testHarness:true,results:out},'*');
 });
-<\/script>`
+</script>`
 
 function priorityOrder(p: Priority): number {
   return { critical: 0, high: 1, medium: 2, low: 3 }[p]
@@ -311,10 +311,10 @@ function EditModal({ tc, onSave, onClose }: { tc: TestCase; onSave: (updated: Te
 
 export function TestHarness() {
   const ai = useAIProvider()
-  const project = useProjectContext()
+  useProjectContext() // subscribe to project context so this panel re-mounts state on project switch
 
   // Persisted slice — survives navigation/refresh (src/engine/persistenceEngine.js)
-  const setTestHarnessState = useEnginguityStore((s: any) => s.setTestHarnessState)
+  const setTestHarnessState = useEnginguityStore((s: { setTestHarnessState: (state: unknown) => void }) => s.setTestHarnessState)
   const persisted = useEnginguityStore.getState().testHarness
 
   // Left panel state
@@ -373,7 +373,11 @@ export function TestHarness() {
 
   // Parse signature on code change
   useEffect(() => {
-    if (!code.trim()) { setSig(null); return }
+    if (!code.trim()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clearing derived signature when the source code is emptied
+      setSig(null)
+      return
+    }
     const parsed = parseSignature(code, language)
     if (parsed) {
       setSig(parsed)
@@ -387,6 +391,7 @@ export function TestHarness() {
 
   // Switch framework when language changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- default framework choice derived from language, kept as state so the user can still override it
     if (language === 'python') setFramework('pytest')
     else setFramework('jest')
   }, [language])
@@ -398,7 +403,8 @@ export function TestHarness() {
   const toggleSelect = (id: string) => {
     setSelected(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }
@@ -516,7 +522,7 @@ Return a JSON array where each item is:
     try {
       await (pyodide as { runPythonAsync: (code: string) => Promise<unknown> }).runPythonAsync(code)
     } catch (e: unknown) {
-      throw new Error('Function failed to load: ' + (e instanceof Error ? e.message : String(e)))
+      throw new Error('Function failed to load: ' + (e instanceof Error ? e.message : String(e)), { cause: e })
     }
 
     const funcName = sig?.functionName ?? ''

@@ -48,7 +48,7 @@ export function ToolMarketplace() {
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim()
     return allTools.filter((t) => {
-      if (category !== 'All' && (t as any).category !== category) return false
+      if (category !== 'All' && t.category !== category) return false
       if (!q) return true
       return (
         t.label.toLowerCase().includes(q) ||
@@ -74,7 +74,7 @@ export function ToolMarketplace() {
         } else {
           setUploadSuccess(`Installed "${parsed.label}". Available in the sidebar.`)
         }
-      } catch (err) {
+      } catch {
         setUploadError('Could not parse file. Expected a valid .tool.json manifest.')
       }
     }
@@ -253,8 +253,8 @@ export function ToolMarketplace() {
                       )}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>
-                      {(tool as any).category}
-                      {isCustom && (tool as any).author ? ` · by ${(tool as any).author}` : ''}
+                      {tool.category}
+                      {tool.kind === 'custom' && tool.author ? ` · by ${tool.author}` : ''}
                     </div>
                   </div>
                 </div>
