@@ -175,8 +175,8 @@ for the license status of evaluated simulator engines.
 
 ## Acknowledgments
 
-- Ohma 🦉
-- The ngspice, EEcircuit, and avr8js maintainers, whose work shapes the solver roadmap
+
+- davidmonterocrespo24 - uses Velxio
 - Everyone who has stress-tested the app and filed an issue
 
 <!-- IMAGE: footer mark — a small, subtle steel-blue Ohma silhouette, centered. -->
