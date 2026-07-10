@@ -114,7 +114,6 @@ and will shrink as things get fixed.
 - **Unsigned desktop builds.** The packaged `.dmg`/`.exe` are unsigned; macOS Gatekeeper and Windows SmartScreen will warn. Build from source, or click through knowingly. No auto-updater yet.
 - **Fonts need a network on first load.** UI fonts (DM Sans / JetBrains Mono) load from Google Fonts; fully-offline sessions fall back to system fonts. Self-hosting is planned.
 - **Collaboration trust model.** The first client to join a room establishes its token. Use long, unguessable room IDs (the app generates them) and run the server behind TLS (`wss://`) in production. A `server/README.md` documenting this isn't written yet.
-- **Jarvis + Drawing Board.** Opening the Drawing Board from inside Jarvis can occasionally render blank on first mount (suspected store-rehydration race — still being pinned down). Refresh recovers.
 - **Open-source solver migration.** A migration to `eecircuit-engine` (ngspice-WASM, MIT) has passed its correctness spike but the adapter isn't landed; today's solver is the in-house MNA engine. Microcontroller co-simulation (avr8js Code Box) is designed but not reachable from the UI.
 - **CAD** beyond viewing (STL/OBJ/3MF/DXF) is planned, not shipped.
 - **Docs.** `server/README.md`, the contributor guide, and inline JSDoc are incomplete.
