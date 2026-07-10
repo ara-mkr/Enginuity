@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { X, Minus, Square, Minimize2, Columns, ChevronDown } from 'lucide-react'
+import { Square, Minimize2, Columns, ChevronDown } from 'lucide-react'
 import { useWorkspace, type WorkspaceWindow as WindowType } from '../../context/WorkspaceContext'
 import { ProjectProvider } from '../../context/ProjectContext'
 import { listProjects } from '../../utils/projectManager'
@@ -41,12 +41,14 @@ export const WorkspaceWindow: React.FC<WorkspaceWindowProps> = ({ window: win, c
   // Keep local state in sync with global state changes (like tiling/snapping)
   useEffect(() => {
     if (!isDragging) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing local drag position from external window state (tiling/snapping)
       setLocalPos({ x: win.x, y: win.y })
     }
   }, [win.x, win.y, isDragging])
 
   useEffect(() => {
     if (!isResizing) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing local size from external window state (tiling/snapping)
       setLocalSize({ w: win.width, h: win.height })
     }
   }, [win.width, win.height, isResizing])
