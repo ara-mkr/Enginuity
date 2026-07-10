@@ -21,9 +21,11 @@ import { useProbeContext } from '../../hooks/useProbeContext'
 import { logEvent } from '../../engine/eventLog'
 import { ComponentCard } from './ComponentCard'
 import { ComponentLibrary, saveToLibrary, loadLibrary } from './ComponentLibrary'
-// @ts-ignore
 import { UniversalDropZone } from '../../components/UniversalDropZone/index.jsx'
 import type { ComponentData, ChatMessage, SavedComponent } from './types'
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DatasheetAny = any
 
 const PROCESSING_MESSAGES = [
   'Reading pin definitions…',
@@ -132,7 +134,7 @@ export function DatasheetIntelligence() {
           },
           pinout: [],
           absoluteMaximums: [],
-          electricalCharacteristics: prefill.keySpecs?.map((s: any) => ({
+          electricalCharacteristics: prefill.keySpecs?.map((s: DatasheetAny) => ({
             parameter: s.param,
             symbol: '',
             min: null,
@@ -147,6 +149,7 @@ export function DatasheetIntelligence() {
           orderingInfo: [],
           resources: { productPage: prefill.productPageUrl || null, evalBoard: null }
         }
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time mount restore from a localStorage prefill payload
         setComponent(mockedData)
         setCurrentFileName(`${prefill.partNumber || 'component'}-prefill.json`)
         setPhase('done')
@@ -171,7 +174,7 @@ export function DatasheetIntelligence() {
 
   useEffect(() => () => stopMsgCycle(), [])
 
-  const handleFileLoaded = useCallback(async (result: any) => {
+  const handleFileLoaded = useCallback(async (result: DatasheetAny) => {
     setPhase('processing')
     setError('')
     setCurrentFileName(result.name || 'datasheet')
