@@ -7,6 +7,7 @@ export interface HomeMessage {
   isStreaming?: boolean
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- shared default-messages constant, not worth a separate file
 export const HOME_DEFAULT_MESSAGES: HomeMessage[] = [
   {
     role: 'assistant',
@@ -47,6 +48,7 @@ export function HomeChatProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook is tightly coupled to this provider's context instance
 export function useHomeChat(): HomeChatContextValue {
   const ctx = useContext(HomeChatContext)
   if (!ctx) throw new Error('useHomeChat must be used within HomeChatProvider')
