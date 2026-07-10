@@ -29,7 +29,6 @@ import {
   fetchCalculation,
   fetchCode,
   fetchYouTubeVideoPerplexity,
-  fetchYouTubeVideo,
   fetchTutorialResources,
   analyzeImageWithVision,
   extractJson,
@@ -38,7 +37,6 @@ import {
 import { useOpenRouter } from '../../context/OpenRouterContext'
 import { formatOllamaModelName } from '../../config/ollama'
 import {
-  buildJarvisSystemPrompt,
   buildContextString,
   buildFullProjectContext,
   buildDataDocSections,
@@ -52,10 +50,7 @@ import {
 } from './voice/kokoroTts'
 import type {
   WakeState,
-  CanvasItem,
-  CanvasGroup,
   LogEntry,
-  CanvasTransform,
   JarvisSettings,
 } from './types'
 import { DEFAULT_SETTINGS, BG_COLORS } from './types'
@@ -65,34 +60,15 @@ import { useJarvisVision } from './hooks/useJarvisVision'
 import { v4 as uuid } from 'uuid'
 
 // ────────── Wake word sets ──────────
-const WAKE_WORDS_LOW = ['hey jarvis']
-const WAKE_WORDS_NORMAL = ['hey jarvis', 'jarvis', 'hey javis', 'hey travis', 'hey service', 'ok jarvis']
-const WAKE_WORDS_HIGH = [
-  'hey jarvis', 'jarvis', 'hey javis', 'hey travis', 'hey service', 'ok jarvis',
-  'yo jarvis', 'jar vis', 'service',
-]
 const SLEEP_COMMANDS = ['go to sleep', 'goodbye', 'stop listening', 'sleep', 'bye jarvis']
 const STOP_SPEECH_RE = /^(jarvis[,\s]+)?(stop|stop talking|stop speaking|shut up|shut it|be quiet|quiet|silence|enough|that'?s enough|cancel|nevermind|never mind)\s*[.!?]*\s*$/i
 
-function getWakeWords(s: JarvisSettings['wakeSensitivity']) {
-  if (s === 'low') return WAKE_WORDS_LOW
-  if (s === 'high') return WAKE_WORDS_HIGH
-  return WAKE_WORDS_NORMAL
-}
-
-function containsWakeWord(t: string, s: JarvisSettings['wakeSensitivity']) {
-  const lower = t.toLowerCase().trim()
-  return getWakeWords(s).some((w) => lower.includes(w))
-}
-
-function extractAfterWakeWord(t: string, s: JarvisSettings['wakeSensitivity']) {
-  const lower = t.toLowerCase()
-  for (const w of getWakeWords(s)) {
-    const idx = lower.indexOf(w)
-    if (idx !== -1) return t.slice(idx + w.length).trim()
-  }
-  return ''
-}
+// Jarvis wires together many untyped external/dynamic surfaces — browser
+// speech APIs, AI JSON responses parsed at runtime, canvas item payloads,
+// and the window.jarvis debug bridge. One localized disable instead of
+// suppressing every call site individually across this large module.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type JarvisAny = any
 
 function containsSleepCommand(t: string) {
   const lower = t.toLowerCase().trim()
@@ -451,7 +427,7 @@ function loadSettings(): JarvisSettings {
 
 // ────────── html2canvas loader ──────────
 async function loadHtml2Canvas(): Promise<((el: HTMLElement, opts?: object) => Promise<HTMLCanvasElement>) | null> {
-  const w = window as any
+  const w = window as JarvisAny
   if (w.html2canvas) return w.html2canvas
   return new Promise((resolve) => {
     const script = document.createElement('script')
@@ -466,11 +442,11 @@ async function loadHtml2Canvas(): Promise<((el: HTMLElement, opts?: object) => P
 // ────────── Browser support check ──────────
 function checkBrowserSupport(): { supported: boolean; message?: string } {
   const hasSR = !!(
-    (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    (window as JarvisAny).SpeechRecognition || (window as JarvisAny).webkitSpeechRecognition
   )
   const hasGUM = !!(navigator.mediaDevices?.getUserMedia)
   const isChromium = /Chrome|Chromium|Edg/.test(navigator.userAgent)
-  ;(window as any).jarvisDiag?.(
+  ;(window as JarvisAny).jarvisDiag?.(
     `Browser: SR=${hasSR} GUM=${hasGUM} Chromium=${isChromium}`,
     hasSR ? 'success' : 'error'
   )
@@ -492,10 +468,12 @@ function VoiceDiagnostic() {
   >([])
   const [unreadCount, setUnreadCount] = useState(0)
   const expandedRef = useRef(expanded)
-  expandedRef.current = expanded
+  useEffect(() => {
+    expandedRef.current = expanded
+  }, [expanded])
 
   useEffect(() => {
-    ;(window as any).jarvisDiag = (msg: string, type = 'info') => {
+    ;(window as JarvisAny).jarvisDiag = (msg: string, type = 'info') => {
       setLog((prev) =>
         [
           ...prev,
@@ -514,11 +492,12 @@ function VoiceDiagnostic() {
       if (!expandedRef.current) setUnreadCount((n) => n + 1)
     }
     return () => {
-      ;(window as any).jarvisDiag = undefined
+      ;(window as JarvisAny).jarvisDiag = undefined
     }
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- clearing unread badge when the panel opens, a direct UI reaction to the expanded toggle
     if (expanded) setUnreadCount(0)
   }, [expanded])
 
@@ -1131,10 +1110,10 @@ function JarvisModuleInner() {
   const [interimTranscript, setInterimTranscript] = useState('')
 
   // New states
-  const [awaitingConfirmation, setAwaitingConfirmation] = useState<{ type: string; data: any } | null>(null)
-  const [guidedMode, setGuidedMode] = useState<{ title: string; estimatedMinutes: number; steps: any[]; currentStep: number; topic: string; completionMessage?: string } | null>(null)
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState<{ type: string; data: JarvisAny } | null>(null)
+  const [guidedMode, setGuidedMode] = useState<{ title: string; estimatedMinutes: number; steps: JarvisAny[]; currentStep: number; topic: string; completionMessage?: string } | null>(null)
   const [showMeasurementPanel, setShowMeasurementPanel] = useState(false)
-  const [orderList, setOrderList] = useState<any[]>(() => {
+  const [orderList, setOrderList] = useState<JarvisAny[]>(() => {
     try {
       return JSON.parse(localStorage.getItem('enginguity_jarvis_order_list') || '[]')
     } catch {
@@ -1142,7 +1121,6 @@ function JarvisModuleInner() {
     }
   })
 
-  const recognitionRef = useRef<any>(null)
   const audioCtxRef = useRef<AudioContext | null>(null)
   const clapNodeRef = useRef<ScriptProcessorNode | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
@@ -1157,9 +1135,11 @@ function JarvisModuleInner() {
   // Timer Ref
   const activeTimers = useRef<Array<{ timerId: string; timeout: ReturnType<typeof setTimeout>; interval: ReturnType<typeof setInterval>; itemId: string }>>([])
 
-  wakeStateRef.current = wakeState
-  settingsRef.current = settings
-  isMutedRef.current = isMuted
+  useEffect(() => {
+    wakeStateRef.current = wakeState
+    settingsRef.current = settings
+    isMutedRef.current = isMuted
+  }, [wakeState, settings, isMuted])
 
   // Track probe bot sidebar open state to avoid overlapping Enter Jarvis button
   useEffect(() => {
@@ -1204,15 +1184,6 @@ function JarvisModuleInner() {
     return () => { window.speechSynthesis.onvoiceschanged = null }
   }, [])
 
-  // Speak AI session briefing when ready
-  useEffect(() => {
-    const handle = (e: CustomEvent) => {
-      if (e.detail?.briefing) speak(e.detail.briefing)
-    }
-    window.addEventListener('enginguity_session_briefing_ready', handle as EventListener)
-    return () => window.removeEventListener('enginguity_session_briefing_ready', handle as EventListener)
-  }, [])
-
   // Camera active ref kept in sync
   // (stream + video element managed by cameraEngine singleton)
 
@@ -1227,6 +1198,17 @@ function JarvisModuleInner() {
       intent
     )
   }, [])
+
+  // Speak AI session briefing when ready.
+  // Placed after `speak`'s declaration (used inside) to avoid a
+  // temporal-dead-zone access-before-declared reference.
+  useEffect(() => {
+    const handle = (e: CustomEvent) => {
+      if (e.detail?.briefing) speak(e.detail.briefing)
+    }
+    window.addEventListener('enginguity_session_briefing_ready', handle as EventListener)
+    return () => window.removeEventListener('enginguity_session_briefing_ready', handle as EventListener)
+  }, [speak])
 
   const {
     sessionStartTime,
@@ -1250,8 +1232,6 @@ function JarvisModuleInner() {
     setGroups,
     transform,
     setTransform,
-    transformRef,
-    getPlacementPos,
     placeItem,
     updateCanvasItem,
     startSession,
@@ -1315,13 +1295,13 @@ function JarvisModuleInner() {
   }, [addLog, resetSleepTimer, hasWoken, speak])
 
   useEffect(() => {
-    // @ts-ignore
+    // @ts-expect-error - untyped external API
     window.jarvis = {
       wakeState,
       wakeUp,
     };
     return () => {
-      // @ts-ignore
+      // @ts-expect-error - untyped external API
       delete window.jarvis;
     };
   }, [wakeState, wakeUp]);
@@ -1337,8 +1317,8 @@ function JarvisModuleInner() {
       const ctx = buildFullProjectContext()
       const notebook = JSON.parse(localStorage.getItem('enginguity_notebook') || '[]')
       const openProblems = notebook
-        .filter((e: any) => e?.type === 'PROBLEM' && e?.status !== 'solved')
-        .map((e: any) => e.title)
+        .filter((e: JarvisAny) => e?.type === 'PROBLEM' && e?.status !== 'solved')
+        .map((e: JarvisAny) => e.title)
         .filter(Boolean)
       const sessionDuration = Math.round((Date.now() - sessionStartTime) / 60000)
       return `
@@ -1357,7 +1337,7 @@ Use this context to make responses feel personal. Reference the project when rel
     }
   }, [sessionStartTime, activeModel, items.length])
 
-  const makeJarvisRequest = useCallback(async (messages: any[], systemPrompt?: string, options?: any) => {
+  const makeJarvisRequest = useCallback(async (messages: JarvisAny[], systemPrompt?: string, options?: JarvisAny) => {
     if (isPaused) {
       speak("Budget's gone for today. I'm paused.")
       throw new Error("Jarvis budget limit reached.")
@@ -1446,7 +1426,7 @@ Use this context to make responses feel personal. Reference the project when rel
   }, [speak, addLog])
 
   // ── Local helpers for module integrations ──
-  const addNotebookEntry = useCallback((entry: any) => {
+  const addNotebookEntry = useCallback((entry: JarvisAny) => {
     const existing = JSON.parse(localStorage.getItem('enginguity_notebook') || '[]')
     const newEntry = {
       id: entry.id || `nb-jarvis-${Date.now()}`,
@@ -1462,7 +1442,7 @@ Use this context to make responses feel personal. Reference the project when rel
     window.dispatchEvent(new Event('notebook-updated'))
   }, [])
 
-  const addPartToBOM = useCallback((component: any) => {
+  const addPartToBOM = useCallback((component: JarvisAny) => {
     const bomKey = 'enginguity_boms'
     const bom = JSON.parse(localStorage.getItem(bomKey) || '[]')
     const newItem = {
@@ -1488,7 +1468,7 @@ Use this context to make responses feel personal. Reference the project when rel
   }, [speak])
 
   const playTimerSound = useCallback(() => {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+    const AudioContextClass = window.AudioContext || (window as JarvisAny).webkitAudioContext
     if (!AudioContextClass) return
     const ctx = new AudioContextClass()
     const osc = ctx.createOscillator()
@@ -1511,6 +1491,37 @@ Use this context to make responses feel personal. Reference the project when rel
   // ── Feature Functions ──
   
   // Feature 1: Multimeter & Instrument Reading
+  // Declared before readInstrument below (used inside) to avoid a
+  // temporal-dead-zone access-before-declared reference.
+  const logMeasurementToNotebook = useCallback((reading: JarvisAny, itemId?: string) => {
+    const entry = {
+      type: 'TEST_RESULT',
+      title: `${reading.instrumentType} Reading`,
+      measurements: [{
+        param: reading.primaryReading.mode,
+        value: String(reading.primaryReading.value),
+        unit: reading.primaryReading.unit
+      }],
+      conditions: `Captured via Jarvis camera at ${new Date().toLocaleTimeString()}`,
+      notes: reading.displayText || ''
+    }
+
+    addNotebookEntry(entry)
+    speak("Logged to your notebook.")
+
+    if (itemId) {
+      setItems(prev => prev.map(it => {
+        if (it.id === itemId) {
+          return {
+            ...it,
+            content: { ...it.content, logged: true }
+          }
+        }
+        return it
+      }))
+    }
+  }, [speak, addNotebookEntry, setItems])
+
   const readInstrument = useCallback(async (additionalContext = '') => {
     const photo = capturePhoto()
     if (!photo) return null
@@ -1577,36 +1588,7 @@ Use this context to make responses feel personal. Reference the project when rel
       speak("I had trouble reading the instrument display.")
       addLog('system', `— Instrument read error: ${err instanceof Error ? err.message : 'unknown'}`)
     }
-  }, [apiKey, capturePhoto, placeItem, speak, addLog, trackUsage, sessionCommands])
-
-  const logMeasurementToNotebook = useCallback((reading: any, itemId?: string) => {
-    const entry = {
-      type: 'TEST_RESULT',
-      title: `${reading.instrumentType} Reading`,
-      measurements: [{
-        param: reading.primaryReading.mode,
-        value: String(reading.primaryReading.value),
-        unit: reading.primaryReading.unit
-      }],
-      conditions: `Captured via Jarvis camera at ${new Date().toLocaleTimeString()}`,
-      notes: reading.displayText || ''
-    }
-    
-    addNotebookEntry(entry)
-    speak("Logged to your notebook.")
-    
-    if (itemId) {
-      setItems(prev => prev.map(it => {
-        if (it.id === itemId) {
-          return {
-            ...it,
-            content: { ...it.content, logged: true }
-          }
-        }
-        return it
-      }))
-    }
-  }, [speak, addNotebookEntry])
+  }, [apiKey, capturePhoto, placeItem, speak, addLog, trackUsage, sessionCommands, logMeasurementToNotebook])
 
   // Feature 2: Component ID
   const identifyComponent = useCallback(async () => {
@@ -1657,7 +1639,7 @@ Use this context to make responses feel personal. Reference the project when rel
         localStorage.getItem('enginguity_bom_current') || 
         '[]'
       )
-      const inBOM = bom.find((item: any) => 
+      const inBOM = bom.find((item: JarvisAny) => 
         (item.part_number && component.partNumber && item.part_number.toLowerCase() === component.partNumber.toLowerCase()) ||
         (item.description && component.value && item.description.toLowerCase().includes(component.value.toLowerCase()))
       )
@@ -1830,29 +1812,7 @@ Use this context to make responses feel personal. Reference the project when rel
   const quickSpice = useCallback(async (command: string) => {
     speak("Calculating...")
     addLog('system', `— Simulating circuit: "${command}"…`)
-    
-    const prompt = `For the described circuit or calculation:
-      1. Identify the circuit topology
-      2. Calculate the key values
-      3. Generate a simple frequency or time domain result
-         as data points (not code, just numbers)
-      4. Suggest component values
-      
-      Return JSON:
-      {
-        "circuitType": string,
-        "components": [{"name": string, "value": string, "unit": string}],
-        "keyResults": [{"parameter": string, "value": string, "unit": string}],
-        "chartData": {
-          "type": "frequency" | "time" | "dc",
-          "xLabel": string,
-          "yLabel": string,
-          "points": [{"x": number, "y": number}]
-        } | null,
-        "spiceNetlist": string,
-        "spoken": string
-      }`
-    
+
     try {
       const response = await makeJarvisRequest([{ role: 'user', content: command }], `You are a circuit simulation assistant.`)
       const result = JSON.parse(extractJson(response))
@@ -2048,13 +2008,13 @@ Use this context to make responses feel personal. Reference the project when rel
     const notebook = JSON.parse(localStorage.getItem('enginguity_notebook') || '[]')
     if (notebook.length < 5) return
 
-    const problems = notebook.filter((e: any) =>
+    const problems = notebook.filter((e: JarvisAny) =>
       e.type === 'PROBLEM' || e.type === 'OBSERVATION'
     )
     if (problems.length < 2) return
 
     const wordCounts: Record<string, number> = {}
-    problems.forEach((p: any) => {
+    problems.forEach((p: JarvisAny) => {
       const words = (p.title + ' ' + (p.notes || p.content || ''))
         .toLowerCase()
         .split(/\W+/)
@@ -2065,7 +2025,7 @@ Use this context to make responses feel personal. Reference the project when rel
     })
 
     const recurring = Object.entries(wordCounts)
-      .filter(([word, count]) => count >= 3)
+      .filter(([, count]) => count >= 3)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
 
@@ -2118,7 +2078,7 @@ Use this context to make responses feel personal. Reference the project when rel
       
       if (entry.isSolvingProblem) {
         const notebook = JSON.parse(localStorage.getItem('enginguity_notebook') || '[]')
-        const openProblem = notebook.find((e: any) => 
+        const openProblem = notebook.find((e: JarvisAny) => 
           e.type === 'PROBLEM' && e.status !== 'solved' &&
           (entry.problemTitle ? e.title.toLowerCase().includes(entry.problemTitle.toLowerCase()) : true)
         )
@@ -2157,6 +2117,20 @@ Use this context to make responses feel personal. Reference the project when rel
   }, [placeItem, speak, addLog, makeJarvisRequest, addNotebookEntry, checkForPatterns])
 
   // Feature 8: Step-by-Step Guided mode
+  // Declared before startGuidedMode below (used inside) to avoid a
+  // temporal-dead-zone access-before-declared reference.
+  const speakStep = useCallback((step: JarvisAny) => {
+    speak(`Step ${step.number}: ${step.action}`)
+    setTimeout(() => {
+      speak(`To verify: ${step.verification}`)
+    }, 3500)
+    if (step.warning) {
+      setTimeout(() => {
+        speak(`Warning: ${step.warning}`)
+      }, 7000)
+    }
+  }, [speak])
+
   const startGuidedMode = useCallback(async (topic: string) => {
     speak(`Starting guided walkthrough for ${topic}. I'll go one step at a time. Say 'next' when you're ready to continue, or 'explain' if you need more detail.`)
     addLog('system', `— Loading guide for "${topic}"…`)
@@ -2214,21 +2188,10 @@ Use this context to make responses feel personal. Reference the project when rel
       speak("I couldn't load the guided walkthrough.")
       addLog('system', `— Guided mode error: ${err instanceof Error ? err.message : 'unknown'}`)
     }
-  }, [placeItem, speak, addLog, makeJarvisRequest])
+  }, [placeItem, speak, addLog, makeJarvisRequest, speakStep, setItems])
 
-  const speakStep = useCallback((step: any) => {
-    speak(`Step ${step.number}: ${step.action}`)
-    setTimeout(() => {
-      speak(`To verify: ${step.verification}`)
-    }, 3500)
-    if (step.warning) {
-      setTimeout(() => {
-        speak(`Warning: ${step.warning}`)
-      }, 7000)
-    }
-  }, [speak])
 
-  const processGuidedCommand = useCallback((transcript: string, modeState: any) => {
+  const processGuidedCommand = useCallback((transcript: string, modeState: JarvisAny) => {
     const cmd = transcript.toLowerCase().trim()
     const { steps, currentStep, completionMessage } = modeState
     
@@ -2295,7 +2258,7 @@ Use this context to make responses feel personal. Reference the project when rel
   }, [speak, speakStep, makeJarvisRequest])
 
   // Feature 9: Parts order shortlist
-  const updateOrCreateOrderListItem = useCallback((updated: any[]) => {
+  const updateOrCreateOrderListItem = useCallback((updated: JarvisAny[]) => {
     const existing = itemsRef.current.find(it => it.type === 'order_list')
     if (existing) {
       setItems(prev => prev.map(it => {
@@ -2317,7 +2280,7 @@ Use this context to make responses feel personal. Reference the project when rel
     }
   }, [placeItem, flashCanvasItem])
 
-  const addToOrderList = useCallback(async (item: any) => {
+  const addToOrderList = useCallback(async (item: JarvisAny) => {
     const newItem = {
       id: uuid(),
       description: item.description,
@@ -2337,8 +2300,8 @@ Use this context to make responses feel personal. Reference the project when rel
     updateOrCreateOrderListItem(updated)
   }, [orderList, speak, updateOrCreateOrderListItem])
 
-  const handleOrderListAction = useCallback((action: 'export_csv' | 'read_list' | 'clear_purchased' | 'toggle_purchased', itemData?: any) => {
-    const current = JSON.parse(localStorage.getItem('enginguity_jarvis_order_list') || '[]') as any[]
+  const handleOrderListAction = useCallback((action: 'export_csv' | 'read_list' | 'clear_purchased' | 'toggle_purchased', itemData?: JarvisAny) => {
+    const current = JSON.parse(localStorage.getItem('enginguity_jarvis_order_list') || '[]') as JarvisAny[]
     
     if (action === 'toggle_purchased') {
       const updated = current.map(it => {
@@ -2476,7 +2439,7 @@ Use this context to make responses feel personal. Reference the project when rel
   }, [sessionStartTime, sessionCommands, makeJarvisRequest, placeItem, speak, addLog, addNotebookEntry])
 
   // Unified confirmation handler
-  const handleConfirmation = useCallback((pending: { type: string; data: any }, confirmed: boolean) => {
+  const handleConfirmation = useCallback((pending: { type: string; data: JarvisAny }, confirmed: boolean) => {
     if (!confirmed) return
     
     switch (pending.type) {
@@ -2517,7 +2480,7 @@ Use this context to make responses feel personal. Reference the project when rel
     navigate('/circuit-sim')
   }, [navigate])
 
-  const handleOpenInDatasheet = useCallback((component: any) => {
+  const handleOpenInDatasheet = useCallback((component: JarvisAny) => {
     localStorage.setItem('enginguity_datasheet_prefill', JSON.stringify(component))
     navigate('/datasheet')
   }, [navigate])
@@ -2544,6 +2507,29 @@ Use this context to make responses feel personal. Reference the project when rel
   }, [checkForPatterns])
 
   // ── Process command ──
+  // Declared before processCommand below (used inside its switch statement)
+  // to avoid a temporal-dead-zone access-before-declared reference.
+  function handleCanvasControl(action: string) {
+    switch (action) {
+      case 'zoom_in':
+        setTransform((t) => ({ ...t, scale: Math.min(3, t.scale * 1.3) }))
+        speak('Zoomed in.')
+        break
+      case 'zoom_out':
+        setTransform((t) => ({ ...t, scale: Math.max(0.1, t.scale / 1.3) }))
+        speak('Zoomed out.')
+        break
+      case 'reset':
+        setTransform({ x: 0, y: 0, scale: 1 })
+        speak('View reset.')
+        break
+      case 'clear':
+        clearCanvas()
+        break
+    }
+    addLog('system', `— Canvas: ${action}`)
+  }
+
   const processCommand = useCallback(
     async (transcript: string) => {
       if (!transcript.trim() || transcript.trim().length < 2) return
@@ -2563,7 +2549,7 @@ Use this context to make responses feel personal. Reference the project when rel
       // ── Greeting fast-path (no AI call) ──
       const greetingMatch = /^(hi|hello|hey|good morning|good afternoon|good evening|yo)\b[\s!.,?]*$/i.test(transcript.trim())
       if (greetingMatch) {
-        ;(window as any).jarvisDiag?.('greeting fast-path', 'info')
+        ;(window as JarvisAny).jarvisDiag?.('greeting fast-path', 'info')
         const reply = jarvisPhrase('greeting')
         addLog('user', transcript)
         speak(reply)
@@ -3260,27 +3246,6 @@ Use this context to make responses feel personal. Reference the project when rel
     ]
   )
 
-  function handleCanvasControl(action: string) {
-    switch (action) {
-      case 'zoom_in':
-        setTransform((t) => ({ ...t, scale: Math.min(3, t.scale * 1.3) }))
-        speak('Zoomed in.')
-        break
-      case 'zoom_out':
-        setTransform((t) => ({ ...t, scale: Math.max(0.1, t.scale / 1.3) }))
-        speak('Zoomed out.')
-        break
-      case 'reset':
-        setTransform({ x: 0, y: 0, scale: 1 })
-        speak('View reset.')
-        break
-      case 'clear':
-        clearCanvas()
-        break
-    }
-    addLog('system', `— Canvas: ${action}`)
-  }
-
   // Stable refs for engine callbacks — updated every render so closures see fresh values
   const wakeUpRef = useRef(wakeUp)
   const goToSleepRef = useRef(goToSleep)
@@ -3288,11 +3253,12 @@ Use this context to make responses feel personal. Reference the project when rel
 
   // ── Speech recognition via singleton engine ──
   useEffect(() => {
-    ;(window as any).jarvisDiag?.('Jarvis component mounted', 'info')
+    ;(window as JarvisAny).jarvisDiag?.('Jarvis component mounted', 'info')
 
     // Browser support check
     const support = checkBrowserSupport()
     if (!support.supported) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time mount check surfacing an unsupported-browser notice
       setBrowserNoticeText(support.message!)
       setShowBrowserNotice(true)
       return
@@ -3301,24 +3267,24 @@ Use this context to make responses feel personal. Reference the project when rel
     // Wire engine callbacks — use refs so closures always call the latest version
     setVoiceCallbacks({
       onWake: () => {
-        ;(window as any).jarvisDiag?.('onWake callback fired', 'success')
+        ;(window as JarvisAny).jarvisDiag?.('onWake callback fired', 'success')
         // Guard: only run if React state is still sleeping to prevent double-calls
         if (wakeStateRef.current === 'sleeping') {
           wakeUpRef.current()
         }
       },
       onSleep: () => {
-        ;(window as any).jarvisDiag?.('onSleep callback fired', 'warn')
+        ;(window as JarvisAny).jarvisDiag?.('onSleep callback fired', 'warn')
         if (wakeStateRef.current !== 'sleeping') {
           goToSleepRef.current()
         }
       },
       onCommand: (cmd: string) => {
-        ;(window as any).jarvisDiag?.(`onCommand: "${cmd}"`, 'success')
+        ;(window as JarvisAny).jarvisDiag?.(`onCommand: "${cmd}"`, 'success')
         processCommandRef.current(cmd)
       },
       onError: (msg: string) => {
-        ;(window as any).jarvisDiag?.(`engine error: ${msg}`, 'error')
+        ;(window as JarvisAny).jarvisDiag?.(`engine error: ${msg}`, 'error')
         setPermissionState('denied')
         setBrowserNoticeText(msg)
         setShowBrowserNotice(true)
@@ -3334,7 +3300,7 @@ Use this context to make responses feel personal. Reference the project when rel
           STOP_SPEECH_RE.test(text.trim())
         ) {
           window.speechSynthesis.cancel()
-          ;(window as any).jarvisDiag?.('barge-in: speech cancelled', 'warn')
+          ;(window as JarvisAny).jarvisDiag?.('barge-in: speech cancelled', 'warn')
         }
         if (isFinal) {
           setInterimTranscript('')
@@ -3349,7 +3315,7 @@ Use this context to make responses feel personal. Reference the project when rel
       .getUserMedia({ audio: true, video: false })
       .then((stream) => {
         setPermissionState('granted')
-        ;(window as any).jarvisDiag?.('mic permission GRANTED ✓', 'success')
+        ;(window as JarvisAny).jarvisDiag?.('mic permission GRANTED ✓', 'success')
 
         // Audio analyser for the waveform visualizer (keep existing)
         const audioCtx = new AudioContext()
@@ -3383,7 +3349,7 @@ Use this context to make responses feel personal. Reference the project when rel
             if (now - lastClapTime < COOLDOWN) return
             
             if (now - lastClapTime >= MIN_WINDOW && now - lastClapTime <= MAX_WINDOW) {
-              ;(window as any).jarvisDiag?.('Double-clap detected! Waking up...', 'success')
+              ;(window as JarvisAny).jarvisDiag?.('Double-clap detected! Waking up...', 'success')
               engineWake()
               lastClapTime = 0
             } else {
@@ -3398,15 +3364,15 @@ Use this context to make responses feel personal. Reference the project when rel
 
         // Start the singleton recognition engine
         startVoice()
-        ;(window as any).jarvisDiag?.('Voice engine started', 'success')
+        ;(window as JarvisAny).jarvisDiag?.('Voice engine started', 'success')
       })
       .catch((err: Error) => {
-        ;(window as any).jarvisDiag?.(`mic DENIED: ${err.name}`, 'error')
+        ;(window as JarvisAny).jarvisDiag?.(`mic DENIED: ${err.name}`, 'error')
         setPermissionState('denied')
       })
 
     return () => {
-      ;(window as any).jarvisDiag?.('Jarvis unmounting — stopping voice + camera', 'warn')
+      ;(window as JarvisAny).jarvisDiag?.('Jarvis unmounting — stopping voice + camera', 'warn')
       stopVoice()
       if (clapNodeRef.current) {
         clapNodeRef.current.disconnect()
@@ -3421,9 +3387,11 @@ Use this context to make responses feel personal. Reference the project when rel
     }
   }, [])
 
-  wakeUpRef.current = wakeUp
-  goToSleepRef.current = goToSleep
-  processCommandRef.current = processCommand
+  useEffect(() => {
+    wakeUpRef.current = wakeUp
+    goToSleepRef.current = goToSleep
+    processCommandRef.current = processCommand
+  }, [wakeUp, goToSleep, processCommand])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -4253,7 +4221,7 @@ class JarvisErrorBoundary extends Component<
     return { hasError: true, error }
   }
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    ;(window as any).jarvisDiag?.(`REACT ERROR: ${error.message}`, 'error')
+    ;(window as JarvisAny).jarvisDiag?.(`REACT ERROR: ${error.message}`, 'error')
     console.error('Jarvis crashed:', error, info)
   }
   render() {
