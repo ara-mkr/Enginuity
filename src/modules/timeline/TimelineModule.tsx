@@ -1,15 +1,23 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import type { LucideIcon } from 'lucide-react'
 import {
-  Search, Calendar, Download, Sparkles, Sliders, Play, CheckCircle,
-  AlertTriangle, ArrowRight, X, Clock, HelpCircle, LayoutDashboard,
+  Search, Download, Sparkles, Sliders, Play, CheckCircle,
+  AlertTriangle, X, Clock, LayoutDashboard,
   Cpu, Database, Network, ChevronDown, ChevronRight, Filter, RefreshCw,
   Box, BookOpen, ClipboardList, Radio, History, Terminal, Info, Library
 } from 'lucide-react'
 import { useAIProvider } from '../../hooks/useAIProvider'
 import { useProbeContext } from '../../hooks/useProbeContext'
 
+// Timeline events are a heterogeneous, polymorphic log — each event type
+// carries a differently-shaped `data` payload keyed by event type, so a
+// structural type isn't practical here. One localized disable instead of
+// suppressing every call site individually.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type TimelineEventAny = any
+
 // Helper for human-readable description of event
-function getEventDescription(e: any): string {
+function getEventDescription(e: TimelineEventAny): string {
   const d = e.data || {}
   switch (e.type) {
     case 'FILE_LOADED':
@@ -112,7 +120,7 @@ function getEventDescription(e: any): string {
 }
 
 // Icon mapper for event type
-const EVENT_ICONS: Record<string, any> = {
+const EVENT_ICONS: Record<string, LucideIcon> = {
   FILE_LOADED: Box,
   PARAMETER_CHANGED: Sliders,
   NOTEBOOK_ENTRY_ADDED: BookOpen,
@@ -203,7 +211,7 @@ interface AIInsights {
 }
 
 export function TimelineModule() {
-  const [events, setEvents] = useState<any[]>([])
+  const [events, setEvents] = useState<TimelineEventAny[]>([])
   const [search, setSearch] = useState('')
   const [dateRange, setDateRange] = useState<'today' | 'week' | 'month' | 'all'>('all')
   const [selectedModules, setSelectedModules] = useState<string[]>([])
@@ -231,7 +239,7 @@ export function TimelineModule() {
 
   // Load events & seed if empty
   const loadLogEvents = useCallback(() => {
-    let log = []
+    let log: TimelineEventAny[]
     try {
       log = JSON.parse(localStorage.getItem('enginguity_event_log') || '[]')
     } catch {
@@ -308,11 +316,13 @@ export function TimelineModule() {
       log = mockEvents
     }
 
-    log.sort((a: any, b: any) => b.timestamp - a.timestamp)
+    log.sort((a: TimelineEventAny, b: TimelineEventAny) => b.timestamp - a.timestamp)
     setEvents(log)
   }, [])
 
   useEffect(() => {
+    // Load on mount, then subscribe to future log writes from anywhere in the app.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadLogEvents()
     const handler = () => {
       loadLogEvents()
@@ -343,6 +353,7 @@ export function TimelineModule() {
     let result = [...events]
 
     // 1. Date Range
+    // eslint-disable-next-line react-hooks/purity -- relative date-range filter needs the current instant
     const now = Date.now()
     if (dateRange === 'today') {
       const startOfToday = new Date().setHours(0,0,0,0)
@@ -436,8 +447,8 @@ export function TimelineModule() {
   // Clustering logic: collapse consecutive events of the same type within 2 minutes into a cluster if count >= 5
   const groupedAndClusteredEventsByDay = useMemo(() => {
     // 1. Group events by day string
-    const groups: Record<string, any[]> = {}
-    
+    const groups: Record<string, TimelineEventAny[]> = {}
+
     filteredEvents.forEach(e => {
       const dayKey = new Date(e.timestamp).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
       if (!groups[dayKey]) groups[dayKey] = []
@@ -445,10 +456,10 @@ export function TimelineModule() {
     })
 
     // 2. Perform clustering inside each day
-    const clusteredGroups: Record<string, any[]> = {}
+    const clusteredGroups: Record<string, TimelineEventAny[]> = {}
 
     Object.entries(groups).forEach(([day, dayEvents]) => {
-      const dayClustered: any[] = []
+      const dayClustered: TimelineEventAny[] = []
       let i = 0
       while (i < dayEvents.length) {
         const currentEvent = dayEvents[i]
@@ -538,7 +549,7 @@ export function TimelineModule() {
     ]
 
     const sortedChron = [...filteredEvents].sort((a, b) => a.timestamp - b.timestamp)
-    const groupedByDay: Record<string, any[]> = {}
+    const groupedByDay: Record<string, TimelineEventAny[]> = {}
     sortedChron.forEach(e => {
       const dStr = new Date(e.timestamp).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
       if (!groupedByDay[dStr]) groupedByDay[dStr] = []
@@ -605,8 +616,9 @@ Provide a professional structural report in this JSON format:
       const cleaned = response.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim()
       const parsed = JSON.parse(cleaned) as AIInsights
       setInsights(parsed)
-    } catch (e: any) {
-      setInsightsError(`Failed to generate insights: ${e.message || String(e)}`)
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e)
+      setInsightsError(`Failed to generate insights: ${message}`)
     } finally {
       setLoadingInsights(false)
     }
@@ -857,7 +869,7 @@ Provide a professional structural report in this JSON format:
                             {/* Nested Cluster Items */}
                             {isClusterOpen && (
                               <div className="mt-3 flex flex-col gap-3 pl-4 border-l border-dashed" style={{ borderColor: 'var(--border)' }}>
-                                {item.items.map((sub: any) => {
+                                {item.items.map((sub: TimelineEventAny) => {
                                   const isExpanded = !!expandedEvents[sub.id]
                                   const subTime = new Date(sub.timestamp).toLocaleTimeString()
                                   

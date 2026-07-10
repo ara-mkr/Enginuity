@@ -60,13 +60,6 @@ ${tests}
 }
 
 export function generateJestFile(funcName: string, testCases: TestCase[], framework: Framework): string {
-  const runner = framework === 'vitest' ? 'vitest' : framework === 'mocha' ? 'mocha' : '@jest/globals'
-  const importLine = framework === 'vitest'
-    ? `import { describe, test, expect } from 'vitest'`
-    : framework === 'mocha'
-    ? `const { expect } = require('chai')`
-    : `const { ${funcName} } = require('./your_module')`
-
   const tests = testCases.map(tc => {
     const args = formatJsArgs(tc.inputs)
     if (tc.expected_behavior === 'throw_error') {

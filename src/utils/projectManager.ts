@@ -1,5 +1,3 @@
-import type { ProjectData } from '../context/ProjectContext'
-
 export interface ProjectInfo {
   id: string
   name: string
@@ -178,7 +176,11 @@ export function exportProject(id: string): string {
   const proj = list.find(p => p.id === id)
   const name = proj ? proj.name : 'Project'
   
-  const payload: Record<string, any> = {
+  const payload: {
+    enginguity_project_template_version: string
+    projectName: string
+    states: Record<string, string>
+  } = {
     enginguity_project_template_version: '1.0',
     projectName: name,
     states: {}
@@ -213,6 +215,6 @@ export function importProject(jsonStr: string): string {
     
     return newId
   } catch (err) {
-    throw new Error('Failed to parse template: ' + (err as Error).message)
+    throw new Error('Failed to parse template: ' + (err as Error).message, { cause: err })
   }
 }
