@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Award, User, Clock, Copy, Check, ExternalLink, Trophy, Star } from 'lucide-react'
+import { User, Check, ExternalLink, Star } from 'lucide-react'
 import { CHALLENGES } from '../../../config/challenges'
 import type { ChallengeHistoryEntry, LeaderboardEntry } from '../types'
 
@@ -37,7 +37,7 @@ export function ChallengeLeaderboard({ completedChallenges, totalPoints }: Chall
             }
           }
         }
-      } catch (e) {
+      } catch {
         console.warn('Failed to fetch community Gist leaderboard, using mock data.')
       }
     }
