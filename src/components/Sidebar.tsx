@@ -1,24 +1,21 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
-  Clock, Zap, BookOpen,
+  Clock, BookOpen,
   Edit2, Plus, Download, Upload, Trash2, ChevronDown,
   GripVertical, HelpCircle, Search,
-  Settings, MoreHorizontal, ArrowUp, ArrowDown, X as XIcon,
+  MoreHorizontal, ArrowUp, ArrowDown, X as XIcon,
 } from 'lucide-react'
 import { useInstalledTools } from '../hooks/useInstalledTools'
 import { iconForCustomTool } from '../config/toolRegistry'
 import { AISettings } from './AISettings'
 import { TutorialModal } from './TutorialModal'
-// @ts-ignore
 import { onDraftUpdate, getObservationCount } from '../modules/live-docs/docWatcher'
 import { FileHistory } from './FileHistory/index'
 import { OpenRouterSetup } from './OpenRouterSetup'
 import { UsageDashboard } from './UsageDashboard'
-import { useOpenRouter } from '../context/OpenRouterContext'
 import { useWorkspace } from '../context/WorkspaceContext'
 import { useFocusMode } from '../context/FocusModeContext'
-import logo from '../assets/logo-new.png'
 import sidebarLogo from '../assets/sidebar-logo.png'
 import {
   listProjects,
@@ -62,7 +59,6 @@ function menuItemStyle(disabled: boolean): React.CSSProperties {
 }
 
 export function Sidebar() {
-  const { isConnected, activeModelId, models, totalRequestsToday } = useOpenRouter()
   const { layoutMode, setLayoutMode, openWindow, windows, restoreWindow, bringToFront } = useWorkspace()
   const { leftSidebarRevealed } = useFocusMode()
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -154,7 +150,6 @@ export function Sidebar() {
 
   // ── Per-item 3-dot menu ─────────────────────────────────────────────────────
   const [openMenuTo, setOpenMenuTo] = useState<string | null>(null)
-  const navListRef = useRef<HTMLElement | null>(null)
   useEffect(() => {
     if (!openMenuTo) return
     const handler = (e: MouseEvent) => {
@@ -188,8 +183,6 @@ export function Sidebar() {
     setNavOrder(next)
     saveOrder(next)
   }, [uninstall, navOrder, saveOrder])
-
-  const activeModel = models.find((m) => m.id === activeModelId)
 
   const [tutorialOpen, setTutorialOpen] = useState(false)
   const [docObsCount, setDocObsCount] = useState(() => { try { return getObservationCount() } catch { return 0 } })
