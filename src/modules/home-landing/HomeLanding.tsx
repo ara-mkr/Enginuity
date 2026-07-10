@@ -8,8 +8,8 @@ import { logEvent } from '../../engine/eventLog'
 import { useHomeChat, type HomeMessage as Message } from '../../context/HomeChatContext'
 import { ChatHistoryPopover } from '../../components/ChatHistoryPopover'
 import {
-  Sparkles, Send, Box, Code2, Cpu, HelpCircle,
-  FolderPlus, RefreshCw, MessageSquare, AlertTriangle, ArrowRight
+  Sparkles, Send, Cpu,
+  FolderPlus, RefreshCw, MessageSquare, AlertTriangle
 } from 'lucide-react'
 
 // ── Interfaces ─────────────────────────────────────────────────────────────
@@ -41,7 +41,7 @@ const STARTERS = [
 
 export function HomeLanding() {
   const navigate = useNavigate()
-  const { makeRequest, isConnected, activeModel, openGrid } = useAIProvider()
+  const { makeRequest, isConnected, activeModel } = useAIProvider()
   const { tags: brainTags, setDescription: setBrainDescription, setTags: setBrainTags } = useProjectContext()
 
   const {
