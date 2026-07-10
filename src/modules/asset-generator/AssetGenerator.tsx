@@ -21,10 +21,16 @@ import { useAIProvider } from '../../hooks/useAIProvider'
 import { useProbeContext } from '../../hooks/useProbeContext'
 import { useProjectContext } from '../../hooks/useProjectContext'
 import { logEvent } from '../../engine/eventLog'
-// @ts-ignore
+// @ts-expect-error - untyped JS module, no .d.ts yet
 import { useEnginguityStore } from '../../engine/persistenceEngine'
-// @ts-ignore
+// @ts-expect-error - untyped JS module, no .d.ts yet
 import { blobStore } from '../../engine/blobStore'
+
+// The global persistence store's selector callbacks are untyped (persistenceEngine
+// is a plain JS module), so a single local alias documents why `any` is used
+// instead of suppressing every selector individually.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type StoreAny = any
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -343,12 +349,11 @@ export function AssetGenerator() {
   const { description, tags } = useProjectContext()
 
   // ── Global store hookups ─────────────────────────────────────────────────
-  const addAssetGenResult = useEnginguityStore((s: any) => s.addAssetGenResult)
-  const addToFileHistory = useEnginguityStore((s: any) => s.addToFileHistory)
-  const addChatMessage = useEnginguityStore((s: any) => s.addChatMessage)
-  const replaceChatHistory = useEnginguityStore((s: any) => s.replaceChatHistory)
+  const addAssetGenResult = useEnginguityStore((s: StoreAny) => s.addAssetGenResult)
+  const addToFileHistory = useEnginguityStore((s: StoreAny) => s.addToFileHistory)
+  const replaceChatHistory = useEnginguityStore((s: StoreAny) => s.replaceChatHistory)
   const persistedBrainstormMessages = useEnginguityStore(
-    (s: any) => s.moduleChats['asset-generator-brainstorm']?.messages || [],
+    (s: StoreAny) => s.moduleChats['asset-generator-brainstorm']?.messages || [],
   )
 
   const [mode, setMode] = useState<Mode>('banner')
@@ -387,7 +392,7 @@ export function AssetGenerator() {
   // Load persistent history (full SVGs) from IndexedDB on mount.
   useEffect(() => {
     let cancelled = false
-    blobStore.getAll('asset-gen').then((items: any[]) => {
+    blobStore.getAll('asset-gen').then((items: StoreAny[]) => {
       if (cancelled || !items?.length) return
       const entries: HistoryEntry[] = items
         .filter((i) => i?.content && i?.mode)
@@ -411,6 +416,7 @@ export function AssetGenerator() {
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>(persistedBrainstormMessages)
   // Keep local mirror in sync if another tab/window updates the store.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- subscribing to external store updates, not derived render state
     setChatMessages(persistedBrainstormMessages)
   }, [persistedBrainstormMessages])
   const [chatInput, setChatInput] = useState('')
@@ -558,9 +564,9 @@ Response style:
 
     const seed = newSeed ?? seedRef.current
 
-    let userMsg = ''
-    let promptForRecord = ''
-    let styleForRecord = ''
+    let userMsg: string
+    let promptForRecord: string
+    let styleForRecord: string
     if (mode === 'banner') {
       if (!projectName.trim()) { setGenError('Enter a project name.'); return }
       const cs = customStyleBanner.trim()
