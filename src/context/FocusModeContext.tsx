@@ -24,10 +24,10 @@ export function FocusModeProvider({ children }: { children: React.ReactNode }) {
   const [leftSidebarRevealed, setLeftSidebarRevealed] = useState(false)
   const [rightSidebarRevealed, setRightSidebarRevealed] = useState(false)
 
-  const leftEnterTimer = useRef<any>(null)
-  const leftLeaveTimer = useRef<any>(null)
-  const rightEnterTimer = useRef<any>(null)
-  const rightLeaveTimer = useRef<any>(null)
+  const leftEnterTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const leftLeaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const rightEnterTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const rightLeaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const toggleFocusMode = () => {
     setIsFocusMode((prev) => {
@@ -60,6 +60,7 @@ export function FocusModeProvider({ children }: { children: React.ReactNode }) {
     } else {
       document.body.classList.remove('focus-mode')
       // Reset revealed states when leaving focus mode
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- resetting reveal state as a side effect of exiting focus mode
       setLeftSidebarRevealed(false)
       setRightSidebarRevealed(false)
     }
@@ -211,6 +212,7 @@ export function FocusModeProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook is tightly coupled to this provider's context instance
 export function useFocusMode() {
   const ctx = useContext(FocusModeContext)
   if (!ctx) throw new Error('useFocusMode must be used within FocusModeProvider')
