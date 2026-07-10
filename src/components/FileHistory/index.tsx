@@ -3,6 +3,9 @@ import { X, Clock, Trash2, RefreshCw } from 'lucide-react'
 import { detectFormat } from '../../config/fileFormats.js'
 import { processFile } from '../../engine/fileEngine.js'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type FileHistoryAny = any
+
 // ---------------------------------------------------------------------------
 // Storage
 // ---------------------------------------------------------------------------
@@ -20,6 +23,7 @@ export interface FileHistoryEntry {
   categoryColor?: string
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- shared storage helper, not worth a separate file
 export function getFileHistory(): FileHistoryEntry[] {
   try {
     return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]')
@@ -28,6 +32,7 @@ export function getFileHistory(): FileHistoryEntry[] {
   }
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- shared storage helper, not worth a separate file
 export function addToFileHistory(entry: Omit<FileHistoryEntry, 'id' | 'loadedAt'>) {
   const history = getFileHistory()
   const newEntry: FileHistoryEntry = {
@@ -73,7 +78,6 @@ interface FileHistoryProps {
 export function FileHistory({ onClose, onFileLoaded }: FileHistoryProps) {
   const [history, setHistory] = useState<FileHistoryEntry[]>(() => getFileHistory())
   const [reloading, setReloading] = useState<string | null>(null)
-  const inputRef = { current: null as HTMLInputElement | null }
 
   const refresh = useCallback(() => {
     setHistory(getFileHistory())
@@ -107,7 +111,7 @@ export function FileHistory({ onClose, onFileLoaded }: FileHistoryProps) {
           category: result.category,
           sizeBytes: file.size,
           aiContext: result.aiContext,
-          categoryColor: (detectFormat(file.name) as any)?.categoryColor,
+          categoryColor: (detectFormat(file.name) as FileHistoryAny)?.categoryColor,
         })
         onFileLoaded?.(result)
         refresh()
