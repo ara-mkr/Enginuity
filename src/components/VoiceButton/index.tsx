@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Mic, Volume2, AlertCircle, Loader2, Settings, Play } from 'lucide-react'
 import {
   isVoiceSupported,
@@ -9,10 +9,16 @@ import {
 import { useAIProvider } from '../../hooks/useAIProvider'
 import { useLocation, useNavigate } from 'react-router-dom'
 
+// Voice intent params and the Web Speech API recognition object are
+// untyped/dynamic here — one localized disable instead of suppressing
+// every call site individually.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type VoiceAny = any
+
 interface VoiceHistoryItem {
   transcript: string
   intent: string
-  params: any
+  params: VoiceAny
   timestamp: string
   succeeded: boolean
 }
@@ -41,7 +47,7 @@ export function VoiceButton() {
   const [history, setHistory] = useState<VoiceHistoryItem[]>([])
 
   // Web Speech references
-  const recognitionRef = useRef<any>(null)
+  const recognitionRef = useRef<VoiceAny>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -49,11 +55,12 @@ export function VoiceButton() {
   const [volumeHeights, setVolumeHeights] = useState<number[]>([10, 10, 10, 10, 10])
 
   // Long press refs
-  const pressTimerRef = useRef<any>(null)
+  const pressTimerRef = useRef<VoiceAny>(null)
 
   // Initialize
   useEffect(() => {
     const isSupported = isVoiceSupported()
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time browser feature detection on mount
     setSupported(isSupported)
 
     if (isSupported) {
@@ -80,6 +87,12 @@ export function VoiceButton() {
     }
   }, [])
 
+  // Stable refs for toggleListening/stopVoiceMode — declared further below,
+  // but the global keydown listener needs to call the latest version without
+  // re-registering the listener on every state change.
+  const toggleListeningRef = useRef<() => void>(() => {})
+  const stopVoiceModeRef = useRef<() => void>(() => {})
+
   // Global Keyboard listener: V key to toggle and ESC key to cancel
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -88,19 +101,21 @@ export function VoiceButton() {
       }
       if (e.key === 'v' || e.key === 'V') {
         e.preventDefault()
-        toggleListening()
+        toggleListeningRef.current()
       } else if (e.key === 'Escape') {
-        stopVoiceMode()
+        stopVoiceModeRef.current()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [state, active])
+  }, [])
 
-  // Clean-up refs on unmount
+  // Clean-up refs on unmount. Uses stopVoiceModeRef (kept in sync further
+  // below) rather than calling stopVoiceMode directly, since that function
+  // is declared later in this component.
   useEffect(() => {
     return () => {
-      stopVoiceMode()
+      stopVoiceModeRef.current()
     }
   }, [])
 
@@ -110,7 +125,7 @@ export function VoiceButton() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef.current = stream
 
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+      const AudioContextClass = window.AudioContext || (window as VoiceAny).webkitAudioContext
       const audioCtx = new AudioContextClass()
       audioContextRef.current = audioCtx
 
@@ -167,7 +182,7 @@ export function VoiceButton() {
     setErrorMsg('')
     setActive(true)
 
-    rec.onresult = async (event: any) => {
+    rec.onresult = async (event: VoiceAny) => {
       let interim = ''
       let final = ''
 
@@ -189,7 +204,7 @@ export function VoiceButton() {
       }
     }
 
-    rec.onerror = (e: any) => {
+    rec.onerror = (e: VoiceAny) => {
       console.error('Speech error:', e)
       if (e.error === 'not-allowed') {
         setState('error')
@@ -255,21 +270,22 @@ export function VoiceButton() {
   }
 
   // Route matches
-  const handleIntentRoute = async (intent: string, params: any, transcript: string) => {
+  const handleIntentRoute = async (intent: string, params: VoiceAny, transcript: string) => {
     const pathParts = location.pathname.split('/')
     const activeModule = pathParts[pathParts.length - 1] || 'dashboard'
-    let speakMessage = 'Executing command.'
+    let speakMessage: string
     let success = true
 
     try {
       switch (intent) {
-        case 'navigate':
+        case 'navigate': {
           const modulePath = params.module === 'playground' ? 'parameter-playground' : params.module
           speakMessage = `Opening ${params.module.replace('-', ' ')}`
           navigate(`/${modulePath}`)
           break
+        }
 
-        case 'set_parameter':
+        case 'set_parameter': {
           // Prefill values locally and update slider state
           speakMessage = `${params.paramName} set to ${params.value} ${params.unit || ''}`
           const prefill = JSON.parse(localStorage.getItem('enginguity_params_prefill') || '{}')
@@ -280,24 +296,28 @@ export function VoiceButton() {
             window.dispatchEvent(new CustomEvent('param-external-updated', { detail: { name: params.paramName, val: params.value } }))
           }
           break
+        }
 
-        case 'read_value':
+        case 'read_value': {
           const vals = JSON.parse(localStorage.getItem('enginguity_params_prefill') || '{}')
           const reading = vals[params.paramName]
-          speakMessage = reading !== undefined 
+          speakMessage = reading !== undefined
             ? `${params.paramName} is currently ${reading}`
             : `I could not find parameter value for ${params.paramName}`
           break
+        }
 
-        case 'ask_question':
+        case 'ask_question': {
           setState('processing')
           setBubbleText('Thinking...')
           const aiResponse = await makeRequest([{ role: 'user', content: params.question }], 'Provide a short spoken summary (max 120 words) to this engineering query.')
           speakMessage = aiResponse
           break
+        }
 
-        case 'add_notebook_entry':
+        case 'add_notebook_entry': {
           const newEntry = {
+            // eslint-disable-next-line react-hooks/purity -- async voice-command handler, not render; timestamp needs to be unique per entry
             id: `nb-voice-${Date.now()}`,
             type: params.type || 'NOTE',
             title: params.title || 'Voice Log note',
@@ -312,6 +332,7 @@ export function VoiceButton() {
           window.dispatchEvent(new Event('notebook-updated'))
           speakMessage = `Added ${params.type.toLowerCase()} note titled ${params.title} to notebook.`
           break
+        }
 
         case 'stop_voice':
           speakMessage = 'Stopping voice assistant.'
@@ -326,7 +347,7 @@ export function VoiceButton() {
           speakMessage = 'I am not sure how to do that. Try saying help for available commands.'
           success = false
       }
-    } catch (err) {
+    } catch {
       speakMessage = 'An error occurred executing this voice command.'
       success = false
     }
@@ -369,7 +390,7 @@ export function VoiceButton() {
   }
 
   // History save helper
-  const saveHistory = (transcript: string, intent: string, params: any, succeeded: boolean) => {
+  const saveHistory = (transcript: string, intent: string, params: VoiceAny, succeeded: boolean) => {
     const newItem: VoiceHistoryItem = {
       transcript,
       intent,
@@ -395,7 +416,7 @@ export function VoiceButton() {
     setState('idle')
     setBubbleText('')
     stopAudioAnalyzer()
-    
+
     if (recognitionRef.current) {
       try { recognitionRef.current.stop() } catch { /* already stopped */ }
     }
@@ -403,6 +424,11 @@ export function VoiceButton() {
       window.speechSynthesis.cancel()
     }
   }
+
+  useEffect(() => {
+    toggleListeningRef.current = toggleListening
+    stopVoiceModeRef.current = stopVoiceMode
+  }, [toggleListening, stopVoiceMode])
 
   // Long press UI handlers
   const handleMouseDown = () => {
