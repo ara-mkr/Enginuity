@@ -1,5 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 
+// Electron preload bridge, not present in a browser environment.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ElectronAny = any
+
 export interface UISettings {
   themeId: 'polaris-dark' | 'polaris-light' | 'midnight-steel' | 'custom'
   customTheme: Record<string, string>
@@ -279,8 +283,8 @@ function saveSettings(s: UISettings) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
   } catch { /* storage unavailable (private mode/quota) — safe to skip */ }
   // Mirror to disk when running as desktop app (fire-and-forget)
-  if (typeof window !== 'undefined' && (window as any).electronAPI?.isElectron) {
-    ;(window as any).electronAPI.saveData('ui-settings', s).catch(() => {})
+  if (typeof window !== 'undefined' && (window as ElectronAny).electronAPI?.isElectron) {
+    ;(window as ElectronAny).electronAPI.saveData('ui-settings', s).catch(() => {})
   }
 }
 
@@ -293,7 +297,7 @@ export function useUISettings(): [UISettings, (patch: Partial<UISettings>) => vo
 
   // On Electron, load persisted settings from disk on first mount (may override localStorage)
   useEffect(() => {
-    const api = (window as any).electronAPI
+    const api = (window as ElectronAny).electronAPI
     if (!api?.isElectron) return
     api.loadData('ui-settings').then((disk: unknown) => {
       if (disk && typeof disk === 'object') {
