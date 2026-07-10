@@ -1,15 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ResizablePanel from '../../components/ResizablePanel'
 import {
-  Sliders, Clock, Save, Trash2, ArrowRight, X, ExternalLink,
-  ChevronDown, ChevronUp, FolderPlus, Download, BookOpen, AlertTriangle
+  Sliders, Clock, Save, Trash2, X, ExternalLink,
+  ChevronDown, ChevronUp, FolderPlus, Download, BookOpen
 } from 'lucide-react'
 import { useProjectContext } from '../../hooks/useProjectContext'
 import { useAIProvider } from '../../hooks/useAIProvider'
 import { useProbeContext } from '../../hooks/useProbeContext'
-import { useOpenRouter } from '../../context/OpenRouterContext'
 import { logEvent } from '../../engine/eventLog'
+
+// Raw AI-generated idea JSON before it's normalized into the Idea shape
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RawIdea = any
 
 // ── Static Suggestion List (80 common maker components) ─────────────────────
 const COMMON_COMPONENTS = [
@@ -118,6 +121,7 @@ export function ProjectIdeas() {
 
   useEffect(() => {
     const media = window.matchMedia('(min-width: 768px)')
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time mount read of matchMedia state
     setIsDesktop(media.matches)
     const listener = (e: MediaQueryListEvent) => setIsDesktop(e.matches)
     media.addEventListener('change', listener)
@@ -176,6 +180,7 @@ export function ProjectIdeas() {
   // Synchronize tags prefill from useProjectContext on load
   useEffect(() => {
     if (brainTags && brainTags.length > 0 && components.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time prefill sync from external project context
       setComponents(brainTags)
     }
   }, [brainTags])
@@ -194,6 +199,7 @@ export function ProjectIdeas() {
   useEffect(() => {
     const query = compInput.trim().toLowerCase()
     if (!query) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clearing derived autocomplete list when input is empty
       setSuggestions([])
       return
     }
@@ -310,7 +316,7 @@ Return a JSON array of ${ideasCount} objects, each with:
       }
 
       // Map UUIDs to generated ideas
-      const parsedIdeas: Idea[] = rawIdeas.map((idea: any) => ({
+      const parsedIdeas: Idea[] = rawIdeas.map((idea: RawIdea) => ({
         ...idea,
         id: Math.random().toString(36).substring(2, 9) + Date.now()
       }))
@@ -1131,7 +1137,7 @@ ${idea.suggestedLinks.map(link => `- [${link}](${link})`).join('\n')}
             {/* Saved list tab viewport */}
             {activeTab === 'saved' && (
               <div className="flex flex-col gap-4">
-                {savedIdeas.map((idea, index) => {
+                {savedIdeas.map((idea) => {
                   const isExpanded = expandedCardId === idea.id
                   return (
                     <div
