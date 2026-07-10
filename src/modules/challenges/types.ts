@@ -17,7 +17,11 @@ export interface Challenge {
 }
 
 export interface ChallengeWorkspaceState {
+  // Snapshotted state from other modules (parameter playground, circuit
+  // sim) is heterogeneous and defined by those modules, not here.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   playgroundState?: any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   circuitState?: any
   formulaQuery?: string
   consoleCode?: string
