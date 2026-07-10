@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-// @ts-ignore
+// @ts-expect-error - untyped JS module, no .d.ts yet
 import { moduleStateStore } from '../../store/moduleState'
 import { FileCode, Code2, Radio, Cpu, Plus, ChevronRight, X, Maximize2, Minimize2 } from 'lucide-react'
 import { useAIProvider } from '../../hooks/useAIProvider'
@@ -36,6 +36,12 @@ interface AnalysisResult {
   issues: AnalysisIssue[]
   positives: string[]
 }
+
+// Pyodide (loaded from CDN) and the Web Serial API's port/reader objects have
+// no bundled type definitions here, so a single local alias documents why
+// `any` is used for them instead of suppressing every call site individually.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ExternalAny = any
 
 // ── Language detection ────────────────────────────────────────────────────────
 
@@ -94,13 +100,13 @@ export function DebugConsole() {
   const [problems, setProblems] = useState<OutputLine[]>([])
 
   // Pyodide
-  const pyodideRef = useRef<any>(null)
+  const pyodideRef = useRef<ExternalAny>(null)
   const [pyodideLoading, setPyodideLoading] = useState(false)
   const [isRunning, setIsRunning] = useState(false)
 
   // Serial
-  const portRef = useRef<any>(null)
-  const readerRef = useRef<any>(null)
+  const portRef = useRef<ExternalAny>(null)
+  const readerRef = useRef<ExternalAny>(null)
   const [serialConnected, setSerialConnected] = useState(false)
   const [serialConnecting, setSerialConnecting] = useState(false)
   const [baudRate, setBaudRate] = useState(115200)
@@ -138,14 +144,29 @@ export function DebugConsole() {
     })
   }, [filename, language, code])
 
-  // ── Init ───────────────────────────────────────────────────────────────────
+  // ── Output helpers ─────────────────────────────────────────────────────────
+  // Declared before the init effect below since it calls these on mount.
 
+  const appendOutput = useCallback((text: string, type: OutputType) => {
+    setOutput(prev => [...prev, mkLine(text, type)])
+  }, [])
+
+  const appendSerial = useCallback((text: string, type: OutputType) => {
+    setSerialOutput(prev => [...prev, mkLine(text, type)])
+  }, [])
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  // One-time load of any saved starter-code template on mount. setFilename/
+  // setCode/setFiles here seed initial state from localStorage rather than
+  // reacting to a prop/state change, so this is a legitimate mount-time
+  // initialization rather than a derived-state anti-pattern.
   useEffect(() => {
     try {
       const saved = localStorage.getItem('enginguity_starter_code')
       if (saved) {
         const parsed = JSON.parse(saved)
         const fn = parsed.filename ?? 'main.cpp'
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time template load on mount
         setFilename(fn)
         setCode(parsed.content ?? '')
         setFiles(f => f.includes(fn) ? f : [fn, ...f])
@@ -160,20 +181,11 @@ export function DebugConsole() {
         setCode(defaultCode(lang))
         appendOutput('No template loaded. Write code or load a template.', 'system')
       }
-    } catch (_) {
+    } catch {
       const lang = detectLanguage('main.cpp')
       setCode(defaultCode(lang))
     }
-  }, [])
-
-  // ── Output helpers ─────────────────────────────────────────────────────────
-
-  const appendOutput = useCallback((text: string, type: OutputType) => {
-    setOutput(prev => [...prev, mkLine(text, type)])
-  }, [])
-
-  const appendSerial = useCallback((text: string, type: OutputType) => {
-    setSerialOutput(prev => [...prev, mkLine(text, type)])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-time init on mount; appendOutput is stable via useCallback
   }, [])
 
   // ── Auto-scroll ────────────────────────────────────────────────────────────
@@ -245,26 +257,26 @@ export function DebugConsole() {
         setCode(defaultCode(language))
         appendOutput('Reset to default.', 'system')
       }
-    } catch (_) {
+    } catch {
       setCode(defaultCode(language))
     }
   }
 
   // ── Pyodide ────────────────────────────────────────────────────────────────
 
-  async function loadPyodide(): Promise<any> {
+  async function loadPyodide(): Promise<ExternalAny> {
     if (pyodideRef.current) return pyodideRef.current
     setPyodideLoading(true)
     appendOutput('Loading Python runtime (~8MB, first run only)...', 'system')
     await new Promise<void>((resolve, reject) => {
-      if ((window as any).loadPyodide) { resolve(); return }
+      if ((window as ExternalAny).loadPyodide) { resolve(); return }
       const script = document.createElement('script')
       script.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.0/full/pyodide.js'
       script.onload = () => resolve()
       script.onerror = () => reject(new Error('Failed to load Pyodide'))
       document.head.appendChild(script)
     })
-    const py = await (window as any).loadPyodide({
+    const py = await (window as ExternalAny).loadPyodide({
       indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.0/full/'
     })
     pyodideRef.current = py
@@ -299,14 +311,15 @@ sys.stderr = _Cap()
         elapsedSeconds: parseFloat(elapsed),
         module: 'debug'
       })
-    } catch (err: any) {
-      const lines = String(err.message ?? err).split('\n')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      const lines = message.split('\n')
       lines.forEach(l => l && appendOutput(l, 'stderr'))
       logEvent('CODE_EXECUTED', {
         language: 'Python',
         code: src,
         status: 'error',
-        error: err.message || String(err),
+        error: message,
         module: 'debug'
       })
     } finally {
@@ -394,7 +407,7 @@ try {
   parent.postMessage({type:'error',text:String(e)},'*')
   parent.postMessage({type:'done',elapsed:0},'*')
 }`
-    iframe.srcdoc = `<script>${wrapped}<\/script>`
+    iframe.srcdoc = `<script>${wrapped}</script>`
   }
 
   function handleRun() {
@@ -409,7 +422,7 @@ try {
     if (!('serial' in navigator)) return
     setSerialConnecting(true)
     try {
-      const port = await (navigator as any).serial.requestPort()
+      const port = await (navigator as ExternalAny).serial.requestPort()
       await port.open({ baudRate })
       portRef.current = port
       setSerialConnected(true)
@@ -422,14 +435,15 @@ try {
         baudRate,
         module: 'debug'
       })
-    } catch (err: any) {
-      if (err.name !== 'NotFoundError') appendSerial(`${err.message}`, 'stderr')
+    } catch (err) {
+      const e = err as { name?: string; message?: string }
+      if (e.name !== 'NotFoundError') appendSerial(`${e.message}`, 'stderr')
     } finally {
       setSerialConnecting(false)
     }
   }
 
-  async function readSerial(port: any) {
+  async function readSerial(port: ExternalAny) {
     const reader = port.readable.getReader()
     readerRef.current = reader
     const decoder = new TextDecoder()
@@ -443,8 +457,9 @@ try {
         buf = lines.pop() ?? ''
         lines.forEach(l => { if (l.trim()) appendSerial(l, 'serial_in') })
       }
-    } catch (err: any) {
-      if (err.name !== 'AbortError') appendSerial(`Serial error: ${err.message}`, 'stderr')
+    } catch (err) {
+      const e = err as { name?: string; message?: string }
+      if (e.name !== 'AbortError') appendSerial(`Serial error: ${e.message}`, 'stderr')
     } finally {
       reader.releaseLock()
       setSerialConnected(false)
@@ -468,8 +483,9 @@ try {
       await writer.write(new TextEncoder().encode(text + '\n'))
       writer.releaseLock()
       appendSerial(text, 'serial_out')
-    } catch (err: any) {
-      appendSerial(`Send error: ${err.message}`, 'stderr')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      appendSerial(`Send error: ${message}`, 'stderr')
     }
   }
 
@@ -519,10 +535,11 @@ Return JSON only, no prose around it:
       if (critical.length > 0) {
         setProblems(critical.map(i => mkLine(`${i.title}${i.line ? ` (line ${i.line})` : ''}`, 'stderr')))
       }
-    } catch (err: any) {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
       setAnalysis({
         overall: 'minor_issues',
-        summary: 'Analysis failed: ' + String(err.message ?? err),
+        summary: 'Analysis failed: ' + message,
         issues: [],
         positives: []
       })
@@ -544,8 +561,9 @@ Return JSON only, no prose around it:
         { maxTokens: 800 }
       )
       setAnalysisChat(c => [...c, `A: ${res}`])
-    } catch (err: any) {
-      setAnalysisChat(c => [...c, `A: Error — ${err.message}`])
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      setAnalysisChat(c => [...c, `A: Error — ${message}`])
     }
   }
 
