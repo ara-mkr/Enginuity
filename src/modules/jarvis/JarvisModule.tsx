@@ -1161,8 +1161,9 @@ function JarvisModuleInner() {
 
   // Clear timers on unmount
   useEffect(() => {
+    const timers = activeTimers.current
     return () => {
-      activeTimers.current.forEach((t) => {
+      timers.forEach((t) => {
         clearTimeout(t.timeout)
         clearInterval(t.interval)
       })
@@ -1839,7 +1840,7 @@ Use this context to make responses feel personal. Reference the project when rel
       )
       addLog('system', '— Removed item')
     },
-    [addLog]
+    [addLog, setItems, setGroups]
   )
 
   // Feature 6: Timer and Reminder system
@@ -1888,7 +1889,7 @@ Use this context to make responses feel personal. Reference the project when rel
     
     const interval = setInterval(() => {}, 1000)
     activeTimers.current.push({ timerId, timeout, interval, itemId: item.id })
-  }, [placeItem, speak, playTimerSound, flashCanvasItem])
+  }, [placeItem, speak, playTimerSound, flashCanvasItem, setItems])
 
   const handleTimerAction = useCallback((timerId: string, action: 'add_minute' | 'pause_toggle' | 'cancel') => {
     const idx = activeTimers.current.findIndex(t => t.timerId === timerId)
@@ -2001,7 +2002,7 @@ Use this context to make responses feel personal. Reference the project when rel
         speak("Timer resumed.")
       }
     }
-  }, [handleItemRemove, speak, playTimerSound, flashCanvasItem])
+  }, [handleItemRemove, speak, playTimerSound, flashCanvasItem, itemsRef, setItems])
 
   // Pattern detection helper
   const checkForPatterns = useCallback(async () => {
@@ -2255,7 +2256,7 @@ Use this context to make responses feel personal. Reference the project when rel
     }
     
     return false
-  }, [speak, speakStep, makeJarvisRequest])
+  }, [speak, speakStep, makeJarvisRequest, setItems])
 
   // Feature 9: Parts order shortlist
   const updateOrCreateOrderListItem = useCallback((updated: JarvisAny[]) => {
@@ -2278,7 +2279,7 @@ Use this context to make responses feel personal. Reference the project when rel
         content: { items: updated }
       })
     }
-  }, [placeItem, flashCanvasItem])
+  }, [placeItem, flashCanvasItem, itemsRef, setItems])
 
   const addToOrderList = useCallback(async (item: JarvisAny) => {
     const newItem = {
@@ -2436,7 +2437,7 @@ Use this context to make responses feel personal. Reference the project when rel
       speak("I couldn't compile the build session summary.")
       addLog('system', `— Session journal error: ${err instanceof Error ? err.message : 'unknown'}`)
     }
-  }, [sessionStartTime, sessionCommands, makeJarvisRequest, placeItem, speak, addLog, addNotebookEntry])
+  }, [sessionStartTime, sessionCommands, makeJarvisRequest, placeItem, speak, addLog, addNotebookEntry, itemsRef])
 
   // Unified confirmation handler
   const handleConfirmation = useCallback((pending: { type: string; data: JarvisAny }, confirmed: boolean) => {
@@ -2464,7 +2465,7 @@ Use this context to make responses feel personal. Reference the project when rel
         speak("Order list cleared.")
         break
     }
-  }, [logMeasurementToNotebook, endSession, navigate, speak])
+  }, [logMeasurementToNotebook, endSession, navigate, speak, clearCanvas, setItems])
 
   const handleGuidedModeAction = useCallback((action: 'prev' | 'next') => {
     if (!guidedMode) return
@@ -3220,6 +3221,18 @@ Use this context to make responses feel personal. Reference the project when rel
       setWakeState('listening')
       resetSleepTimer()
     },
+    // The omitted deps (addToOrderList, clearCanvas, handleConfirmation,
+    // setItems, itemsRef, etc.) are intentionally left out: this callback's
+    // identity is never consumed directly — it's immediately captured into
+    // processCommandRef below (the established stable-ref-forwarding
+    // pattern used throughout this file) specifically so downstream
+    // engine callbacks always see the latest closure without needing this
+    // dependency list to be exhaustive. Adding all ~20 would just make an
+    // already-recreated-every-render callback churn identity for no
+    // behavioral change, while risking a "used before declaration" error
+    // since several of them (processGuidedCommand, startGuidedMode, etc.)
+    // are declared further down in this file.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       makeRequest,
       isConnected,
@@ -3405,7 +3418,7 @@ Use this context to make responses feel personal. Reference the project when rel
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [goToSleep, addLog])
+  }, [goToSleep, addLog, setItems])
 
   const handleTypedSubmit = () => {
     const cmd = typedCommand.trim()
