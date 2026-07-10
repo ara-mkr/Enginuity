@@ -16,8 +16,13 @@ import {
   generateAllSections, docToMarkdown
 } from './generationEngine'
 import { DocSection } from './DocSection'
-// @ts-ignore
 import { saveToHistory, getHistory, timeAgo } from './docHistory'
+
+// Draft/section/history payloads flow through several untyped helper
+// modules (docWatcher, docHistory, generationEngine) — one localized
+// disable instead of suppressing every callback individually.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type LiveDocsAny = any
 
 export function LiveDocs() {
   const { makeRequest, isConnected } = useAIProvider()
@@ -43,16 +48,20 @@ export function LiveDocs() {
   useProbeContext('live-docs', {
     title: displayTitle,
     sectionCount: Object.keys(draft.sections || {}).length,
-    filledSections: Object.values(draft.sections || {}).filter((s: any) => s?.content).length,
+    filledSections: Object.values(draft.sections || {}).filter((s: LiveDocsAny) => s?.content).length,
     generatingAll,
     activeSection,
   })
 
-  useEffect(() => { setTitle(draft.title || '') }, [])
+  useEffect(() => {
+    // One-time mount initialization: seed the title from the loaded draft.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-time init from external draft store
+    setTitle(draft.title || '')
+  }, [])
 
   useEffect(() => {
     setDocumentOpen(true)
-    const unsub = onDraftUpdate((updated: any) => setDraft({ ...updated }))
+    const unsub = onDraftUpdate((updated: LiveDocsAny) => setDraft({ ...updated }))
     return () => { setDocumentOpen(false); unsub() }
   }, [])
 
@@ -108,7 +117,7 @@ export function LiveDocs() {
     })
   }, [makeRequest, isConnected])
 
-  const handleUpdateSection = (key: string, content: any) => {
+  const handleUpdateSection = (key: string, content: LiveDocsAny) => {
     updateSection(key, content)
     setDraft({ ...getDraft() })
   }
@@ -152,7 +161,7 @@ export function LiveDocs() {
     showToast('Copied to clipboard as Markdown')
   }
 
-  const saveSettings = (next: any) => { setSettings(next); saveDocSettings(next) }
+  const saveSettings = (next: LiveDocsAny) => { setSettings(next); saveDocSettings(next) }
 
   const wordCount = SECTION_ORDER
     .map(k => draft.sections[k]?.content?.split(/\s+/).length || 0)
@@ -277,7 +286,7 @@ export function LiveDocs() {
                   content={draft.sections[key] || null}
                   generating={generatingSection.has(key)}
                   onRegenerate={() => handleRegenerateSection(key)}
-                  onUpdate={(c: any) => handleUpdateSection(key, c)}
+                  onUpdate={(c: LiveDocsAny) => handleUpdateSection(key, c)}
                 />
               </div>
             ))}
@@ -341,7 +350,7 @@ export function LiveDocs() {
               <button onClick={() => setShowHistory(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', display: 'flex' }}><X size={16} /></button>
             </div>
             <div style={{ overflowY: 'auto', flex: 1, padding: 8 }}>
-              <HistoryList onRestore={(sections: any) => { Object.entries(sections).forEach(([k, v]) => updateSection(k, v)); setDraft({ ...getDraft() }); setShowHistory(false); showToast('Restored previous version') }} />
+              <HistoryList onRestore={(sections: LiveDocsAny) => { Object.entries(sections).forEach(([k, v]) => updateSection(k, v)); setDraft({ ...getDraft() }); setShowHistory(false); showToast('Restored previous version') }} />
             </div>
           </div>
         </div>
@@ -350,12 +359,12 @@ export function LiveDocs() {
   )
 }
 
-function HistoryList({ onRestore }: { onRestore: (s: any) => void }) {
+function HistoryList({ onRestore }: { onRestore: (s: LiveDocsAny) => void }) {
   const history = getHistory()
   if (history.length === 0) return <p style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: 13, fontFamily: "'DM Sans',sans-serif", padding: 20 }}>No document history yet.</p>
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      {history.map((entry: any) => (
+      {history.map((entry: LiveDocsAny) => (
         <div key={entry.id} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div>
             <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 13, color: 'var(--text)', marginBottom: 2 }}>{entry.title}</div>
