@@ -3,6 +3,12 @@ import type { CanvasItem, CanvasTransform, CanvasGroup } from '../types'
 import { VideoItem } from './items/VideoItem'
 import { CameraItem } from './CameraItem'
 
+// Canvas item payloads (measurements, BOM components, order-list entries,
+// datasheet components) are polymorphic AI/tool output shaped at runtime —
+// one localized disable instead of suppressing every call site individually.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type CanvasAny = any
+
 interface InfiniteCanvasProps {
   items: CanvasItem[]
   groups: CanvasGroup[]
@@ -22,15 +28,15 @@ interface InfiniteCanvasProps {
   canvasBg: string
   canvasWorldRef: React.RefObject<HTMLDivElement>
   onExport: () => void
-  onLogMeasurement?: (reading: any, itemId: string) => void
+  onLogMeasurement?: (reading: CanvasAny, itemId: string) => void
   onCenterOnItem?: (itemId: string) => void
   onFindDatasheet?: (partNumber: string) => void
-  onAddPartToBOM?: (component: any) => void
+  onAddPartToBOM?: (component: CanvasAny) => void
   onTimerAction?: (timerId: string, action: 'add_minute' | 'pause_toggle' | 'cancel') => void
-  onOrderListAction?: (action: 'export_csv' | 'read_list' | 'clear_purchased' | 'toggle_purchased', itemData?: any) => void
+  onOrderListAction?: (action: 'export_csv' | 'read_list' | 'clear_purchased' | 'toggle_purchased', itemData?: CanvasAny) => void
   onGuidedModeAction?: (action: 'prev' | 'next') => void
   onOpenInCircuitSim?: (netlist: string) => void
-  onOpenInDatasheet?: (component: any) => void
+  onOpenInDatasheet?: (component: CanvasAny) => void
 }
 
 // ─── Photo item with local expand state ───────────────────────────────────────
@@ -275,7 +281,7 @@ function decodeResistor(bands: string[]): string | null {
   const val2 = COLOR_VALUES[b[1] as keyof typeof COLOR_VALUES]
   if (val1 === undefined || val2 === undefined) return null
   
-  let value = 0
+  let value: number
   let tolerance = ''
   
   if (b.length === 3) {
@@ -298,7 +304,7 @@ function decodeResistor(bands: string[]): string | null {
     return null
   }
   
-  let valStr = ''
+  let valStr: string
   if (value >= 1e6) valStr = `${(value / 1e6).toFixed(1).replace(/\.0$/, '')}MΩ`
   else if (value >= 1e3) valStr = `${(value / 1e3).toFixed(1).replace(/\.0$/, '')}kΩ`
   else valStr = `${value.toFixed(1).replace(/\.0$/, '')}Ω`
@@ -368,11 +374,12 @@ function TimerCard({
   onTimerAction?: (timerId: string, action: 'add_minute' | 'pause_toggle' | 'cancel') => void
 }) {
   const { timerId, durationSeconds, endTime, label, status } = item.content
-  const [timeLeft, setTimeLeft] = useState(Math.max(0, Math.round((endTime - Date.now()) / 1000)))
-  
+  const [timeLeft, setTimeLeft] = useState(() => Math.max(0, Math.round((endTime - Date.now()) / 1000)))
+
   useEffect(() => {
     if (status !== 'running') {
       const remaining = Math.max(0, Math.round((endTime - Date.now()) / 1000))
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- recomputing the displayed time when the timer's running state flips, not derived render state
       setTimeLeft(remaining)
       return
     }
@@ -577,7 +584,7 @@ function GuidedStepsCard({
       
       {/* Steps List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-        {guide.steps.map((s: any, idx: number) => {
+        {guide.steps.map((s: CanvasAny, idx: number) => {
           const isCompleted = idx < currentStep
           const isActive = idx === currentStep
           
@@ -666,7 +673,7 @@ function OrderListCard({
   onOrderListAction
 }: {
   item: CanvasItem
-  onOrderListAction?: (action: 'export_csv' | 'read_list' | 'clear_purchased' | 'toggle_purchased', itemData?: any) => void
+  onOrderListAction?: (action: 'export_csv' | 'read_list' | 'clear_purchased' | 'toggle_purchased', itemData?: CanvasAny) => void
 }) {
   const items = item.content.items || []
   
@@ -693,7 +700,7 @@ function OrderListCard({
       
       {/* Items list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12, maxHeight: 200, overflowY: 'auto' }}>
-        {items.map((it: any) => (
+        {items.map((it: CanvasAny) => (
           <div
             key={it.id}
             style={{
@@ -862,7 +869,6 @@ function ItemContent({
   onAnalyzePhoto,
   onCameraCapture,
   onCameraStop,
-  cameraVideoRef,
   onLogMeasurement,
   onCenterOnItem,
   onFindDatasheet,
@@ -877,16 +883,15 @@ function ItemContent({
   onAnalyzePhoto: (id: string) => void
   onCameraCapture: () => void
   onCameraStop: () => void
-  cameraVideoRef: React.RefObject<HTMLVideoElement>
-  onLogMeasurement?: (reading: any, itemId: string) => void
+  onLogMeasurement?: (reading: CanvasAny, itemId: string) => void
   onCenterOnItem?: (itemId: string) => void
   onFindDatasheet?: (partNumber: string) => void
-  onAddPartToBOM?: (component: any) => void
+  onAddPartToBOM?: (component: CanvasAny) => void
   onTimerAction?: (timerId: string, action: 'add_minute' | 'pause_toggle' | 'cancel') => void
-  onOrderListAction?: (action: 'export_csv' | 'read_list' | 'clear_purchased' | 'toggle_purchased', itemData?: any) => void
+  onOrderListAction?: (action: 'export_csv' | 'read_list' | 'clear_purchased' | 'toggle_purchased', itemData?: CanvasAny) => void
   onGuidedModeAction?: (action: 'prev' | 'next') => void
   onOpenInCircuitSim?: (netlist: string) => void
-  onOpenInDatasheet?: (component: any) => void
+  onOpenInDatasheet?: (component: CanvasAny) => void
 }) {
   const [collapsed, setCollapsed] = useState(true)
 
@@ -1093,6 +1098,7 @@ function ItemContent({
             cursor: 'text',
           }}
           onBlur={(e) => {
+            // eslint-disable-next-line react-hooks/immutability -- intentional out-of-band mutation of the shared item object so the note text persists; this is an uncontrolled contentEditable and doesn't need a re-render
             item.content.text = e.currentTarget.textContent || ''
           }}
         >
@@ -1347,7 +1353,7 @@ function ItemContent({
           
           {secondaryReadings && secondaryReadings.length > 0 && (
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8, marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {secondaryReadings.map((sec: any, idx: number) => (
+              {secondaryReadings.map((sec: CanvasAny, idx: number) => (
                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)' }}>
                   <span>{sec.label}:</span>
                   <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{sec.value} {sec.unit}</span>
@@ -1622,7 +1628,7 @@ function ItemContent({
     }
 
     case 'datasheet_card': {
-      const { partNumber, manufacturer, description, category, keySpecs, datasheetUrl, productPageUrl, distributorUrls } = item.content
+      const { partNumber, manufacturer, description, category, keySpecs, datasheetUrl, distributorUrls } = item.content
       
       return (
         <div style={{
@@ -1648,7 +1654,7 @@ function ItemContent({
           {keySpecs && keySpecs.length > 0 && (
             <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12 }}>
               <tbody>
-                {keySpecs.slice(0, 5).map((spec: any, idx: number) => (
+                {keySpecs.slice(0, 5).map((spec: CanvasAny, idx: number) => (
                   <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                     <td style={{ fontSize: 11, color: 'var(--text-dim)', padding: '4px 0' }}>{spec.param}</td>
                     <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: 'var(--text)', padding: '4px 0', textAlign: 'right' }}>{spec.value}</td>
@@ -1724,7 +1730,7 @@ function ItemContent({
               <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 4 }}>Components:</div>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <tbody>
-                  {components.map((c: any, idx: number) => (
+                  {components.map((c: CanvasAny, idx: number) => (
                     <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                       <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: 'var(--text)', padding: '2px 0' }}>{c.name}</td>
                       <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: 'var(--text-muted)', padding: '2px 0', textAlign: 'right' }}>{c.value} {c.unit}</td>
@@ -1739,7 +1745,7 @@ function ItemContent({
             <div style={{ marginBottom: 10 }}>
               <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 6 }}>Key Results:</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                {keyResults.map((kr: any, idx: number) => (
+                {keyResults.map((kr: CanvasAny, idx: number) => (
                   <div key={idx} style={{ flex: 1, minWidth: 100, background: 'var(--bg-2)', padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border)' }}>
                     <div style={{ fontSize: 10, color: 'var(--text-dim)', textTransform: 'capitalize' }}>{kr.parameter}</div>
                     <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 16, color: 'var(--text)', fontWeight: 600 }}>
@@ -1837,7 +1843,6 @@ function CanvasItemWrapper({
   onAnalyzePhoto,
   onCameraCapture,
   onCameraStop,
-  cameraVideoRef,
   onLogMeasurement,
   onCenterOnItem,
   onFindDatasheet,
@@ -1856,16 +1861,15 @@ function CanvasItemWrapper({
   onAnalyzePhoto: (id: string) => void
   onCameraCapture: () => void
   onCameraStop: () => void
-  cameraVideoRef: React.RefObject<HTMLVideoElement>
-  onLogMeasurement?: (reading: any, itemId: string) => void
+  onLogMeasurement?: (reading: CanvasAny, itemId: string) => void
   onCenterOnItem?: (itemId: string) => void
   onFindDatasheet?: (partNumber: string) => void
-  onAddPartToBOM?: (component: any) => void
+  onAddPartToBOM?: (component: CanvasAny) => void
   onTimerAction?: (timerId: string, action: 'add_minute' | 'pause_toggle' | 'cancel') => void
-  onOrderListAction?: (action: 'export_csv' | 'read_list' | 'clear_purchased' | 'toggle_purchased', itemData?: any) => void
+  onOrderListAction?: (action: 'export_csv' | 'read_list' | 'clear_purchased' | 'toggle_purchased', itemData?: CanvasAny) => void
   onGuidedModeAction?: (action: 'prev' | 'next') => void
   onOpenInCircuitSim?: (netlist: string) => void
-  onOpenInDatasheet?: (component: any) => void
+  onOpenInDatasheet?: (component: CanvasAny) => void
 }) {
   const [hovered, setHovered] = useState(false)
   const dragRef = useRef<{
@@ -2005,7 +2009,6 @@ function CanvasItemWrapper({
           onAnalyzePhoto={onAnalyzePhoto}
           onCameraCapture={onCameraCapture}
           onCameraStop={onCameraStop}
-          cameraVideoRef={cameraVideoRef}
           onLogMeasurement={onLogMeasurement}
           onCenterOnItem={onCenterOnItem}
           onFindDatasheet={onFindDatasheet}
@@ -2062,14 +2065,12 @@ const TYPE_COLORS: Record<string, string> = {
 
 function Minimap({
   items,
-  groups,
   transform,
   containerW,
   containerH,
   onViewportDrag,
 }: {
   items: CanvasItem[]
-  groups: CanvasGroup[]
   transform: CanvasTransform
   containerW: number
   containerH: number
@@ -2200,7 +2201,6 @@ function CanvasToolbar({
   onToggleCamera,
   showMinimap,
   cameraActive,
-  itemCount,
 }: {
   onUndo: () => void
   onClear: () => void
@@ -2209,7 +2209,6 @@ function CanvasToolbar({
   onToggleCamera: () => void
   showMinimap: boolean
   cameraActive: boolean
-  itemCount: number
 }) {
   const btn = (
     label: string,
@@ -2287,7 +2286,6 @@ export function InfiniteCanvas({
   onCameraStart,
   onCameraCapture,
   onCameraStop,
-  cameraVideoRef,
   showWelcome,
   canvasBg,
   canvasWorldRef,
@@ -2312,14 +2310,16 @@ export function InfiniteCanvas({
     startTY: number
   } | null>(null)
   const spaceHeldRef = useRef(false)
-  const [showClear, setShowClear] = useState(false)
+  const [, setShowClear] = useState(false)
   const [showMinimap, setShowMinimap] = useState(false)
   const [containerSize, setContainerSize] = useState({ w: 800, h: 600 })
   // Camera toggle fires the start/stop in the parent; we just call onCameraCapture/onCameraStop
   const cameraActiveItem = items.some((i) => i.type === 'camera')
 
-  transformRef.current = transform
-  onTransformChangeRef.current = onTransformChange
+  useEffect(() => {
+    transformRef.current = transform
+    onTransformChangeRef.current = onTransformChange
+  }, [transform, onTransformChange])
 
   // Track container size for minimap
   useEffect(() => {
@@ -2537,7 +2537,6 @@ export function InfiniteCanvas({
               onAnalyzePhoto={onAnalyzePhoto}
               onCameraCapture={onCameraCapture}
               onCameraStop={onCameraStop}
-              cameraVideoRef={cameraVideoRef}
               onLogMeasurement={onLogMeasurement}
               onCenterOnItem={onCenterOnItem}
               onFindDatasheet={onFindDatasheet}
@@ -2612,14 +2611,12 @@ export function InfiniteCanvas({
         onToggleCamera={cameraActiveItem ? onCameraStop : onCameraStart}
         showMinimap={showMinimap}
         cameraActive={cameraActiveItem}
-        itemCount={items.length}
       />
 
       {/* Minimap */}
       {showMinimap && (
         <Minimap
           items={items}
-          groups={groups}
           transform={transform}
           containerW={containerSize.w}
           containerH={containerSize.h}
