@@ -9,6 +9,7 @@ export function OfflineBanner() {
 
   useEffect(() => {
     if (!isOnline) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- surfacing banner state as a side effect of connectivity changing
       setStatus('offline')
       setVisible(true)
     } else if (isOnline && wasOffline) {

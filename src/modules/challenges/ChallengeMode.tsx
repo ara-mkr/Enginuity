@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Trophy, Calendar, Award, Compass, RefreshCw } from 'lucide-react'
+import { Trophy, Calendar, Compass, RefreshCw } from 'lucide-react'
 import { ChallengesFeed } from './components/ChallengesFeed'
 import { ChallengeWorkspace } from './components/ChallengeWorkspace'
 import { ChallengeLeaderboard } from './components/ChallengeLeaderboard'

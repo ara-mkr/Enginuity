@@ -43,6 +43,7 @@ export function useOllamaStatus(pollMs = 30000): OllamaStatus & { recheck: () =>
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- kicking off the initial Ollama availability check on mount
     void check()
   }, [check])
 

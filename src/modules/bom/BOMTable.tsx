@@ -36,7 +36,7 @@ export function BOMTable({ items, onUpdateItems, onFindAlternatives }: Props) {
 
     const updated = items.map((item) => {
       if (item.id === id) {
-        let val: any = editingValue
+        let val: string | number | null = editingValue
         if (field === 'quantity') {
           val = parseInt(editingValue) || 1
         } else if (field === 'unitPrice') {

@@ -11,16 +11,6 @@ interface ChallengesFeedProps {
   totalPoints: number
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  analog: '#b09470',
-  digital: '#7ab4c4',
-  power: '#7aaa8a',
-  mechanical: '#b0bec5',
-  signal_processing: '#9485b8',
-  algorithm: '#b08080',
-  mixed: '#b0a060'
-}
-
 export function ChallengesFeed({ onAcceptChallenge, completedChallenges, totalPoints }: ChallengesFeedProps) {
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'completed'>('all')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')

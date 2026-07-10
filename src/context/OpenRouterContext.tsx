@@ -189,6 +189,7 @@ export function OpenRouterProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook is tightly coupled to this provider's context instance
 export function useOpenRouter() {
   const ctx = useContext(OpenRouterContext)
   if (!ctx) throw new Error('useOpenRouter must be within OpenRouterProvider')

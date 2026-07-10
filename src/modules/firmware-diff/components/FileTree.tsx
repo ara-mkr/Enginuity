@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Folder, FolderOpen, FileCode, Plus, Minus, FileText } from 'lucide-react'
+import { Folder, FolderOpen, FileCode, Plus, Minus } from 'lucide-react'
 import type { FileTreeNode } from '../types'
 
 interface FileTreeProps {

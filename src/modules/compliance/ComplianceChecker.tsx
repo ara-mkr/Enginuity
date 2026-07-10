@@ -2,7 +2,6 @@ import { useState, useCallback } from 'react'
 import { useAIProvider } from '../../hooks/useAIProvider'
 import { useProbeContext } from '../../hooks/useProbeContext'
 import { logEvent } from '../../engine/eventLog'
-// @ts-ignore
 import ResizablePanel from '../../components/ResizablePanel'
 import {
   ChevronDown, ChevronRight, Download, BookOpen, Share2, Loader2, AlertTriangle,
