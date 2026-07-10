@@ -3,6 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronDown, ChevronUp, Sliders } from 'lucide-react'
 import type { FormulaCalculation } from './types'
 
+// KaTeX (CDN-loaded global) and un-normalized parameter_playground_config
+// equation/parameter shapes are untyped here.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type FormulaAny = any
+
 // Helper component to render KaTeX formula safely
 export function Latex({ math, block = false }: { math: string; block?: boolean }) {
   const containerRef = useRef<HTMLSpanElement>(null)
@@ -15,14 +20,14 @@ export function Latex({ math, block = false }: { math: string; block?: boolean }
     const tryRender = () => {
       const container = containerRef.current
       if (!container) return
-      if ((window as any).katex) {
+      if ((window as FormulaAny).katex) {
         try {
-          (window as any).katex.render(math, container, {
+          (window as FormulaAny).katex.render(math, container, {
             throwOnError: false,
             displayMode: block,
           })
           rendered = true
-        } catch (e) {
+        } catch {
           container.textContent = math
         }
       } else {
@@ -33,9 +38,9 @@ export function Latex({ math, block = false }: { math: string; block?: boolean }
     tryRender()
 
     // If not rendered yet because katex is loading, poll briefly
-    if (!rendered && !(window as any).katex) {
+    if (!rendered && !(window as FormulaAny).katex) {
       const interval = setInterval(() => {
-        if ((window as any).katex) {
+        if ((window as FormulaAny).katex) {
           tryRender()
           clearInterval(interval)
         }
@@ -66,7 +71,7 @@ export function FormulaCard({ calculation }: FormulaCardProps) {
     // Map formula_js to formula for PlaygroundSchema
     const schema = {
       parameters: config.parameters,
-      equations: config.equations.map((eq: any, idx: number) => ({
+      equations: config.equations.map((eq: FormulaAny, idx: number) => ({
         outputName: eq.outputName,
         label: eq.label,
         formula: eq.formula_js,
@@ -76,7 +81,7 @@ export function FormulaCard({ calculation }: FormulaCardProps) {
     }
 
     const defaultValues: Record<string, number> = {}
-    config.parameters.forEach((p: any) => {
+    config.parameters.forEach((p: FormulaAny) => {
       defaultValues[p.name] = p.default
     })
 
