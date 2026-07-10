@@ -16,7 +16,7 @@ import {
   History, TruckIcon, TestTube2, ShieldCheck, Waves, FileText, Pencil,
   Store, Wrench, Package, Puzzle, Code, Globe, Settings, Activity,
 } from 'lucide-react'
-import type { ComponentType } from 'react'
+import type { ComponentType, CSSProperties } from 'react'
 
 export type ToolCategory =
   | 'Core'
@@ -36,7 +36,7 @@ export interface BuiltinTool {
   to: string
   label: string
   description: string
-  icon: ComponentType<{ size?: number; style?: any; className?: string }>
+  icon: ComponentType<{ size?: number; style?: CSSProperties; className?: string }>
   category: ToolCategory
   /** True if this tool appears in a fresh sidebar with no user customization. */
   defaultInstalled: boolean
@@ -236,7 +236,7 @@ export interface CustomTool extends CustomToolManifest {
   to: string
 }
 
-export const CUSTOM_ICON_MAP: Record<string, ComponentType<{ size?: number; style?: any }>> = {
+export const CUSTOM_ICON_MAP: Record<string, ComponentType<{ size?: number; style?: CSSProperties }>> = {
   Wrench, Package, Puzzle, Code, Globe, Settings, Sparkles, Cpu, Zap, BookOpen,
   ClipboardList, Calculator, Library, Trophy, FileText, Pencil, Waves,
 }
