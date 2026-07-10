@@ -64,6 +64,7 @@ export function AIAnalysisPanel({ analysis, onJumpToLine }: AIAnalysisPanelProps
       const existing: NotebookEntry[] = JSON.parse(localStorage.getItem('enginguity_notebook') ?? '[]')
       
       const newEntry: NotebookEntry = {
+        // eslint-disable-next-line react-hooks/purity -- click-handler code, not render
         id: `nb-rec-${Date.now()}-${index}`,
         type: 'TEST_RESULT' as const,
         title: `Validation Test: Firmware Recommendation #${index + 1}`,
@@ -80,7 +81,7 @@ export function AIAnalysisPanel({ analysis, onJumpToLine }: AIAnalysisPanelProps
 
       localStorage.setItem('enginguity_notebook', JSON.stringify([newEntry, ...existing]))
       setAddedNotes(prev => ({ ...prev, [index]: true }))
-    } catch (e) {
+    } catch {
       alert('Failed to log test recommendation to notebook.')
     }
   }
