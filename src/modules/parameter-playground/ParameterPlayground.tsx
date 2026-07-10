@@ -249,8 +249,9 @@ export function ParameterPlayground() {
 
   // Cleanup timeouts on unmount
   useEffect(() => {
+    const timers = debounceTimerRef.current
     return () => {
-      Object.values(debounceTimerRef.current).forEach(clearTimeout)
+      Object.values(timers).forEach(clearTimeout)
     }
   }, [])
 

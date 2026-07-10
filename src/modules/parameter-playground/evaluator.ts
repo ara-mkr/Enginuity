@@ -21,7 +21,6 @@ export function evalFormula(
       if (formula.includes(b)) return null
     }
 
-    // eslint-disable-next-line no-new-func
     const fn = new Function(...names, `"use strict"; return (${formula});`)
     const result = fn(...values)
 

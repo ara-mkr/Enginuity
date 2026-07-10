@@ -16,11 +16,12 @@ export function CameraItem({
 
   useEffect(() => {
     const engineVideo = getVideoElement()
-    if (!engineVideo || !videoRef.current) return
+    const videoEl = videoRef.current
+    if (!engineVideo || !videoEl) return
 
     // Share the MediaStream from the engine's video element
-    videoRef.current.srcObject = engineVideo.srcObject
-    videoRef.current
+    videoEl.srcObject = engineVideo.srcObject
+    videoEl
       .play()
       .then(() => setIsLive(true))
       .catch(() => {
@@ -28,9 +29,7 @@ export function CameraItem({
       })
 
     return () => {
-      if (videoRef.current) {
-        videoRef.current.srcObject = null
-      }
+      videoEl.srcObject = null
     }
   }, [])
 

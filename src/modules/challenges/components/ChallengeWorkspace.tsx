@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   Clock,
   Sparkles,
@@ -55,7 +55,7 @@ export function ChallengeWorkspace({ challenge, onExit, onSubmitSolution }: Chal
   const backupDataRef = useRef<Record<string, string | null>>({})
 
   // Declared before the init effect below since its cleanup calls this.
-  const saveWorkspaceState = () => {
+  const saveWorkspaceState = useCallback(() => {
     const wsState: ChallengeWorkspaceState = {
       consoleCode: localStorage.getItem('enginguity_starter_code') || '',
       notebookNotes: localStorage.getItem('enginguity_notebook') || '[]',
@@ -64,7 +64,7 @@ export function ChallengeWorkspace({ challenge, onExit, onSubmitSolution }: Chal
       checkedConstraints
     }
     localStorage.setItem(`enginguity_challenge_${challenge.id}_workspace`, JSON.stringify(wsState))
-  }
+  }, [checkedConstraints, challenge.id])
 
   // Initialize: backup main localStorage, load challenge workspace state
   useEffect(() => {
@@ -112,13 +112,15 @@ export function ChallengeWorkspace({ challenge, onExit, onSubmitSolution }: Chal
     const savedTime = localStorage.getItem(`enginguity_challenge_${challenge.id}_time`)
     if (savedTime) setSecondsElapsed(parseInt(savedTime))
 
+    const backups = backupDataRef.current
+
     return () => {
       // Auto-save on exit
       saveWorkspaceState()
 
       // Restore backups
       backupKeys.forEach(key => {
-        const val = backupDataRef.current[key]
+        const val = backups[key]
         if (val === null) {
           localStorage.removeItem(key)
         } else {
@@ -126,7 +128,7 @@ export function ChallengeWorkspace({ challenge, onExit, onSubmitSolution }: Chal
         }
       })
     }
-  }, [challenge])
+  }, [challenge, saveWorkspaceState])
 
   // Timer tick
   useEffect(() => {
@@ -152,7 +154,7 @@ export function ChallengeWorkspace({ challenge, onExit, onSubmitSolution }: Chal
     }, 30000)
 
     return () => clearInterval(autoSave)
-  }, [showResultsCard, checkedConstraints])
+  }, [showResultsCard, checkedConstraints, saveWorkspaceState])
 
   // Points ticks down 1% per 2 minutes
   const pointsRemaining = useMemo(() => {
