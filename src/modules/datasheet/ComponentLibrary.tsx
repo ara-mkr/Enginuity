@@ -4,6 +4,7 @@ import type { SavedComponent, ComponentData } from './types'
 
 const STORAGE_KEY = 'enginguity_components'
 
+// eslint-disable-next-line react-refresh/only-export-components -- shared storage helper, not worth a separate file
 export function loadLibrary(): SavedComponent[] {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]')
@@ -12,6 +13,7 @@ export function loadLibrary(): SavedComponent[] {
   }
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- shared storage helper, not worth a separate file
 export function saveToLibrary(data: ComponentData, fileName: string): SavedComponent {
   const lib = loadLibrary()
   const entry: SavedComponent = {
@@ -26,6 +28,7 @@ export function saveToLibrary(data: ComponentData, fileName: string): SavedCompo
   return entry
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- shared storage helper, not worth a separate file
 export function removeFromLibrary(id: string) {
   const lib = loadLibrary().filter((c) => c.id !== id)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(lib))
