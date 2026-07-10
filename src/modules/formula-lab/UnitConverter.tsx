@@ -1,7 +1,15 @@
 import { useState, useEffect } from 'react'
 import { ArrowLeftRight, Check } from 'lucide-react'
 
-export const UNIT_CATEGORIES: Record<string, any> = {
+interface UnitCategory {
+  base?: string
+  special?: boolean
+  units: Record<string, number>
+  convert?: (val: number, from: string, to: string) => number
+}
+
+// eslint-disable-next-line react-refresh/only-export-components -- shared conversion-table constant, not worth a separate file
+export const UNIT_CATEGORIES: Record<string, UnitCategory> = {
   length: { 
     base: 'm',
     units: { pm:1e-12, nm:1e-9, um:1e-6, mm:0.001, cm:0.01, 
@@ -112,6 +120,7 @@ export function UnitConverter({ onUseInFormula, insertedValue }: UnitConverterPr
     const unitKeys = Object.keys(catData.units)
     const defaultFrom = unitKeys[0] || ''
     const defaultTo = unitKeys[1] || unitKeys[0] || ''
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resetting from/to units when the unit category changes
     setFromUnit(defaultFrom)
     setToUnit(defaultTo)
   }, [category])
@@ -119,6 +128,7 @@ export function UnitConverter({ onUseInFormula, insertedValue }: UnitConverterPr
   // Sync if externally inserted value changes
   useEffect(() => {
     if (insertedValue !== undefined && !isNaN(insertedValue)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing local input from an external inserted value prop
       setValInput(String(insertedValue))
     }
   }, [insertedValue])
@@ -127,6 +137,7 @@ export function UnitConverter({ onUseInFormula, insertedValue }: UnitConverterPr
   useEffect(() => {
     const val = parseFloat(valInput)
     if (isNaN(val)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clearing derived conversion result when input is invalid
       setResult(null)
       return
     }
