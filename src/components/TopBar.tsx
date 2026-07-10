@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
-  Store, MessageSquarePlus, MessageSquare, Search,
+  Store, MessageSquarePlus, Search,
   Clock, Settings, HelpCircle, SlidersHorizontal,
 } from 'lucide-react'
 import { FileHistory } from './FileHistory/index'
-// @ts-ignore
 import { AISettings } from './AISettings'
 import { ModelPicker } from './ModelPicker'
 import { TutorialModal } from './TutorialModal'
@@ -112,6 +111,7 @@ export function TopBar() {
 
   // Native menu bar "Settings" item (Electron only)
   useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Electron preload bridge, not present in a browser environment
     const api = (window as any).electronAPI
     if (!api?.onMenuOpenSettings) return
     const cleanup = api.onMenuOpenSettings(() => setUISettingsOpen(true))
