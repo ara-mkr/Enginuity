@@ -85,7 +85,7 @@ export function BOMIntelligence() {
   }
 
   // Parse Excel file using SheetJS
-  const parseExcel = async (file: File) => {
+  const parseExcel = useCallback(async (file: File) => {
     try {
       const XLSX = await loadSheetJS()
       const data = await file.arrayBuffer()
@@ -171,7 +171,7 @@ export function BOMIntelligence() {
     } catch (err) {
       alert(`Failed to parse Excel: ${err instanceof Error ? err.message : 'Unknown error'}`)
     }
-  }
+  }, [])
 
   // Handle file drop/load from UniversalDropZone
   const handleFileLoaded = useCallback((result: BOMAny) => {
@@ -234,7 +234,7 @@ export function BOMIntelligence() {
         alert('Parsing Excel file... (Raw file reference missing)')
       }
     }
-  }, [])
+  }, [parseExcel])
 
   // Parse pasted raw text
   const handlePasteSubmit = async () => {

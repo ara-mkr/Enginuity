@@ -433,6 +433,10 @@ export default function ModelComparison() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time prefill sync from external project context
     if (projectDesc && !systemCtx) setSystemCtx(projectDesc.slice(0, 600))
+    // 'systemCtx' is intentionally excluded — it's the guard that stops
+    // this from overwriting user edits, not something that should
+    // re-trigger the prefill when it changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectDesc])
 
   // Select defaults: one flagship model per provider

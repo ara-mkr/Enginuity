@@ -571,6 +571,11 @@ export function FirmwareDiffViewer() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
+    // handleNextChange/handlePrevChange are plain functions (not memoized)
+    // derived entirely from changeIndices/currentChangeIndex, which are
+    // already listed — depending on the functions too would just re-attach
+    // the same listener on every render without changing behavior.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [changeIndices, currentChangeIndex])
 
   // Synchronized scrolling event handlers

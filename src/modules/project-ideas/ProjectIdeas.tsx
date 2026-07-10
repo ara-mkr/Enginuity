@@ -183,6 +183,9 @@ export function ProjectIdeas() {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time prefill sync from external project context
       setComponents(brainTags)
     }
+    // 'components.length' is intentionally excluded — it's the guard that
+    // stops this from clobbering user edits, not a re-trigger condition.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brainTags])
 
   // Save ideas list to localStorage

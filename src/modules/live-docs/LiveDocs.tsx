@@ -57,6 +57,9 @@ export function LiveDocs() {
     // One-time mount initialization: seed the title from the loaded draft.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-time init from external draft store
     setTitle(draft.title || '')
+    // Intentionally omits 'draft.title' — this only runs once on mount,
+    // not whenever the draft title later changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
