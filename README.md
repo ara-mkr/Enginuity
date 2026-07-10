@@ -136,7 +136,7 @@ and will shrink as things get fixed.
 - Three-pane layout: left sidebar navigation, center panel, right context panel.
 - Mascot: Ohma the owl.
 
-![Ohma the owl, ENGINGUITY's mascot](docs/images/ohma-mascot.png)
+
 
 ---
 
