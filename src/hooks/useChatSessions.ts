@@ -57,6 +57,11 @@ function newId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
+// Drop the internal `scope` field before exposing a session to consumers.
+function stripScope<T>(s: RawSession<T>): ChatSession<T> {
+  return { id: s.id, title: s.title, messages: s.messages, createdAt: s.createdAt, updatedAt: s.updatedAt }
+}
+
 export interface ChatSession<T> {
   id: string
   title: string
@@ -116,7 +121,7 @@ export function useChatSessions<T>({
       id,
       scope,
       title: 'New chat',
-      messages: defaultRef.current,
+      messages: defaultMessages,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     }
@@ -128,13 +133,13 @@ export function useChatSessions<T>({
   const [messages, setMessagesState] = useState<T[]>(() => {
     const store = readStore<T>()
     const session = store.sessions.find((s) => s.id === activeSessionId)
-    return session?.messages ?? defaultRef.current
+    return session?.messages ?? defaultMessages
   })
 
   const [sessions, setSessions] = useState<ChatSession<T>[]>(() =>
     readStore<T>()
       .sessions.filter((s) => s.scope === scope)
-      .map(({ scope: _, ...rest }) => rest),
+      .map(stripScope),
   )
 
   // Persist messages on every change for the active session.
@@ -161,10 +166,13 @@ export function useChatSessions<T>({
       }
     }
     writeStore<T>(store)
+    // Mirror the just-persisted localStorage store into React state so the
+    // sessions list reflects the write we just made to the external store.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing from external localStorage store after writing it
     setSessions(
       store.sessions
         .filter((s) => s.scope === scope)
-        .map(({ scope: _, ...rest }) => rest),
+        .map(stripScope),
     )
   }, [messages, activeSessionId, scope, deriveTitle])
 
@@ -229,7 +237,7 @@ export function useChatSessions<T>({
       setSessions(
         remaining
           .filter((s) => s.scope === scope)
-          .map(({ scope: _, ...rest }) => rest),
+          .map(stripScope),
       )
       // If we deleted the active session, switch to most recent or create new.
       if (id === activeSessionId) {
@@ -278,7 +286,7 @@ export function useChatSessions<T>({
       setSessions(
         store.sessions
           .filter((s) => s.scope === scope)
-          .map(({ scope: _, ...rest }) => rest),
+          .map(stripScope),
       )
     },
     [scope],
@@ -292,7 +300,7 @@ export function useChatSessions<T>({
       setSessions(
         store.sessions
           .filter((s) => s.scope === scope)
-          .map(({ scope: _, ...rest }) => rest),
+          .map(stripScope),
       )
       const session = store.sessions.find((s) => s.id === activeSessionId)
       if (session) setMessagesState(session.messages)
