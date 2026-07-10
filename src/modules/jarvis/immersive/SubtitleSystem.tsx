@@ -13,6 +13,7 @@ export function SubtitleSystem({ state, lastResponse, interimTranscript }: Props
 
   useEffect(() => {
     if (lastResponse) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- surfacing a new subtitle as a side effect of lastResponse changing
       setVisibleResponse(lastResponse)
       setResponseOpacity(1)
       const t = setTimeout(() => setResponseOpacity(0), 3500)

@@ -5,7 +5,9 @@
 import type { CapturedFrame } from './cameraEngine'
 
 type DiagType = 'info' | 'success' | 'warn' | 'error'
+// jarvisDiag is a debug bridge attached to window at runtime.
 const diag = (msg: string, type: DiagType = 'info') =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).jarvisDiag?.(msg, type)
 
 export interface VisionResult {

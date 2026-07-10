@@ -13,6 +13,7 @@ export function VariablesTable({ variables, onChange }: VariablesTableProps) {
 
   // Sync with incoming props when they change externally
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing local editable copy from the controlled variables prop
     setLocalVars(variables)
   }, [variables])
 

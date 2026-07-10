@@ -24,6 +24,10 @@ export function BottomBar({
 }: Props) {
   const stateText =
     state === 'listening' ? 'LISTENING…' : state === 'processing' ? 'PROCESSING…' : state === 'speaking' ? 'RESPONDING…' : ''
+  // Parent (ImmersiveContainer) re-renders this every second via its own
+  // clock-tick state, so reading the live time here just keeps the status
+  // readout in sync with that tick rather than introducing new impurity.
+  // eslint-disable-next-line react-hooks/purity
   const sessionMins = Math.floor((Date.now() - sessionStart) / 60000)
   const ts = new Date().toLocaleTimeString('en-US', { hour12: false })
   const readout = `SYS · ${ts} · ${state === 'sleeping' ? 'VOICE_STANDBY' : 'VOICE_ACTIVE'} · ORB_NOMINAL · CANVAS_ITEMS_${canvasItemCount} · MODEL_${(

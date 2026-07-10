@@ -180,6 +180,7 @@ export function TemplatesGallery() {
     try {
       const logs = localStorage.getItem('enginguity_template_history')
       if (logs) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time mount restore from localStorage
         setLoadLogs(JSON.parse(logs))
       }
     } catch (e) {

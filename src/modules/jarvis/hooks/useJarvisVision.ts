@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import {
   setCameraCallbacks,
   startCamera as engStartCamera,
@@ -59,7 +59,9 @@ export function useJarvisVision({
   const [cameraActive, setCameraActive] = useState(false)
   const cameraVideoRef = useRef<HTMLVideoElement>(null) // kept for prop compat
   const cameraActiveRef = useRef(cameraActive)
-  cameraActiveRef.current = cameraActive
+  useEffect(() => {
+    cameraActiveRef.current = cameraActive
+  }, [cameraActive])
 
   const startCamera = useCallback(async () => {
     if (cameraActiveRef.current) {

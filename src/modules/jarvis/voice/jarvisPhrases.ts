@@ -220,6 +220,7 @@ export function maybeAddInsult(currentQuery?: string): string {
   try {
     const notebook = JSON.parse(localStorage.getItem('enginguity_notebook') || '[]')
     const stub = currentQuery.toLowerCase().slice(0, 10)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped localStorage notebook entries
     const repeated = notebook.some((e: any) =>
       e?.type === 'NOTE' &&
       e?.source === 'jarvis' &&

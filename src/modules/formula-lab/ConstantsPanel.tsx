@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Search } from 'lucide-react'
 import type { EngineeringConstant } from './types'
 
+// eslint-disable-next-line react-refresh/only-export-components -- shared constants table, not worth a separate file
 export const CONSTANTS: EngineeringConstant[] = [
   { symbol: 'g', name: 'Gravitational acceleration', value: 9.80665, unit: 'm/s²' },
   { symbol: 'G', name: 'Gravitational constant', value: 6.674e-11, unit: 'N⋅m²/kg²' },

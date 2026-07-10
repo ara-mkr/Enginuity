@@ -33,6 +33,8 @@ export interface CanvasItem {
   y: number
   width: number
   height: number
+  // Content shape varies per item type (note, photo, datasheet_card, etc.)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   content: any
   title: string | null
   createdAt: number

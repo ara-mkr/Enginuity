@@ -38,7 +38,9 @@ interface Props {
 export function CentralOrb({ state, size = 600 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const stateRef = useRef(state)
-  stateRef.current = state
+  useEffect(() => {
+    stateRef.current = state
+  }, [state])
 
   useEffect(() => {
     const canvas = canvasRef.current
