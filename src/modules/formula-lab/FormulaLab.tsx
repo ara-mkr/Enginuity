@@ -3,15 +3,17 @@ import { Search, ArrowRight, Loader2, Sparkles, AlertTriangle, BookOpen, Hash } 
 import { useAIProvider } from '../../hooks/useAIProvider'
 import { useProbeContext } from '../../hooks/useProbeContext'
 import { logEvent } from '../../engine/eventLog'
-// @ts-ignore
 import { useEnginguityStore } from '../../engine/persistenceEngine'
-// @ts-ignore
 import { FORMULA_LIBRARY } from '../../config/formulaLibrary'
 import { FormulaCard, Latex } from './FormulaCard'
 import { VariablesTable } from './VariablesTable'
 import { ConstantsPanel } from './ConstantsPanel'
 import { UnitConverter } from './UnitConverter'
 import type { FormulaCalculation, Variable, FormulaLibraryItem } from './types'
+
+// Persistence store selectors and the CDN-loaded KaTeX global are untyped.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type FormulaLabAny = any
 
 const PLACEHOLDERS = [
   'torque to lift 5kg at 30cm radius at 60 RPM...',
@@ -22,7 +24,7 @@ const PLACEHOLDERS = [
 
 export function FormulaLab() {
   // Persisted slice — survives navigation/refresh (src/engine/persistenceEngine.js)
-  const setFormulaLabState = useEnginguityStore((s: any) => s.setFormulaLabState)
+  const setFormulaLabState = useEnginguityStore((s: FormulaLabAny) => s.setFormulaLabState)
   const persisted = useEnginguityStore.getState().formulaLab
 
   const [activeTab, setActiveTab] = useState<'calculator' | 'converter'>(persisted.activeTab)
@@ -69,7 +71,7 @@ export function FormulaLab() {
       link.href = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css'
       document.head.appendChild(link)
     }
-    if (!(window as any).katex && !document.getElementById('katex-js')) {
+    if (!(window as FormulaLabAny).katex && !document.getElementById('katex-js')) {
       const script = document.createElement('script')
       script.id = 'katex-js'
       script.src = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.js'
