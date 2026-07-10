@@ -1,18 +1,24 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Download, Copy, ChevronDown, ChevronUp, Loader2, Sparkles } from 'lucide-react'
-// @ts-ignore
+// @ts-expect-error - untyped JS module, no .d.ts yet
 import { useEnginguityStore } from '../../engine/persistenceEngine'
-// @ts-ignore
-import { PACKAGES, CATEGORIES, DENSITY_MULTIPLIERS } from '../../config/packages'
-// @ts-ignore
+// @ts-expect-error - untyped JS module, no .d.ts yet
+import { PACKAGES, CATEGORIES } from '../../config/packages'
+// @ts-expect-error - untyped JS module, no .d.ts yet
 import { generateKicadMod } from './engine/generateKicad'
-// @ts-ignore
+// @ts-expect-error - untyped JS module, no .d.ts yet
 import { buildPreviewSVG, LAYER_COLORS } from './engine/previewSVG'
 import { useAIProvider } from '../../hooks/useAIProvider'
 import { useProbeContext } from '../../hooks/useProbeContext'
 import { logEvent } from '../../engine/eventLog'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
+
+// Package configs come from an untyped JS module (src/config/packages.js) and
+// are structurally heterogeneous per package type (chip, SOIC, QFN, etc.) — one
+// localized disable instead of suppressing every call site individually.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PkgAny = any
 
 interface LayerVis {
   cu: boolean; paste: boolean; mask: boolean;
@@ -92,12 +98,12 @@ function DensityPicker({ value, onChange }: { value: string; onChange: (v: strin
 
 // ── Parameter panel per package type ─────────────────────────────────────────
 
-function ParamPanel({ cfg, onChange }: { cfg: any; onChange: (key: string, val: any) => void }) {
+function ParamPanel({ cfg, onChange }: { cfg: PkgAny; onChange: (key: string, val: PkgAny) => void }) {
   const { type } = cfg
 
   const set = (path: string[], val: number) => {
     const next = JSON.parse(JSON.stringify(cfg))
-    let obj: any = next
+    let obj: PkgAny = next
     for (let i = 0; i < path.length - 1; i++) obj = obj[path[i]]
     obj[path[path.length - 1]] = val
     onChange('cfg', next)
@@ -170,13 +176,13 @@ export function FootprintGen() {
   const { makeRequest, isConnected } = useAIProvider()
 
   // Persisted slice — survives navigation/refresh (src/engine/persistenceEngine.js)
-  const setFootprintGenState = useEnginguityStore((s: any) => s.setFootprintGenState)
+  const setFootprintGenState = useEnginguityStore((s: { setFootprintGenState: (state: PkgAny) => void }) => s.setFootprintGenState)
   const persisted = useEnginguityStore.getState().footprintGen
 
   const [search, setSearch] = useState(persisted.search)
   const [category, setCategory] = useState(persisted.category)
   const [selectedKey, setSelectedKey] = useState<string | null>(persisted.selectedKey)
-  const [customCfg, setCustomCfg] = useState<any>(persisted.customCfg ?? JSON.parse(JSON.stringify(CUSTOM_DEFAULTS)))
+  const [customCfg, setCustomCfg] = useState<PkgAny>(persisted.customCfg ?? JSON.parse(JSON.stringify(CUSTOM_DEFAULTS)))
   const [customName, setCustomName] = useState(persisted.customName)
   const [customTab, setCustomTab] = useState(persisted.customTab)
   const [aiPrompt, setAiPrompt] = useState('')
@@ -190,11 +196,11 @@ export function FootprintGen() {
 
   // Active package config
   const packageName = customTab ? customName : (selectedKey || '')
-  const activeCfg: any = customTab
+  const activeCfg: PkgAny = customTab
     ? customCfg
     : selectedKey ? PACKAGES[selectedKey] : null
 
-  const [editedCfg, setEditedCfg] = useState<any | null>(persisted.editedCfg)
+  const [editedCfg, setEditedCfg] = useState<PkgAny | null>(persisted.editedCfg)
   const effectiveCfg = editedCfg ?? activeCfg
 
   useProbeContext('footprint-gen', {
@@ -225,7 +231,7 @@ export function FootprintGen() {
 
   // Filtered package list
   const filteredPackages = useMemo(() => {
-    return Object.entries(PACKAGES as Record<string, any>).filter(([name, cfg]) => {
+    return Object.entries(PACKAGES as Record<string, PkgAny>).filter(([name, cfg]) => {
       const matchCat = category === 'All' || cfg.category === category
       const matchSearch = !search || name.toLowerCase().includes(search.toLowerCase()) ||
         cfg.category.toLowerCase().includes(search.toLowerCase()) ||
@@ -236,7 +242,7 @@ export function FootprintGen() {
 
   // Group by category for display
   const grouped = useMemo(() => {
-    const map = new Map<string, [string, any][]>()
+    const map = new Map<string, [string, PkgAny][]>()
     filteredPackages.forEach(([name, cfg]) => {
       if (!map.has(cfg.category)) map.set(cfg.category, [])
       map.get(cfg.category)!.push([name, cfg])
@@ -260,7 +266,7 @@ export function FootprintGen() {
     } catch { return '' }
   }, [effectiveCfg, density, packageName])
 
-  const handleCfgChange = (key: string, val: any) => {
+  const handleCfgChange = (key: string, val: PkgAny) => {
     const base = editedCfg ?? (activeCfg ? JSON.parse(JSON.stringify(activeCfg)) : {})
     if (key === 'cfg') {
       setEditedCfg(val)
@@ -306,8 +312,9 @@ export function FootprintGen() {
       }
       setFilename(`${customName}.kicad_mod`)
       setEditedCfg(null)
-    } catch (e: any) {
-      alert(`AI assist failed: ${e.message}`)
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e)
+      alert(`AI assist failed: ${message}`)
     } finally {
       setAiLoading(false)
     }
@@ -399,7 +406,7 @@ export function FootprintGen() {
                       onMouseLeave={e => { if (selectedKey !== name) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
                     >
                       <span style={{ fontSize: 13, fontFamily: 'Geist Mono, monospace', color: 'var(--text)' }}>{name}</span>
-                      <span style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: 'Geist, sans-serif' }}>{(PACKAGES as any)[name].type}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: 'Geist, sans-serif' }}>{(PACKAGES as Record<string, PkgAny>)[name].type}</span>
                     </button>
                   ))}
                 </div>
