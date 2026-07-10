@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-94a5ba.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A520-94a5ba.svg)](package.json)
 [![Electron](https://img.shields.io/badge/electron-desktop-94a5ba.svg)](electron-builder.yml)
-[![Made with Ohma](https://img.shields.io/badge/made%20with-Ohma%20🦉-94a5ba.svg)](#)
+
 
 **An AI-powered engineering workspace for engineers and makers.** Web app + Electron desktop. Circuit simulation, CAD viewing, firmware diffing, BOM intelligence, collaboration, and voice — one workspace, one keyboard away.
 
