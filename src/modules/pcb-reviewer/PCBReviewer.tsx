@@ -1,13 +1,18 @@
 import { useState, useRef, useCallback } from 'react'
 import {
   Upload, Loader2, AlertTriangle, CheckCircle,
-  ChevronDown, ChevronUp, Download, BookOpen, RotateCcw
+  ChevronDown, ChevronUp, Download, RotateCcw
 } from 'lucide-react'
 import { useAIProvider } from '../../hooks/useAIProvider'
 import { useProjectContext } from '../../hooks/useProjectContext'
 import { useProbeContext } from '../../hooks/useProbeContext'
 import { logEvent } from '../../engine/eventLog'
 import { parseFile, buildSchematicContext } from './parser'
+
+// Parsed schematic/board shapes from the untyped parser module, chat
+// message payloads, and caught errors are heterogeneous here.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PCBAny = any
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -228,13 +233,14 @@ function SectionHeader({ label, count }: { label: string; count: number }) {
   )
 }
 
-function ChecklistView({ result, preChecked }: { result: ReviewResult; preChecked: Set<string> }) {
+function ChecklistView({ preChecked }: { preChecked: Set<string> }) {
   const [checked, setChecked] = useState<Set<string>>(() => new Set(preChecked))
   const groups = [...new Set(CHECKLIST_ITEMS.map(i => i.group))]
 
   const toggle = (id: string) => setChecked(prev => {
     const next = new Set(prev)
-    next.has(id) ? next.delete(id) : next.add(id)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
     return next
   })
 
@@ -333,7 +339,7 @@ export function PCBReviewer() {
 
       if (!isImage) {
         const text = await file.text()
-        const { parsed, rawText } = parseFile(file, text) as any
+        const { parsed, rawText } = parseFile(file, text) as PCBAny
         if (parsed && parsed.components.length > 0) {
           schematicContext = buildSchematicContext(parsed, file.name)
         } else {
@@ -370,7 +376,7 @@ Return this exact JSON:
   }
 }`
 
-      const messages: any[] = isImage && imageDataUrl
+      const messages: PCBAny[] = isImage && imageDataUrl
         ? [{ role: 'user', content: [
             { type: 'text', text: userContent },
             { type: 'image_url', image_url: { url: imageDataUrl } }
@@ -410,7 +416,7 @@ Return this exact JSON:
         warnings: parsed.warnings.length,
         module: 'pcb-reviewer',
       })
-    } catch (e: any) {
+    } catch (e: PCBAny) {
       setError(e.message || 'Review failed')
     } finally {
       setReviewing(false)
@@ -618,7 +624,7 @@ Return this exact JSON:
 
               {/* Toggle between checklist and review */}
               {checklistMode ? (
-                <ChecklistView result={result} preChecked={preChecked} />
+                <ChecklistView preChecked={preChecked} />
               ) : (
                 <>
                   {result.critical_issues.length > 0 && (
@@ -637,7 +643,7 @@ Return this exact JSON:
                       <SectionHeader label="Warnings" count={result.warnings.length} />
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {result.warnings.map((w, i) => (
-                          <IssueCard key={i} issue={w as any} borderColor="#b09060" />
+                          <IssueCard key={i} issue={w as PCBAny} borderColor="#b09060" />
                         ))}
                       </div>
                     </div>
