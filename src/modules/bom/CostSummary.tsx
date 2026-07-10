@@ -53,7 +53,7 @@ function categorize(item: BOMItem): keyof typeof CATEGORY_COLORS {
 
 export function CostSummary({ items }: Props) {
   const stats = useMemo(() => {
-    let totalLines = items.length
+    const totalLines = items.length
     let totalComponents = 0
     let estimatedCost = 0
     let atRiskCount = 0
@@ -207,7 +207,7 @@ export function CostSummary({ items }: Props) {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: any) => [`$${Number(value).toLocaleString()}`, 'Cost']}
+                    formatter={(value: number | string) => [`$${Number(value).toLocaleString()}`, 'Cost']}
                     contentStyle={{
                       background: 'var(--surface-2)',
                       borderColor: 'var(--border-bright)',
