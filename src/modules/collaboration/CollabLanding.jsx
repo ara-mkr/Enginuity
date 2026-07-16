@@ -19,9 +19,22 @@ function saveRecentRoom(room) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(rooms.slice(0, MAX_RECENT)))
 }
 
+// Room IDs are human-shareable but must still be unguessable: a short/predictable
+// ID lets an attacker race or enumerate a room before legitimate users connect
+// (see server join semantics). Use 128 bits of crypto-strong randomness, formatted
+// as dashed groups of 4 uppercase hex chars to match the existing display style.
 function generateRoomId() {
+  const toGroups = (hex) => hex.toUpperCase().match(/.{1,4}/g).join('-')
+  if (window.crypto?.randomUUID) {
+    return toGroups(window.crypto.randomUUID().replace(/-/g, ''))
+  }
+  if (window.crypto?.getRandomValues) {
+    const bytes = window.crypto.getRandomValues(new Uint8Array(16))
+    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+    return toGroups(hex)
+  }
   const seg = () => Math.random().toString(36).slice(2, 6).toUpperCase()
-  return `${seg()}-${seg()}`
+  return [seg(), seg(), seg(), seg(), seg(), seg(), seg(), seg()].join('-')
 }
 
 function timeAgo(ts) {

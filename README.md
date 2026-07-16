@@ -113,10 +113,10 @@ and will shrink as things get fixed.
 - **No Content-Security-Policy yet.** The renderer has no CSP header. It's a defense-in-depth hardening item, not a live exploit, and it's on the pre-1.0 list.
 - **Unsigned desktop builds.** The packaged `.dmg`/`.exe` are unsigned; macOS Gatekeeper and Windows SmartScreen will warn. Build from source, or click through knowingly. No auto-updater yet.
 - **Fonts need a network on first load.** UI fonts (DM Sans / JetBrains Mono) load from Google Fonts; fully-offline sessions fall back to system fonts. Self-hosting is planned.
-- **Collaboration trust model.** The first client to join a room establishes its token. Use long, unguessable room IDs (the app generates them) and run the server behind TLS (`wss://`) in production. A `server/README.md` documenting this isn't written yet.
+- **Collaboration trust model.** The first client to join a room establishes its token. Use long, unguessable room IDs (the app generates them) and run the server behind TLS (`wss://`) in production. See `server/README.md` for the full trust model and known room-hijack limitation.
 - **Open-source solver migration.** A migration to `eecircuit-engine` (ngspice-WASM, MIT) has passed its correctness spike but the adapter isn't landed; today's solver is the in-house MNA engine. Microcontroller co-simulation (avr8js Code Box) is designed but not reachable from the UI.
 - **CAD** beyond viewing (STL/OBJ/3MF/DXF) is planned, not shipped.
-- **Docs.** `server/README.md`, the contributor guide, and inline JSDoc are incomplete.
+- **Docs.** The contributor guide and inline JSDoc are incomplete.
 
 <!-- IMAGE (optional): a small Ohma illustration wearing a hard-hat holding an "under construction" sign, steel-blue, kept minimal (not cutesy). -->
 
