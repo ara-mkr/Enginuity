@@ -108,7 +108,6 @@ If no AI provider is connected, AI features are inert and prompt you to connect 
 one person. It is generated from the pre-launch audit (`AUDIT_REPORT.md`)
 and will shrink as things get fixed.
 
-- **Test Harness — Python path.** The JavaScript test runner is sandboxed and safe. The Python runner expects Pyodide to already be loaded, which the harness doesn't do on its own yet, so Python tests fail unless the Debug Console (which loads Pyodide) has been opened first. Fix in flight.
 - **Type-safety debt.** The tree compiles in CI, but ~170 `@ts-ignore`/`any` escapes remain at the TypeScript/JSX seams. Being burned down module by module.
 - **No Content-Security-Policy yet.** The renderer has no CSP header. It's a defense-in-depth hardening item, not a live exploit, and it's on the pre-1.0 list.
 - **Unsigned desktop builds.** The packaged `.dmg`/`.exe` are unsigned; macOS Gatekeeper and Windows SmartScreen will warn. Build from source, or click through knowingly. No auto-updater yet.

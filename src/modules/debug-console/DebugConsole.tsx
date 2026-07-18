@@ -6,6 +6,7 @@ import { useProjectContext } from '../../hooks/useProjectContext'
 import { useFocusMode } from '../../context/FocusModeContext'
 import ResizablePanel from '../../components/ResizablePanel'
 import { logEvent } from '../../engine/eventLog'
+import { loadPyodideRuntime } from '../../lib/pyodideLoader'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -267,17 +268,7 @@ export function DebugConsole() {
     if (pyodideRef.current) return pyodideRef.current
     setPyodideLoading(true)
     appendOutput('Loading Python runtime (~8MB, first run only)...', 'system')
-    await new Promise<void>((resolve, reject) => {
-      if ((window as ExternalAny).loadPyodide) { resolve(); return }
-      const script = document.createElement('script')
-      script.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.0/full/pyodide.js'
-      script.onload = () => resolve()
-      script.onerror = () => reject(new Error('Failed to load Pyodide'))
-      document.head.appendChild(script)
-    })
-    const py = await (window as ExternalAny).loadPyodide({
-      indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.0/full/'
-    })
+    const py = await loadPyodideRuntime()
     pyodideRef.current = py
     setPyodideLoading(false)
     return py

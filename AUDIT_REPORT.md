@@ -26,7 +26,7 @@ The core is in better shape than a typical pre-1.0 solo project: the determinist
 - [ ] **`isSpeaking` and ~25 sibling `useState`s live inside the 4,324-line `JarvisModule.tsx`** (`:1122`), not in the global store. Speech state resets were spot-checked and look correct (Kokoro error path falls back to Web Speech, `speakText` wires `onEnd` on every terminal branch at `:340-430`), but the mic indicator's truth lives in one giant component. Extract a Jarvis store slice.
 - [ ] **Velxio iframe sandbox includes `allow-same-origin allow-scripts`** (`src/modules/circuit-sim/velxioConfig.ts:37`). For a remote origin this is the sandbox's documented escape combination being neutered only by the origin boundary. It works, but document that the sandbox adds nothing beyond the origin boundary for hosted mode.
 - [x] **FIXED — Untracked `data/` directory at repo root** (contains `enginguity-store.json`) was **not** in `.gitignore`; one careless `git add .` would have published local workspace state. `data/` is now ignored.
-- [ ] **Test Harness Python path is inert.** `TestHarness.tsx:468-470` — `runPython` calls `window.loadPyodide?.()` but the harness never loads the Pyodide script; only `DebugConsole.tsx:255-268` injects it (from the jsdelivr CDN). Python tests therefore throw "Pyodide not loaded" unless the Debug Console happened to be opened first. Fix: hoist Pyodide loading into a shared lazy loader. (Surfaced in the README.)
+- [x] **FIXED — Test Harness Python path is inert.** `TestHarness.tsx` — `runPython` used to call `window.loadPyodide?.()` without ever loading the Pyodide script itself; only `DebugConsole.tsx` injected it. Pyodide loading is now hoisted into a shared lazy loader (`src/lib/pyodideLoader.ts`), used by both Debug Console and Test Harness, so the Python test path works standalone.
 - [ ] **`state_update` broadcasts `{ delta: null }`** when sanitization rejects the payload (`collaboration-server.js:272-284`) — wasted broadcast, and clients must null-check. Return early instead.
 - [ ] **OpenRouter cost/token figures are chars/4 estimates** (`src/hooks/useAIProvider.ts:99-116`), displayed in the usage dashboard as if real. Label them estimated in the UI.
 - [ ] **AI-suggested component values are displayed as ground truth** in Simulation Assistant's component table (`SimulationAssistant.tsx:186` schema, rendered post-draft) before any solver run. The numbers are advisory strings, which is within the invariant, but the UI should visually distinguish "model suggestion" from "solved result". The solved panel itself is solver-only — verified.
@@ -82,8 +82,7 @@ Not traced or only skimmed this session — no claims made about them:
 5. CSP meta tag + explicit `sandbox: true` in BrowserWindow.
 6. Self-host DM Sans + JetBrains Mono.
 7. Collab server: recursive key scrub + early-return on null delta + room-secret trust-model doc (`server/README.md`).
-8. Hoist Pyodide into a shared lazy loader so the Test Harness Python path works standalone.
-9. Type-escape burn-down, one `.jsx` module at a time.
+8. Type-escape burn-down, one `.jsx` module at a time.
 
 ## Handoff
 

@@ -10,6 +10,7 @@ import {
   Pencil, X, FileCode, Loader2
 } from 'lucide-react'
 import { parseSignature } from './parseSignature'
+import { loadPyodideRuntime } from '../../lib/pyodideLoader'
 import { generatePytestFile, generateJestFile } from './codeGenerator'
 import type {
   Language, Framework, Priority, TestCase, TestResult,
@@ -513,12 +514,11 @@ Return a JSON array where each item is:
   }, [code, sig])
 
   const runPython = useCallback(async (toRun: TestCase[]): Promise<TestResult[]> => {
-    const pyodide = await (window as Window & { loadPyodide?: () => Promise<unknown> }).loadPyodide?.()
-    if (!pyodide) throw new Error('Pyodide not loaded')
+    const pyodide = await loadPyodideRuntime()
     const results: TestResult[] = []
 
     try {
-      await (pyodide as { runPythonAsync: (code: string) => Promise<unknown> }).runPythonAsync(code)
+      await pyodide.runPythonAsync(code)
     } catch (e: unknown) {
       throw new Error('Function failed to load: ' + (e instanceof Error ? e.message : String(e)), { cause: e })
     }
@@ -531,13 +531,13 @@ Return a JSON array where each item is:
         const callCode = `${funcName}(${args})`
         if (tc.expected_behavior === 'throw_error') {
           try {
-            await (pyodide as { runPythonAsync: (code: string) => Promise<unknown> }).runPythonAsync(callCode)
+            await pyodide.runPythonAsync(callCode)
             results.push({ id: tc.id, passed: false, actual: 'No error thrown', expected: 'Should throw', runtime: performance.now() - start })
           } catch {
             results.push({ id: tc.id, passed: true, actual: 'threw error', runtime: performance.now() - start })
           }
         } else {
-          const actual = await (pyodide as { runPythonAsync: (code: string) => Promise<unknown> }).runPythonAsync(callCode)
+          const actual = await pyodide.runPythonAsync(callCode)
           const passed = deepEqual(actual, tc.expected_output)
           results.push({ id: tc.id, passed, actual, expected: tc.expected_output, runtime: performance.now() - start })
         }
