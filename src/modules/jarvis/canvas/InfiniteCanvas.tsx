@@ -202,7 +202,7 @@ function DataDocItem({ item }: { item: CanvasItem }) {
               color: 'var(--text-dim)',
               borderBottom: '1px solid var(--border)',
               padding: '8px 14px 4px',
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif",
             }}
           >
             {s.heading}
@@ -563,7 +563,7 @@ function GuidedStepsCard({
       borderRadius: 8,
       padding: 16,
       width: 320,
-      fontFamily: "'DM Sans', sans-serif"
+      fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif"
     }}>
       <div style={{ fontSize: 14, color: 'var(--text)', fontWeight: 500, marginBottom: 4 }}>
         {guide.title}
@@ -684,7 +684,7 @@ function OrderListCard({
       borderRadius: 8,
       padding: 14,
       width: 280,
-      fontFamily: "'DM Sans', sans-serif"
+      fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif"
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }} onMouseDown={e => e.stopPropagation()}>
         <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>
@@ -1256,7 +1256,7 @@ function ItemContent({
     case 'search_results': {
       const { query: sq, results: sr = [] } = item.content as { query: string; results: Array<{ title: string; moduleLabel: string; route: string; preview: string; module: string }> }
       return (
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, width: 340, fontFamily: "'DM Sans', sans-serif" }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, width: 340, fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif" }}>
           <div style={{ background: 'var(--bg-2)', borderBottom: '1px solid var(--border)', borderRadius: '8px 8px 0 0', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 10, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Search</span>
             <span style={{ fontSize: 13, color: 'var(--text)' }}>"{sq}"</span>
@@ -1299,7 +1299,7 @@ function ItemContent({
       const { summary, changes = [], prevTs, currTs } = item.content as { summary: string; changes: Array<{ type: string; module: string; label: string; detail: string }>; prevTs: number; currTs: number }
       const typeColor = (t: string) => t === 'added' ? '#7aaa8a' : t === 'removed' ? '#b08080' : t === 'warning' ? '#b09a60' : t === 'resolved' ? '#60a5fa' : '#94a3b8'
       return (
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, width: 300, fontFamily: "'DM Sans', sans-serif" }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, width: 300, fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif" }}>
           <div style={{ background: 'var(--bg-2)', borderBottom: '1px solid var(--border)', borderRadius: '8px 8px 0 0', padding: '8px 14px' }}>
             <div style={{ fontSize: 10, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Session Diff</div>
             <div style={{ fontSize: 12, color: 'var(--text)' }}>{summary}</div>
@@ -1334,7 +1334,7 @@ function ItemContent({
           borderRadius: 8,
           padding: 14,
           width: 220,
-          fontFamily: "'DM Sans', sans-serif"
+          fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif"
         }}>
           <div style={{ fontSize: 10, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: 6 }}>
             {instrumentType}
@@ -1411,7 +1411,7 @@ function ItemContent({
           borderRadius: 8,
           padding: 14,
           width: 280,
-          fontFamily: "'DM Sans', sans-serif"
+          fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif"
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <span style={{ fontSize: 10, color: 'var(--text-dim)', textTransform: 'uppercase' }}>
@@ -1518,7 +1518,7 @@ function ItemContent({
           borderRadius: 8,
           padding: 14,
           width: 320,
-          fontFamily: "'DM Sans', sans-serif"
+          fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif"
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
             <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>
@@ -1637,7 +1637,7 @@ function ItemContent({
           borderRadius: 8,
           padding: 14,
           width: 300,
-          fontFamily: "'DM Sans', sans-serif"
+          fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif"
         }}>
           <div style={{ marginBottom: 10 }}>
             <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 16, color: 'var(--text)', fontWeight: 600 }}>
@@ -1719,7 +1719,7 @@ function ItemContent({
           borderRadius: 8,
           padding: 14,
           width: 360,
-          fontFamily: "'DM Sans', sans-serif"
+          fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif"
         }}>
           <div style={{ fontSize: 11, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: 8 }}>
             {circuitType}
@@ -2502,7 +2502,7 @@ export function InfiniteCanvas({
                   fontSize: 10,
                   color: 'var(--text-dim)',
                   borderRadius: 3,
-                  fontFamily: "'DM Sans', sans-serif",
+                  fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif",
                   whiteSpace: 'nowrap',
                 }}
               >
@@ -2580,7 +2580,7 @@ export function InfiniteCanvas({
             style={{
               fontSize: 14,
               color: '#94a5ba',
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif",
               fontWeight: 500,
             }}
           >
@@ -2590,7 +2590,7 @@ export function InfiniteCanvas({
             style={{
               fontSize: 12,
               color: '#4a5568',
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif",
               textAlign: 'center',
               lineHeight: 1.8,
               marginTop: 4,

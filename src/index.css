@@ -1,3 +1,12 @@
+/* Self-hosted fonts (previously loaded from fonts.googleapis.com — see
+   README Known Limitations). DM Sans needs both the weight and optical-size
+   variable axes to match the old @400/500 normal + @400 italic Google Fonts
+   request; JetBrains Mono only needs the 400 static weight. */
+@import '@fontsource-variable/dm-sans/wght.css';
+@import '@fontsource-variable/dm-sans/opsz.css';
+@import '@fontsource-variable/dm-sans/wght-italic.css';
+@import '@fontsource/jetbrains-mono/400.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -64,7 +73,7 @@
   --color-success:       #4caf7d;
 
   --font-size-base:      14px;
-  --font-family-ui:      'DM Sans', system-ui, sans-serif;
+  --font-family-ui:      'DM Sans Variable', 'DM Sans', system-ui, sans-serif;
   --font-family-mono:    'JetBrains Mono', monospace;
   --line-height-ui:      1.5;
   --letter-spacing-ui:   0em;
@@ -96,7 +105,7 @@ body,
 body {
   background-color: var(--bg);
   color: var(--text);
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: 'DM Sans Variable', 'DM Sans', system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -114,7 +123,7 @@ kbd,
 
 /* Section / panel labels — sentence case, muted, no tracking */
 .label {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: 'DM Sans Variable', 'DM Sans', system-ui, sans-serif;
   font-size: 11px;
   font-weight: 400;
   letter-spacing: 0;
@@ -157,7 +166,7 @@ kbd,
   border-radius: 6px;
   background: transparent;
   color: var(--text);
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: 'DM Sans Variable', 'DM Sans', system-ui, sans-serif;
   font-size: 13px;
   font-weight: 400;
   cursor: pointer;
@@ -202,7 +211,7 @@ kbd,
   border: 1px solid var(--border);
   border-radius: 6px;
   color: var(--text);
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: 'DM Sans Variable', 'DM Sans', system-ui, sans-serif;
   font-size: 14px;
   outline: none;
   transition: border-color 120ms ease;

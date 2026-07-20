@@ -362,7 +362,7 @@ export function TutorialModal({ onClose }: Props) {
               {current.icon}
             </div>
             <div>
-              <div style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 20, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
+              <div style={{ fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 20, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
                 {current.title}
               </div>
               <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: current.color, marginTop: 2 }}>
@@ -372,7 +372,7 @@ export function TutorialModal({ onClose }: Props) {
           </div>
 
           {/* Description */}
-          <p style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
+          <p style={{ fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
             {current.description}
           </p>
 
@@ -392,7 +392,7 @@ export function TutorialModal({ onClose }: Props) {
             {current.tips.map((tip, i) => (
               <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <span style={{ color: current.color, fontSize: 12, marginTop: 2, flexShrink: 0 }}>→</span>
-                <span style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>{tip}</span>
+                <span style={{ fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>{tip}</span>
               </div>
             ))}
           </div>
@@ -414,7 +414,7 @@ export function TutorialModal({ onClose }: Props) {
               background: 'transparent', border: '1px solid var(--border)',
               borderRadius: 8, padding: '7px 14px', cursor: step === 0 ? 'not-allowed' : 'pointer',
               color: step === 0 ? 'var(--text-dim)' : 'var(--text-muted)',
-              fontSize: 13, fontFamily: "'DM Sans', system-ui, sans-serif",
+              fontSize: 13, fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
               transition: 'all 0.15s',
             }}
             onMouseEnter={e => { if (step > 0) e.currentTarget.style.borderColor = 'var(--border-bright)' }}
@@ -451,7 +451,7 @@ export function TutorialModal({ onClose }: Props) {
                 background: current.color, border: 'none',
                 borderRadius: 8, padding: '7px 16px', cursor: 'pointer',
                 color: '#000', fontWeight: 600,
-                fontSize: 13, fontFamily: "'DM Sans', system-ui, sans-serif",
+                fontSize: 13, fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
                 transition: 'opacity 0.15s',
               }}
               onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
@@ -467,7 +467,7 @@ export function TutorialModal({ onClose }: Props) {
                 background: current.color, border: 'none',
                 borderRadius: 8, padding: '7px 16px', cursor: 'pointer',
                 color: '#000', fontWeight: 600,
-                fontSize: 13, fontFamily: "'DM Sans', system-ui, sans-serif",
+                fontSize: 13, fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
                 transition: 'opacity 0.15s',
               }}
               onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}

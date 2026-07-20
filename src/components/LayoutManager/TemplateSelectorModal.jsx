@@ -142,7 +142,7 @@ export const TemplateSelectorModal = ({ isOpen, onClose }) => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-            <span style={{ fontSize: 18, fontWeight: 400, color: 'var(--text)', fontFamily: "'Geist', 'DM Sans', sans-serif" }}>
+            <span style={{ fontSize: 18, fontWeight: 400, color: 'var(--text)', fontFamily: "'Geist', 'DM Sans Variable', 'DM Sans', sans-serif" }}>
               Choose a starting layout
             </span>
             <button
@@ -155,7 +155,7 @@ export const TemplateSelectorModal = ({ isOpen, onClose }) => {
                 fontSize: 13,
                 textDecoration: 'underline',
                 cursor: 'pointer',
-                fontFamily: "'Geist', 'DM Sans', sans-serif"
+                fontFamily: "'Geist', 'DM Sans Variable', 'DM Sans', sans-serif"
               }}
               onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
               onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-dim)'}
@@ -225,7 +225,7 @@ export const TemplateSelectorModal = ({ isOpen, onClose }) => {
                 }}
               >
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 400, color: 'var(--text)', fontFamily: "'Geist', 'DM Sans', sans-serif", marginBottom: 2 }}>
+                  <div style={{ fontSize: 14, fontWeight: 400, color: 'var(--text)', fontFamily: "'Geist', 'DM Sans Variable', 'DM Sans', sans-serif", marginBottom: 2 }}>
                     {preset.name}
                   </div>
                   <div
@@ -233,7 +233,7 @@ export const TemplateSelectorModal = ({ isOpen, onClose }) => {
                       fontSize: 12,
                       fontWeight: 400,
                       color: 'var(--text-muted)',
-                      fontFamily: "'Geist', 'DM Sans', sans-serif",
+                      fontFamily: "'Geist', 'DM Sans Variable', 'DM Sans', sans-serif",
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',

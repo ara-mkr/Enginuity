@@ -83,7 +83,7 @@ export default function ChallengeMode() {
         display: 'flex',
         flexDirection: 'column',
         gap: 24,
-        fontFamily: "'DM Sans', system-ui, sans-serif",
+        fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
         minHeight: '100%',
         color: 'var(--text)'
       }}
@@ -93,7 +93,7 @@ export default function ChallengeMode() {
         <div>
           <h1
             style={{
-              fontFamily: "'DM Sans', system-ui, sans-serif",
+              fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
               fontSize: 24,
               fontWeight: 500,
               margin: 0,
@@ -128,7 +128,7 @@ export default function ChallengeMode() {
             borderRadius: 6,
             padding: '7px 14px',
             fontSize: 13,
-            fontFamily: "'DM Sans', system-ui, sans-serif",
+            fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
             color: 'var(--text-muted)',
             cursor: 'pointer',
             display: 'flex',
@@ -212,7 +212,7 @@ const tabStyle: React.CSSProperties = {
   padding: '10px 16px',
   fontSize: 14,
   fontWeight: 400,
-  fontFamily: "'DM Sans', system-ui, sans-serif",
+  fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',

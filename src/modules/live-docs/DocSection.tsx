@@ -57,7 +57,7 @@ export function DocSection({ title, index, content, generating, onRegenerate, on
         <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: 'var(--text-dim)', minWidth: 20 }}>
           {String(index).padStart(2, '0')}
         </span>
-        <h2 style={{ margin: 0, fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 20, fontWeight: 500, color: 'var(--text)', flex: 1 }}>
+        <h2 style={{ margin: 0, fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 20, fontWeight: 500, color: 'var(--text)', flex: 1 }}>
           {title}
         </h2>
         <div style={{
@@ -86,7 +86,7 @@ export function DocSection({ title, index, content, generating, onRegenerate, on
               width: '100%', minHeight: 200, resize: 'vertical',
               background: 'var(--surface-2)', border: '1px solid var(--border)',
               borderRadius: 8, padding: 14, color: 'var(--text)',
-              fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 15,
+              fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 15,
               lineHeight: 1.8, outline: 'none', boxSizing: 'border-box'
             }}
           />
@@ -99,7 +99,7 @@ export function DocSection({ title, index, content, generating, onRegenerate, on
       ) : content ? (
         <SectionBody content={content} />
       ) : (
-        <p style={{ color: 'var(--text-dim)', fontSize: 13, fontStyle: 'italic', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+        <p style={{ color: 'var(--text-dim)', fontSize: 13, fontStyle: 'italic', fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif" }}>
           No content yet — click ↻ to generate.
         </p>
       )}
@@ -115,10 +115,10 @@ function SectionBody({ content }: { content: SectionContent }) {
   switch (content.type) {
     case 'prose':
       if (!content.content) {
-        return <p style={{ color: 'var(--text-dim)', fontSize: 13, fontStyle: 'italic', fontFamily: "'DM Sans', system-ui, sans-serif" }}>No content recorded for this section yet.</p>
+        return <p style={{ color: 'var(--text-dim)', fontSize: 13, fontStyle: 'italic', fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif" }}>No content recorded for this section yet.</p>
       }
       return (
-        <div style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.8 }}>
+        <div style={{ fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.8 }}>
           {content.content.split('\n\n').map((para, i) => (
             <p key={i} style={{ margin: '0 0 16px' }}>{para}</p>
           ))}
@@ -167,7 +167,7 @@ function SectionBody({ content }: { content: SectionContent }) {
               <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: 'var(--text)', marginTop: 10 }}>
                 Total estimated cost: ${content.totalCost?.toFixed(2)}
               </p>
-              <p style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 11, color: 'var(--text-dim)', fontStyle: 'italic', marginTop: 4 }}>
+              <p style={{ fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 11, color: 'var(--text-dim)', fontStyle: 'italic', marginTop: 4 }}>
                 Prices are estimates. Verify before ordering.
               </p>
             </>
@@ -183,10 +183,10 @@ function SectionBody({ content }: { content: SectionContent }) {
           {content.decisions.map((d: DocAny, i: number) => (
             <div key={i} style={{ paddingBottom: 20, marginBottom: 20, borderBottom: i < content.decisions!.length - 1 ? '1px solid var(--border)' : 'none' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                <span style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{d.title || 'Decision'}</span>
+                <span style={{ fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{d.title || 'Decision'}</span>
                 <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--text-dim)', flexShrink: 0, marginLeft: 12 }}>{d.createdAt ? new Date(d.createdAt).toLocaleDateString() : ''}</span>
               </div>
-              <p style={{ margin: 0, fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>{d.content || d.rationale || ''}</p>
+              <p style={{ margin: 0, fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>{d.content || d.rationale || ''}</p>
             </div>
           ))}
         </div>
@@ -212,7 +212,7 @@ function SectionBody({ content }: { content: SectionContent }) {
             <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--text-dim)', minWidth: 28 }}>[{i + 1}]</span>
               <span style={{ fontSize: 16 }}>{ref.type === 'video' ? '▶' : '📄'}</span>
-              <span style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 13, color: 'var(--text-muted)' }}>
+              <span style={{ fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 13, color: 'var(--text-muted)' }}>
                 {ref.name || ref.title || ref.url}
                 {ref.format && <span style={{ color: 'var(--text-dim)', marginLeft: 6 }}>— {ref.format}</span>}
                 <span style={{ color: 'var(--text-dim)', marginLeft: 8 }}>— {new Date(ref.date).toLocaleDateString()}</span>
@@ -239,7 +239,7 @@ function GeneratingSkeleton() {
         }} />
       ))}
       <style>{`@keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:.8} }`}</style>
-      <p style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 12, color: 'var(--text-dim)', fontStyle: 'italic', margin: 0 }}>Generating...</p>
+      <p style={{ fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 12, color: 'var(--text-dim)', fontStyle: 'italic', margin: 0 }}>Generating...</p>
     </div>
   )
 }
@@ -251,7 +251,7 @@ function DataTable({ headers, rows, statusCol }: { headers: string[], rows: DocA
         <thead>
           <tr style={{ background: 'var(--surface-2)' }}>
             {headers.map((h, i) => (
-              <th key={i} style={{ padding: '8px 12px', textAlign: 'left', fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 11, color: 'var(--text-dim)', fontWeight: 500, borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
+              <th key={i} style={{ padding: '8px 12px', textAlign: 'left', fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 11, color: 'var(--text-dim)', fontWeight: 500, borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
             ))}
           </tr>
         </thead>
@@ -268,7 +268,7 @@ function DataTable({ headers, rows, statusCol }: { headers: string[], rows: DocA
                 return (
                   <td key={ci} style={{
                     padding: '7px 12px',
-                    fontFamily: ci === 0 ? "'DM Sans', system-ui, sans-serif" : "'JetBrains Mono', monospace",
+                    fontFamily: ci === 0 ? "'DM Sans Variable', 'DM Sans', system-ui, sans-serif" : "'JetBrains Mono', monospace",
                     fontSize: ci === 0 ? 13 : 12,
                     color: statusColor || (ci === 0 ? 'var(--text)' : 'var(--text-muted)'),
                     borderBottom: '1px solid var(--border)',
@@ -287,11 +287,11 @@ function DataTable({ headers, rows, statusCol }: { headers: string[], rows: DocA
 }
 
 function EmptyHint({ children }: { children: React.ReactNode }) {
-  return <p style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 13, color: 'var(--text-dim)', fontStyle: 'italic' }}>{children}</p>
+  return <p style={{ fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 13, color: 'var(--text-dim)', fontStyle: 'italic' }}>{children}</p>
 }
 
 function SubHeader({ children }: { children: React.ReactNode }) {
-  return <p style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 14, fontWeight: 600, color: 'var(--text)', margin: '0 0 10px' }}>{children}</p>
+  return <p style={{ fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 14, fontWeight: 600, color: 'var(--text)', margin: '0 0 10px' }}>{children}</p>
 }
 
 function ToolBtn({ children, onClick, title }: { children: React.ReactNode, onClick: () => void, title?: string }) {
@@ -299,7 +299,7 @@ function ToolBtn({ children, onClick, title }: { children: React.ReactNode, onCl
     <button onClick={onClick} title={title} style={{
       background: 'transparent', border: '1px solid var(--border)', borderRadius: 5,
       padding: '4px 6px', cursor: 'pointer', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: 4,
-      fontSize: 11, fontFamily: "'DM Sans', system-ui, sans-serif"
+      fontSize: 11, fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif"
     }}
       onMouseEnter={e => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--border-bright)' }}
       onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border)' }}
@@ -315,7 +315,7 @@ function Btn({ children, onClick, accent }: { children: React.ReactNode, onClick
       border: accent ? 'none' : '1px solid var(--border)',
       borderRadius: 6, padding: '5px 12px', cursor: 'pointer',
       color: accent ? '#000' : 'var(--text-muted)',
-      fontSize: 12, fontFamily: "'DM Sans', system-ui, sans-serif", fontWeight: accent ? 600 : 400
+      fontSize: 12, fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontWeight: accent ? 600 : 400
     }}>{children}</button>
   )
 }

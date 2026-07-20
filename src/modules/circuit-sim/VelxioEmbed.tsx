@@ -48,7 +48,7 @@ const actionButtonStyle: CSSProperties = {
   border: '1px solid var(--border-bright)',
   background: 'var(--surface)',
   color: 'var(--text)',
-  fontFamily: "'DM Sans', system-ui, sans-serif",
+  fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
   fontSize: 13,
   cursor: 'pointer',
 }

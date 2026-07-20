@@ -284,7 +284,7 @@ function ModelRow({ model, selected, isRecommended, fit, onSelect }) {
       <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#6366f1', flexShrink: 0 }} />
       <span style={{
         flex: 1, fontSize: 13, color: 'var(--text)',
-        fontFamily: "'DM Sans', system-ui, sans-serif", minWidth: 0,
+        fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", minWidth: 0,
       }}>
         {model.name}
         {isRecommended && (
@@ -451,7 +451,7 @@ function Step({ n, title, children }) {
         </span>
         <span style={{
           fontSize: 13, fontWeight: 700, color: 'var(--text)',
-          fontFamily: "'DM Sans', system-ui, sans-serif",
+          fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
         }}>
           {title}
         </span>

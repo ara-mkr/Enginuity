@@ -159,14 +159,14 @@ export function ChatHistoryPopover<T>({
                           background: 'var(--bg)', border: '1px solid var(--border)',
                           borderRadius: 5, color: 'var(--text)',
                           padding: '3px 6px', fontSize: 12,
-                          fontFamily: "'DM Sans', system-ui, sans-serif",
+                          fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
                         }}
                       />
                     ) : (
                       <>
                         <div style={{
                           fontSize: 12, color: 'var(--text)',
-                          fontFamily: "'DM Sans', system-ui, sans-serif",
+                          fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }}>
                           {s.title}

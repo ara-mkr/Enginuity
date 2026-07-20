@@ -104,7 +104,7 @@ export function ToolMarketplace() {
     <div style={{
       flex: 1, display: 'flex', flexDirection: 'column',
       background: 'var(--bg)', color: 'var(--text)',
-      fontFamily: "'DM Sans', system-ui, sans-serif",
+      fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
       overflow: 'hidden',
     }}>
       {/* Header */}
@@ -366,7 +366,7 @@ const btnPrimary: React.CSSProperties = {
   background: 'var(--accent)', border: '1px solid var(--accent)',
   color: 'var(--bg)', cursor: 'pointer',
   display: 'flex', alignItems: 'center', gap: 6,
-  fontFamily: "'DM Sans', system-ui, sans-serif",
+  fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
 }
 
 const btnSecondary: React.CSSProperties = {
@@ -374,7 +374,7 @@ const btnSecondary: React.CSSProperties = {
   background: 'var(--surface-2)', border: '1px solid var(--border)',
   color: 'var(--text-muted)', cursor: 'pointer',
   display: 'flex', alignItems: 'center', gap: 6,
-  fontFamily: "'DM Sans', system-ui, sans-serif",
+  fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
 }
 
 const codeStyle: React.CSSProperties = {

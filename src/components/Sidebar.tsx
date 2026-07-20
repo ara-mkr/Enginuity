@@ -50,7 +50,7 @@ function menuItemStyle(disabled: boolean): React.CSSProperties {
     borderRadius: 4,
     color: disabled ? 'var(--text-dim)' : 'var(--text-muted)',
     fontSize: 12,
-    fontFamily: "'DM Sans', system-ui, sans-serif",
+    fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
     cursor: disabled ? 'not-allowed' : 'pointer',
     textAlign: 'left',
     width: '100%',
@@ -540,7 +540,7 @@ export function Sidebar() {
             textAlign: 'left',
             outline: 'none',
             fontSize: 12,
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif",
             boxSizing: 'border-box'
           }}
           onMouseEnter={(e) => {
@@ -697,7 +697,7 @@ export function Sidebar() {
                       }}
                     >
                       <Icon size={15} className="shrink-0" style={{ color: 'currentColor', flexShrink: 0 }} />
-                      <span style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 13, fontWeight: 400, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 13, fontWeight: 400, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {label}
                       </span>
                       {to === '/live-docs' && (
@@ -867,7 +867,7 @@ export function Sidebar() {
           }}
         >
           <HelpCircle size={14} className="shrink-0" />
-          <span style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 13 }}>
+          <span style={{ fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 13 }}>
             Watch Tutorial
           </span>
         </button>
@@ -896,7 +896,7 @@ export function Sidebar() {
           }}
         >
           <Clock size={14} className="shrink-0" />
-          <span style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 13 }}>
+          <span style={{ fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 13 }}>
             File History
           </span>
         </button>

@@ -118,7 +118,7 @@ function TextWithAI({ label, value, onChange, multiline = true }: {
   const inputStyle: React.CSSProperties = {
     width: '100%', background: 'var(--surface-2)', border: '1px solid var(--border)',
     borderRadius: 8, padding: '8px 10px', color: 'var(--text)',
-    fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 13, resize: 'vertical',
+    fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 13, resize: 'vertical',
     outline: 'none', transition: 'border-color 0.15s',
   }
 

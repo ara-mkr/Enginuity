@@ -206,7 +206,7 @@ export const LayoutManagerModal = ({ isOpen, onClose, onNewWorkspace }) => {
             justifyContent: 'space-between',
           }}
         >
-          <span style={{ fontSize: 16, fontWeight: 400, color: 'var(--text)', fontFamily: "'DM Sans', sans-serif" }}>
+          <span style={{ fontSize: 16, fontWeight: 400, color: 'var(--text)', fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif" }}>
             Layouts
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -651,7 +651,7 @@ export const LayoutManagerModal = ({ isOpen, onClose, onNewWorkspace }) => {
             fontSize: 12,
             zIndex: 100000,
             pointerEvents: 'none',
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif",
           }}
         >
           {toastMessage}

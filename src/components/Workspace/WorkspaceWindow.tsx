@@ -259,7 +259,7 @@ export const WorkspaceWindow: React.FC<WorkspaceWindowProps> = ({ window: win, c
           <div
             className="window-title-text"
             style={{
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif",
               fontSize: 12,
               fontWeight: 500,
               color: 'var(--text)',

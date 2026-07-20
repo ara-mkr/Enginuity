@@ -21,7 +21,7 @@ export function CustomToolFrame() {
         flex: 1, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', gap: 14,
         color: 'var(--text-muted)', background: 'var(--bg)', padding: 40,
-        fontFamily: "'DM Sans', system-ui, sans-serif",
+        fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
       }}>
         <AlertTriangle size={28} style={{ color: 'var(--text-dim)' }} />
         <div style={{ fontSize: 14 }}>Custom tool "{id}" was not found.</div>

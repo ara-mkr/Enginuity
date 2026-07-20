@@ -424,7 +424,7 @@ export const WorkspaceCanvas: React.FC = () => {
                   padding: '4px 10px',
                   height: 28,
                   fontSize: 11,
-                  fontFamily: "'DM Sans', sans-serif",
+                  fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif",
                   fontWeight: 500,
                   color: isActive ? 'var(--accent)' : 'var(--text-muted)',
                   cursor: 'pointer',

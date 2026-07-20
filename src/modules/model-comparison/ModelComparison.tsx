@@ -292,7 +292,7 @@ function ResultCard({
         flexWrap: 'wrap', gap: 8,
       } as React.CSSProperties}>
         <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', flexShrink: 0 }} />
-        <span style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>
+        <span style={{ fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>
           {provider?.name}
         </span>
         <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
@@ -646,7 +646,7 @@ export default function ModelComparison() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <GitCompare size={18} color="var(--text-muted)" />
-            <h1 style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 16, fontWeight: 500, color: 'var(--text)', margin: 0 }}>
+            <h1 style={{ fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 16, fontWeight: 500, color: 'var(--text)', margin: 0 }}>
               Model Comparison
             </h1>
           </div>
@@ -693,7 +693,7 @@ export default function ModelComparison() {
             style={{
               minHeight: 120, padding: '12px 14px', borderRadius: 8,
               background: 'var(--surface)', border: '1px solid var(--border)',
-              color: 'var(--text)', fontSize: 13, fontFamily: "'DM Sans', system-ui, sans-serif",
+              color: 'var(--text)', fontSize: 13, fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
               resize: 'vertical', outline: 'none', lineHeight: 1.6,
             }}
             onFocus={(e) => (e.target.style.borderColor = 'var(--accent)')}
@@ -717,7 +717,7 @@ export default function ModelComparison() {
               style={{
                 padding: '10px 12px', borderRadius: 6,
                 background: 'var(--bg-2)', border: '1px solid var(--border)',
-                color: 'var(--text)', fontSize: 12, fontFamily: "'DM Sans', system-ui, sans-serif", resize: 'vertical', outline: 'none',
+                color: 'var(--text)', fontSize: 12, fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", resize: 'vertical', outline: 'none',
               }}
               onFocus={(e) => (e.target.style.borderColor = 'var(--accent)')}
               onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
@@ -827,7 +827,7 @@ export default function ModelComparison() {
               background: 'transparent',
               border: `1px solid ${running ? 'var(--border-bright)' : 'var(--accent)'}`,
               color: running ? 'var(--text-muted)' : 'var(--accent)',
-              fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 13, fontWeight: 400, cursor: 'pointer',
+              fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 13, fontWeight: 400, cursor: 'pointer',
               transition: 'background 120ms ease',
               opacity: !running && (!prompt.trim() || selected.length === 0) ? 0.4 : 1,
             }}
@@ -848,7 +848,7 @@ export default function ModelComparison() {
                 background: diffMode ? 'var(--surface-2)' : 'transparent',
                 border: `1px solid ${diffMode ? 'var(--border-bright)' : 'var(--border)'}`,
                 color: diffMode ? 'var(--text)' : 'var(--text-muted)',
-                fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 13, cursor: 'pointer',
+                fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 13, cursor: 'pointer',
                 transition: 'background 120ms ease, border-color 120ms ease',
               }}
             >
@@ -876,7 +876,7 @@ export default function ModelComparison() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'var(--text-muted)',
-                fontFamily: "'DM Sans', system-ui, sans-serif",
+                fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
                 fontSize: 13,
                 textAlign: 'center',
                 padding: 40,
@@ -892,7 +892,7 @@ export default function ModelComparison() {
               <>
                 {/* Diff legend */}
                 {diffMode && (
-                  <div style={{ display: 'flex', gap: 16, fontSize: 11, fontFamily: "'DM Sans', system-ui, sans-serif", padding: '6px 12px', background: 'var(--surface)', borderRadius: 6, border: '1px solid var(--border)', alignSelf: 'flex-start', color: 'var(--text-muted)' }}>
+                  <div style={{ display: 'flex', gap: 16, fontSize: 11, fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", padding: '6px 12px', background: 'var(--surface)', borderRadius: 6, border: '1px solid var(--border)', alignSelf: 'flex-start', color: 'var(--text-muted)' }}>
                     <span style={{ background: 'rgba(255,255,255,0.04)', padding: '1px 6px', borderRadius: 3 }}>Shared</span>
                     <span style={{ background: 'rgba(255,255,255,0.07)', padding: '1px 6px', borderRadius: 3 }}>Unique</span>
                     <span>Contradiction</span>
@@ -929,7 +929,7 @@ export default function ModelComparison() {
         {/* Summary panel */}
         {summary && (
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>
+            <div style={{ fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>
               Analysis
             </div>
             {[
@@ -940,7 +940,7 @@ export default function ModelComparison() {
             ].map(({ key, label }) => (
               summary[key] ? (
                 <div key={key}>
-                  <div style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 11, color: 'var(--text-dim)', marginBottom: 4 }}>{label}</div>
+                  <div style={{ fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 11, color: 'var(--text-dim)', marginBottom: 4 }}>{label}</div>
                   <p style={{ fontSize: 13, color: 'var(--text)', margin: 0, lineHeight: 1.6 }}>{summary[key]}</p>
                 </div>
               ) : null

@@ -115,11 +115,11 @@ export function ChallengesFeed({ onAcceptChallenge, completedChallenges, totalPo
           flexDirection: 'column',
           gap: 12,
         }}>
-          <span style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+          <span style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif" }}>
             Featured this week
           </span>
 
-          <h2 style={{ fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: 16, fontWeight: 500, margin: 0, color: 'var(--text)' }}>
+          <h2 style={{ fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", fontSize: 16, fontWeight: 500, margin: 0, color: 'var(--text)' }}>
             {featuredChallenge.title}
           </h2>
 
@@ -170,7 +170,7 @@ export function ChallengesFeed({ onAcceptChallenge, completedChallenges, totalPo
                   border: 'none',
                   background: 'none',
                   fontSize: 13,
-                  fontFamily: "'DM Sans', system-ui, sans-serif",
+                  fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
                   fontWeight: 400,
                   cursor: 'pointer',
                   color: activeTab === tab ? 'var(--text)' : 'var(--text-muted)',
@@ -242,7 +242,7 @@ export function ChallengesFeed({ onAcceptChallenge, completedChallenges, totalPo
                   {getStatusIcon(challenge.id)}
                 </div>
 
-                <h3 style={{ fontSize: 14, fontWeight: 400, margin: 0, color: isCompleted ? 'var(--text-muted)' : 'var(--text)', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+                <h3 style={{ fontSize: 14, fontWeight: 400, margin: 0, color: isCompleted ? 'var(--text-muted)' : 'var(--text)', fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif" }}>
                   {challenge.title}
                 </h3>
 
@@ -287,7 +287,7 @@ const statsCardStyle: React.CSSProperties = {
 
 const statsLabelStyle: React.CSSProperties = {
   fontSize: 11,
-  fontFamily: "'DM Sans', system-ui, sans-serif",
+  fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
   color: 'var(--text-dim)',
   fontWeight: 400,
 }
@@ -300,7 +300,7 @@ const actionButtonStyle: React.CSSProperties = {
   borderRadius: 6,
   fontWeight: 400,
   fontSize: 13,
-  fontFamily: "'DM Sans', system-ui, sans-serif",
+  fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',
@@ -315,7 +315,7 @@ const filterSelectStyle: React.CSSProperties = {
   color: 'var(--text-muted)',
   padding: '6px 8px',
   fontSize: 12,
-  fontFamily: "'DM Sans', system-ui, sans-serif",
+  fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
   outline: 'none',
 }
 

@@ -186,9 +186,9 @@ export function LiveDocs() {
           {editingTitle ? (
             <input ref={titleInputRef} defaultValue={displayTitle} onBlur={handleTitleSave}
               onKeyDown={e => { if (e.key === 'Enter') handleTitleSave(); if (e.key === 'Escape') setEditingTitle(false) }}
-              autoFocus style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--accent)', color: 'var(--text)', fontFamily: "'DM Sans',sans-serif", fontSize: 16, fontWeight: 500, outline: 'none', minWidth: 200 }} />
+              autoFocus style={{ background: 'transparent', border: 'none', borderBottom: '1px solid var(--accent)', color: 'var(--text)', fontFamily: "'DM Sans Variable', 'DM Sans',sans-serif", fontSize: 16, fontWeight: 500, outline: 'none', minWidth: 200 }} />
           ) : (
-            <span onClick={() => setEditingTitle(true)} style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 16, fontWeight: 500, color: 'var(--text)', cursor: 'text', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayTitle}</span>
+            <span onClick={() => setEditingTitle(true)} style={{ fontFamily: "'DM Sans Variable', 'DM Sans',sans-serif", fontSize: 16, fontWeight: 500, color: 'var(--text)', cursor: 'text', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayTitle}</span>
           )}
           {draft.lastUpdated && <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: 'var(--text-dim)', flexShrink: 0 }}>· updated {timeAgo(draft.lastUpdated)}</span>}
           {wordCount > 0 && <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: 'var(--text-dim)', flexShrink: 0 }}>· {wordCount} words</span>}
@@ -209,7 +209,7 @@ export function LiveDocs() {
             {showExportMenu && (
               <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 4, zIndex: 100, minWidth: 200, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
                 {[{ label: 'Export as Markdown (.md)', action: exportMarkdown }, { label: 'Copy to clipboard (Markdown)', action: copyMarkdown }].map(item => (
-                  <button key={item.label} onClick={item.action} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", borderRadius: 5 }}
+                  <button key={item.label} onClick={item.action} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer', fontFamily: "'DM Sans Variable', 'DM Sans',sans-serif", borderRadius: 5 }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-2)'; e.currentTarget.style.color = 'var(--text)' }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-muted)' }}
                   >{item.label}</button>
@@ -236,12 +236,12 @@ export function LiveDocs() {
                 onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
               >
                 <span style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: isGenerating ? 'var(--text-dim)' : hasContent ? 'var(--accent)' : 'var(--border)', animation: isGenerating ? 'dopulse 1.2s ease-in-out infinite' : 'none' }} />
-                <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{config.title}</span>
+                <span style={{ fontFamily: "'DM Sans Variable', 'DM Sans',sans-serif", fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{config.title}</span>
               </button>
             )
           })}
           <div style={{ borderTop: '1px solid var(--border)', margin: '8px 0', padding: '8px 16px' }}>
-            <button onClick={() => setShowEmpty(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontFamily: "'DM Sans',sans-serif", fontSize: 12, padding: 0 }}>
+            <button onClick={() => setShowEmpty(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontFamily: "'DM Sans Variable', 'DM Sans',sans-serif", fontSize: 12, padding: 0 }}>
               {showEmpty ? <EyeOff size={11} /> : <Eye size={11} />}
               {showEmpty ? 'Hide empty' : 'Show empty'}
             </button>
@@ -255,7 +255,7 @@ export function LiveDocs() {
         <div style={{ flex: 1, overflowY: 'auto', padding: '48px' }}>
           <div style={{ maxWidth: 800, margin: '0 auto' }}>
             {!editingTitle && (
-              <h1 onClick={() => setEditingTitle(true)} style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 28, fontWeight: 600, color: 'var(--text)', margin: '0 0 6px', cursor: 'text', lineHeight: 1.2 }}>{displayTitle}</h1>
+              <h1 onClick={() => setEditingTitle(true)} style={{ fontFamily: "'DM Sans Variable', 'DM Sans',sans-serif", fontSize: 28, fontWeight: 600, color: 'var(--text)', margin: '0 0 6px', cursor: 'text', lineHeight: 1.2 }}>{displayTitle}</h1>
             )}
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 6 }}>
               <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: 'var(--text-dim)' }}>{settings.author || 'Engineer'}</span>
@@ -269,12 +269,12 @@ export function LiveDocs() {
             {visibleSections.length === 0 && !generatingAll && (
               <div style={{ textAlign: 'center', padding: '60px 0' }}>
                 <FileText size={40} style={{ color: 'var(--text-dim)', margin: '0 auto 16px', display: 'block' }} />
-                <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 16, color: 'var(--text-muted)', margin: '0 0 8px' }}>Your document is empty</p>
-                <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 13, color: 'var(--text-dim)', margin: '0 0 20px' }}>
+                <p style={{ fontFamily: "'DM Sans Variable', 'DM Sans',sans-serif", fontSize: 16, color: 'var(--text-muted)', margin: '0 0 8px' }}>Your document is empty</p>
+                <p style={{ fontFamily: "'DM Sans Variable', 'DM Sans',sans-serif", fontSize: 13, color: 'var(--text-dim)', margin: '0 0 20px' }}>
                   Use the app normally — Jarvis watches in the background.<br />
                   When ready, click Generate All to build your technical document.
                 </p>
-                <button onClick={handleGenerateAll} disabled={!isConnected} style={{ background: 'var(--accent)', border: 'none', borderRadius: 8, padding: '10px 20px', cursor: isConnected ? 'pointer' : 'not-allowed', color: '#000', fontWeight: 600, fontSize: 14, fontFamily: "'DM Sans',sans-serif", opacity: isConnected ? 1 : 0.5 }}>
+                <button onClick={handleGenerateAll} disabled={!isConnected} style={{ background: 'var(--accent)', border: 'none', borderRadius: 8, padding: '10px 20px', cursor: isConnected ? 'pointer' : 'not-allowed', color: '#000', fontWeight: 600, fontSize: 14, fontFamily: "'DM Sans Variable', 'DM Sans',sans-serif", opacity: isConnected ? 1 : 0.5 }}>
                   {isConnected ? 'Generate Document' : 'Connect a model first'}
                 </button>
               </div>
@@ -295,7 +295,7 @@ export function LiveDocs() {
             ))}
 
             <div style={{ borderTop: '1px solid var(--border)', marginTop: 40, paddingTop: 16, textAlign: 'center' }}>
-              <a href="https://enginguity.app" target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 10, color: 'var(--text-dim)', textDecoration: 'none' }}>
+              <a href="https://enginguity.app" target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'DM Sans Variable', 'DM Sans',sans-serif", fontSize: 10, color: 'var(--text-dim)', textDecoration: 'none' }}>
                 Generated with ENGINGUITY · enginguity.app
               </a>
             </div>
@@ -304,7 +304,7 @@ export function LiveDocs() {
       </div>
 
       {toast && (
-        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 16px', zIndex: 200, fontFamily: "'DM Sans',sans-serif", fontSize: 13, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 16px', zIndex: 200, fontFamily: "'DM Sans Variable', 'DM Sans',sans-serif", fontSize: 13, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
           <Check size={14} style={{ color: 'var(--accent)' }} />{toast}
         </div>
       )}
@@ -314,7 +314,7 @@ export function LiveDocs() {
           onClick={e => { if (e.target === e.currentTarget) setShowSettings(false) }}>
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, width: 440, padding: 24, boxShadow: '0 16px 48px rgba(0,0,0,0.5)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3 style={{ margin: 0, fontFamily: "'DM Sans',sans-serif", fontSize: 16, color: 'var(--text)' }}>Document Settings</h3>
+              <h3 style={{ margin: 0, fontFamily: "'DM Sans Variable', 'DM Sans',sans-serif", fontSize: 16, color: 'var(--text)' }}>Document Settings</h3>
               <button onClick={() => setShowSettings(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', display: 'flex' }}><X size={16} /></button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -335,7 +335,7 @@ export function LiveDocs() {
               <ToggleSetting label="Auto-watch (passive observation)" hint="Collects observations from all modules silently" checked={settings.autoWatch !== false} onChange={v => saveSettings({ ...settings, autoWatch: v })} />
               <ToggleSetting label="Include raw observations appendix" hint="Adds a full timestamped log at the end" checked={!!settings.includeRawObservations} onChange={v => saveSettings({ ...settings, includeRawObservations: v })} />
               <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
-                <button onClick={() => { if (confirm('Clear all observations and generated content?')) { clearDraft(); setDraft(getDraft()); setShowSettings(false) } }} style={{ background: 'none', border: '1px solid #f87171', color: '#f87171', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', fontSize: 13, fontFamily: "'DM Sans',sans-serif" }}>
+                <button onClick={() => { if (confirm('Clear all observations and generated content?')) { clearDraft(); setDraft(getDraft()); setShowSettings(false) } }} style={{ background: 'none', border: '1px solid #f87171', color: '#f87171', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', fontSize: 13, fontFamily: "'DM Sans Variable', 'DM Sans',sans-serif" }}>
                   Clear all observations
                 </button>
               </div>
@@ -349,7 +349,7 @@ export function LiveDocs() {
           onClick={e => { if (e.target === e.currentTarget) setShowHistory(false) }}>
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, width: 480, maxHeight: '70vh', display: 'flex', flexDirection: 'column', boxShadow: '0 16px 48px rgba(0,0,0,0.5)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-              <h3 style={{ margin: 0, fontFamily: "'DM Sans',sans-serif", fontSize: 16, color: 'var(--text)' }}>Document History</h3>
+              <h3 style={{ margin: 0, fontFamily: "'DM Sans Variable', 'DM Sans',sans-serif", fontSize: 16, color: 'var(--text)' }}>Document History</h3>
               <button onClick={() => setShowHistory(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', display: 'flex' }}><X size={16} /></button>
             </div>
             <div style={{ overflowY: 'auto', flex: 1, padding: 8 }}>
@@ -364,16 +364,16 @@ export function LiveDocs() {
 
 function HistoryList({ onRestore }: { onRestore: (s: LiveDocsAny) => void }) {
   const history = getHistory()
-  if (history.length === 0) return <p style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: 13, fontFamily: "'DM Sans',sans-serif", padding: 20 }}>No document history yet.</p>
+  if (history.length === 0) return <p style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: 13, fontFamily: "'DM Sans Variable', 'DM Sans',sans-serif", padding: 20 }}>No document history yet.</p>
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       {history.map((entry: LiveDocsAny) => (
         <div key={entry.id} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div>
-            <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 13, color: 'var(--text)', marginBottom: 2 }}>{entry.title}</div>
+            <div style={{ fontFamily: "'DM Sans Variable', 'DM Sans',sans-serif", fontSize: 13, color: 'var(--text)', marginBottom: 2 }}>{entry.title}</div>
             <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: 'var(--text-dim)' }}>{new Date(entry.generatedAt).toLocaleString()} · {entry.wordCount} words · {entry.sectionCount} sections</div>
           </div>
-          <button onClick={() => onRestore(entry.content)} style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, fontFamily: "'DM Sans',sans-serif" }}>Restore</button>
+          <button onClick={() => onRestore(entry.content)} style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, fontFamily: "'DM Sans Variable', 'DM Sans',sans-serif" }}>Restore</button>
         </div>
       ))}
     </div>
@@ -383,7 +383,7 @@ function HistoryList({ onRestore }: { onRestore: (s: LiveDocsAny) => void }) {
 function Setting({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontFamily: "'DM Sans Variable', 'DM Sans',sans-serif", fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>{label}</div>
       {children}
     </div>
   )
@@ -393,8 +393,8 @@ function ToggleSetting({ label, hint, checked, onChange }: { label: string; hint
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
       <div>
-        <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 13, color: 'var(--text)' }}>{label}</div>
-        {hint && <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>{hint}</div>}
+        <div style={{ fontFamily: "'DM Sans Variable', 'DM Sans',sans-serif", fontSize: 13, color: 'var(--text)' }}>{label}</div>
+        {hint && <div style={{ fontFamily: "'DM Sans Variable', 'DM Sans',sans-serif", fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>{hint}</div>}
       </div>
       <button onClick={() => onChange(!checked)} style={{ width: 36, height: 20, borderRadius: 10, border: 'none', flexShrink: 0, marginTop: 2, background: checked ? 'var(--accent)' : 'var(--surface-2)', cursor: 'pointer', position: 'relative', transition: 'background 0.15s' }}>
         <span style={{ position: 'absolute', top: 3, width: 14, height: 14, borderRadius: '50%', background: checked ? '#000' : 'var(--text-dim)', left: checked ? 19 : 3, transition: 'left 0.15s' }} />
@@ -405,7 +405,7 @@ function ToggleSetting({ label, hint, checked, onChange }: { label: string; hint
 
 function TBtn({ children, onClick, disabled, primary }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean; primary?: boolean }) {
   return (
-    <button onClick={onClick} disabled={disabled} style={{ display: 'flex', alignItems: 'center', gap: 5, background: primary ? 'var(--accent)' : 'transparent', border: primary ? 'none' : '1px solid var(--border)', borderRadius: 7, padding: '6px 12px', cursor: disabled ? 'not-allowed' : 'pointer', color: primary ? '#000' : 'var(--text-muted)', fontFamily: "'DM Sans',sans-serif", fontSize: 12, fontWeight: primary ? 600 : 400, opacity: disabled ? 0.6 : 1, transition: 'all 0.12s', flexShrink: 0 }}
+    <button onClick={onClick} disabled={disabled} style={{ display: 'flex', alignItems: 'center', gap: 5, background: primary ? 'var(--accent)' : 'transparent', border: primary ? 'none' : '1px solid var(--border)', borderRadius: 7, padding: '6px 12px', cursor: disabled ? 'not-allowed' : 'pointer', color: primary ? '#000' : 'var(--text-muted)', fontFamily: "'DM Sans Variable', 'DM Sans',sans-serif", fontSize: 12, fontWeight: primary ? 600 : 400, opacity: disabled ? 0.6 : 1, transition: 'all 0.12s', flexShrink: 0 }}
       onMouseEnter={e => { if (!disabled && !primary) { e.currentTarget.style.borderColor = 'var(--border-bright)'; e.currentTarget.style.color = 'var(--text)' } }}
       onMouseLeave={e => { if (!primary) { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' } }}
     >{children}</button>
@@ -415,5 +415,5 @@ function TBtn({ children, onClick, disabled, primary }: { children: React.ReactN
 const inputStyle: React.CSSProperties = {
   width: '100%', background: 'var(--surface-2)', border: '1px solid var(--border)',
   borderRadius: 6, padding: '7px 10px', color: 'var(--text)',
-  fontFamily: "'DM Sans',sans-serif", fontSize: 13, outline: 'none', boxSizing: 'border-box'
+  fontFamily: "'DM Sans Variable', 'DM Sans',sans-serif", fontSize: 13, outline: 'none', boxSizing: 'border-box'
 }

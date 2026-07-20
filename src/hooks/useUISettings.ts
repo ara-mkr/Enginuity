@@ -91,8 +91,8 @@ const TRANSITION_SPEEDS: Record<string, string> = {
 }
 
 export const FONT_FAMILIES: Record<string, string> = {
-  'Geist': "'Geist', 'DM Sans', system-ui, sans-serif",
-  'DM Sans': "'DM Sans', system-ui, sans-serif",
+  'Geist': "'Geist', 'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
+  'DM Sans': "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
   'Inter': "'Inter', system-ui, sans-serif",
   'System UI': 'system-ui, sans-serif',
 }

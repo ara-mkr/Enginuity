@@ -611,7 +611,7 @@ Please structure the solution with:
             </span>
 
             <div style={{ textAlign: 'center', paddingTop: 16, paddingBottom: 16 }}>
-              <span style={{ fontSize: 11, fontFamily: "'DM Sans', system-ui, sans-serif", color: 'var(--text-muted)', display: 'block' }}>Score</span>
+              <span style={{ fontSize: 11, fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif", color: 'var(--text-muted)', display: 'block' }}>Score</span>
               <span style={{ fontSize: 48, fontWeight: 400, color: 'var(--text)', fontFamily: "'JetBrains Mono', monospace" }}>
                 {resultsData.score}
               </span>

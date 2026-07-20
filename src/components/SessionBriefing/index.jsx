@@ -179,7 +179,7 @@ export function SessionBriefing() {
         width:         560,
         maxWidth:      'calc(100vw - 32px)',
         animation:     'briefingSlideDown 0.35s cubic-bezier(0.16,1,0.3,1) both',
-        fontFamily:    "'DM Sans', 'Geist', sans-serif",
+        fontFamily:    "'DM Sans Variable', 'DM Sans', 'Geist', sans-serif",
       }}
     >
       <style>{`

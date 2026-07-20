@@ -186,7 +186,7 @@ export function CrossSearch() {
           flexDirection: 'column',
           maxHeight:     'calc(100vh - 120px)',
           overflow:      'hidden',
-          fontFamily:    "'DM Sans', 'Geist', sans-serif",
+          fontFamily:    "'DM Sans Variable', 'DM Sans', 'Geist', sans-serif",
         }}
       >
         {/* ── Input row ── */}

@@ -709,7 +709,7 @@ function SettingsPopover({
         display: 'flex',
         flexDirection: 'column',
         gap: 14,
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif",
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -3451,7 +3451,7 @@ Use this context to make responses feel personal. Reference the project when rel
         flexDirection: 'column',
         height: '100%',
         overflow: 'hidden',
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif",
       }}
     >
       {/* Voice diagnostic overlay — always visible during development */}
@@ -3589,7 +3589,7 @@ Use this context to make responses feel personal. Reference the project when rel
             zIndex: 40,
             display: 'flex',
             flexDirection: 'column',
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif",
             animation: 'slideIn 0.3s ease-out',
           }}
         >
@@ -4075,7 +4075,7 @@ Use this context to make responses feel personal. Reference the project when rel
             padding: '0 12px',
             fontSize: 13,
             color: 'var(--text)',
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif",
           }}
         />
         {wakeState === 'processing' && (

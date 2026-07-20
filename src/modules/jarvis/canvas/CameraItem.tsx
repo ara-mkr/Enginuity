@@ -41,7 +41,7 @@ export function CameraItem({
       style={{
         width: w,
         userSelect: 'none',
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: "'DM Sans Variable', 'DM Sans', sans-serif",
       }}
     >
       {/* Title bar */}

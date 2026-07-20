@@ -350,7 +350,7 @@ export default function CommentsPanel({
             border: '1px solid var(--border)',
             color: 'var(--text)',
             fontSize: 12,
-            fontFamily: "'DM Sans', system-ui, sans-serif",
+            fontFamily: "'DM Sans Variable', 'DM Sans', system-ui, sans-serif",
             resize: 'none',
             outline: 'none',
             boxSizing: 'border-box',
